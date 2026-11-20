@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/reader-improvements-apk2
+      - feature/portable-data-folder-apk1
   workflow_dispatch:
 
 permissions:
