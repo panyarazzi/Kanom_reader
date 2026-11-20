@@ -34,6 +34,18 @@ class EpubImporterTest {
         assertEquals(1, repo.books.value.size)
     }
 
+    @Test fun restored_book_can_be_relinked_without_changing_its_stable_id() = runTest {
+        val repo = FakeBookRepository()
+        val ext = FakeMetadataExtractor(BookMetadata("Same Book", "Author", "th", null))
+        val imp = importer(repo, ext, createTempDir())
+        val first = imp.import("content://old-grant", 2048, "book.epub") as ImportResult.Imported
+        val relinked = imp.import("content://new-grant", 2048, "book.epub")
+        assertTrue(relinked is ImportResult.Relinked)
+        assertEquals(first.bookId, (relinked as ImportResult.Relinked).bookId)
+        assertEquals("content://new-grant", repo.books.value.single().uri)
+        assertEquals(1, repo.books.value.size)
+    }
+
     @Test fun unreadable_epub_returns_unreadable() = runTest {
         val repo = FakeBookRepository()
         val ext = FakeMetadataExtractor(null)
