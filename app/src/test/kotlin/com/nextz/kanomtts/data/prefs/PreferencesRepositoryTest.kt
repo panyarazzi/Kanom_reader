@@ -26,6 +26,7 @@ class PreferencesRepositoryTest {
         assertEquals(ReaderTheme.LIGHT, p.readerTheme)
         assertEquals(18, p.fontSizeSp)
         assertEquals(false, p.premiumUnlocked)
+        assertEquals(false, p.reverseVolumeKeys)
     }
     @Test fun writes_round_trip() = runTest {
         val r = repo()
