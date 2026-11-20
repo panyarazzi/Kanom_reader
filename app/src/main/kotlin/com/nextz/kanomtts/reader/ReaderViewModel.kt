@@ -46,6 +46,7 @@ import org.readium.r2.navigator.epub.css.FontStyle
 import org.readium.r2.navigator.epub.css.FontWeight
 import org.readium.r2.navigator.preferences.FontFamily
 import org.readium.r2.navigator.util.DirectionalNavigationAdapter
+import org.readium.r2.navigator.input.KeyEvent as ReadiumKeyEvent
 import org.readium.r2.shared.DelicateReadiumApi
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Link
@@ -415,6 +416,63 @@ class ReaderViewModel @Inject constructor(
     /** Navigate to a ToC [link]. Fire-and-forget; result ignored. */
     fun goTo(link: Link) {
         navigator?.go(link, animated = animatePageTurns)
+    }
+
+    /**
+     * Receives Android hardware keys at Activity level. Readium 3.3.0 only installs its
+     * KeyInterceptorView for fixed-layout EPUBs, so reflowable books need this bridge.
+     */
+    fun onHardwareKeyEvent(event: android.view.KeyEvent): Boolean {
+        val nav = navigator ?: return false
+        val keyCode = event.keyCode
+
+        val supported = when (keyCode) {
+            android.view.KeyEvent.KEYCODE_DPAD_LEFT,
+            android.view.KeyEvent.KEYCODE_DPAD_RIGHT,
+            android.view.KeyEvent.KEYCODE_DPAD_UP,
+            android.view.KeyEvent.KEYCODE_DPAD_DOWN,
+            android.view.KeyEvent.KEYCODE_SPACE,
+            android.view.KeyEvent.KEYCODE_PAGE_UP,
+            android.view.KeyEvent.KEYCODE_PAGE_DOWN,
+            android.view.KeyEvent.KEYCODE_VOLUME_UP,
+            android.view.KeyEvent.KEYCODE_VOLUME_DOWN,
+            android.view.KeyEvent.KEYCODE_MEDIA_NEXT,
+            android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS,
+            android.view.KeyEvent.KEYCODE_MOVE_HOME,
+            android.view.KeyEvent.KEYCODE_MOVE_END -> true
+            else -> false
+        }
+        if (!supported) return false
+
+        if (event.action == android.view.KeyEvent.ACTION_UP) return true
+        if (event.action != android.view.KeyEvent.ACTION_DOWN) return true
+        if (event.repeatCount > 0) return true
+
+        return when (keyCode) {
+            android.view.KeyEvent.KEYCODE_DPAD_LEFT,
+            android.view.KeyEvent.KEYCODE_DPAD_RIGHT,
+            android.view.KeyEvent.KEYCODE_DPAD_UP,
+            android.view.KeyEvent.KEYCODE_DPAD_DOWN,
+            android.view.KeyEvent.KEYCODE_SPACE -> {
+                val readiumEvent = ReadiumKeyEvent(ReadiumKeyEvent.Type.Down, event)
+                readiumEvent?.let { edgeAdapter?.onKey(it) } ?: false
+            }
+            android.view.KeyEvent.KEYCODE_PAGE_DOWN,
+            android.view.KeyEvent.KEYCODE_VOLUME_UP,
+            android.view.KeyEvent.KEYCODE_MEDIA_NEXT,
+            android.view.KeyEvent.KEYCODE_MOVE_HOME -> {
+                nextPage()
+                true
+            }
+            android.view.KeyEvent.KEYCODE_PAGE_UP,
+            android.view.KeyEvent.KEYCODE_VOLUME_DOWN,
+            android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS,
+            android.view.KeyEvent.KEYCODE_MOVE_END -> {
+                previousPage()
+                true
+            }
+            else -> false
+        }
     }
 
     /** Go forward one page. Fire-and-forget; result ignored. */
