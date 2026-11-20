@@ -648,6 +648,7 @@ class ReaderViewModel @Inject constructor(
     fun onTopMargin(dp: Int) = viewModelScope.launch { prefs.setTopMarginDp(dp) }
     fun onBottomMargin(dp: Int) = viewModelScope.launch { prefs.setBottomMarginDp(dp) }
     fun onBoldText(enabled: Boolean) = viewModelScope.launch { prefs.setBoldText(enabled) }
+    fun onReverseVolumeKeys(enabled: Boolean) = viewModelScope.launch { prefs.setReverseVolumeKeys(enabled) }
     // Task 6 escape hatches
     fun onUsePublisherStyles(v: Boolean) = viewModelScope.launch { prefs.setUsePublisherStyles(v) }
     fun onForceFont(v: Boolean) = viewModelScope.launch { prefs.setForceFont(v) }
