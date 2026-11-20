@@ -57,6 +57,7 @@ object EpubPreferencesMapper {
             textColor = RColor(fgArgb),
             fontFamily = family,
             fontSize = prefs.fontSizeSp / BASE_FONT_SP,
+            fontWeight = if (prefs.boldText) 700.0 else 400.0,
             lineHeight = prefs.lineHeight.toDouble(),
             pageMargins = prefs.marginDp / BASE_MARGIN_DP,
             publisherStyles = prefs.usePublisherStyles && !prefs.stripColors,
