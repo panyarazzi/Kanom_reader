@@ -23,6 +23,12 @@ interface BookDao {
     @Query("SELECT * FROM books WHERE id = :id")
     suspend fun getById(id: String): BookEntity?
 
+    @Query("SELECT * FROM books WHERE title = :title AND fileSize = :fileSize LIMIT 1")
+    suspend fun findByTitleAndSize(title: String, fileSize: Long): BookEntity?
+
+    @Query("UPDATE books SET uri = :uri WHERE id = :id")
+    suspend fun updateUri(id: String, uri: String)
+
     @Query("SELECT EXISTS(SELECT 1 FROM books WHERE uri = :uri OR (title <> '' AND fileSize > 0 AND title = :title AND fileSize = :fileSize))")
     suspend fun existsDuplicate(uri: String, title: String, fileSize: Long): Boolean
 

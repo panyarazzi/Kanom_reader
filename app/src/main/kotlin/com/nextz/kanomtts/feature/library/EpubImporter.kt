@@ -8,6 +8,7 @@ import java.security.MessageDigest
 sealed interface ImportResult {
     object Duplicate : ImportResult
     data class Imported(val bookId: String) : ImportResult
+    data class Relinked(val bookId: String) : ImportResult
     object Unreadable : ImportResult
 }
 
@@ -20,6 +21,8 @@ class EpubImporter(
     suspend fun import(uri: String, fileSize: Long, displayName: String?): ImportResult {
         val meta = extractor.extract(uri) ?: return ImportResult.Unreadable
         val title = meta.title.ifBlank { displayName?.removeSuffix(".epub") ?: "Untitled" }
+        val relinkedId = books.relinkSource(uri, title, fileSize)
+        if (relinkedId != null) return ImportResult.Relinked(relinkedId)
         if (books.isDuplicate(uri, title, fileSize)) return ImportResult.Duplicate
         val id = stableId(uri)
         val coverPath = meta.coverBytes?.let { bytes ->
