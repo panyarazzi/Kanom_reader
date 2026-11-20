@@ -30,6 +30,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentContainerView
 import com.nextz.kanomtts.BuildConfig
+import com.nextz.kanomtts.MainActivity
 import com.nextz.kanomtts.R
 import com.nextz.kanomtts.feature.replacement.ReplacementRuleSheet
 import org.readium.r2.navigator.epub.EpubNavigatorFragment
@@ -45,6 +46,13 @@ fun ReaderScreen(
     contentPadding: PaddingValues = PaddingValues(0.dp),
     onOpenReplacements: (bookId: String) -> Unit = {},
 ) {
+    val activity = LocalActivity.current
+    DisposableEffect(activity, viewModel) {
+        val host = activity as? MainActivity
+        host?.setReaderKeyHandler(viewModel::onHardwareKeyEvent)
+        onDispose { host?.setReaderKeyHandler(null) }
+    }
+
     val state by viewModel.uiState.collectAsState()
     val quickAdd by viewModel.quickAddText.collectAsState()
 
