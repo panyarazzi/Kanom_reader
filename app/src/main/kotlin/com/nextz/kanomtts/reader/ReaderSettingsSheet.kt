@@ -202,6 +202,11 @@ internal fun ReaderSettingsSheetContent(
                 onCheckedChange = onBoldText,
             )
             ToggleRow(
+                label = "สลับปุ่ม Volume",
+                checked = prefs.reverseVolumeKeys,
+                onCheckedChange = onReverseVolumeKeys,
+            )
+            ToggleRow(
                 label = "ไม่ใช้สีผู้จัดพิมพ์",
                 checked = prefs.stripColors,
                 onCheckedChange = onStripColors,
