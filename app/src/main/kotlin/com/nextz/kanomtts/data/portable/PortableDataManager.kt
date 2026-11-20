@@ -64,12 +64,18 @@ class PortableDataManager @Inject constructor(
     }
 
     fun portableFolderPath(): String = root.absolutePath
+
+    fun ensurePortableFolders(): Boolean {
+        if (!hasStorageAccess()) return false
+        return listOf(root, File(root, "books"), File(root, "settings"), File(root, "progress"),
+            File(root, "bookmarks"), File(root, "covers"), backupDir).all { it.exists() || it.mkdirs() }
+    }
+
     fun latestBackupExists(): Boolean = hasStorageAccess() && latestBackup.isFile
 
     suspend fun createBackup(): PortableBackupSummary = withContext(Dispatchers.IO) {
         requireStorageAccess()
-        check(root.exists() || root.mkdirs()) { "สร้างโฟลเดอร์ Kanom ไม่สำเร็จ" }
-        check(backupDir.exists() || backupDir.mkdirs()) { "สร้างโฟลเดอร์ backup ไม่สำเร็จ" }
+        check(ensurePortableFolders()) { "สร้างโฟลเดอร์ Kanom ไม่สำเร็จ" }
         val books = database.bookDao().getAllForBackup()
         val progress = database.progressDao().getAllForBackup()
         val bookmarks = database.bookmarkDao().getAllForBackup()
@@ -141,6 +147,12 @@ class PortableDataManager @Inject constructor(
 
         val dated = File(backupDir, "kanom-${System.currentTimeMillis()}.zip")
         latestBackup.copyTo(dated, overwrite = true)
+        File(root, "manifest.json").writeText(
+            JSONObject().put("formatVersion", FORMAT_VERSION)
+                .put("lastBackupAt", System.currentTimeMillis())
+                .put("latestBackup", "backup/kanom-latest.zip").toString(2),
+            Charsets.UTF_8,
+        )
         PortableBackupSummary(books.size, progress.size, bookmarks.size, rules.size, voices.size, latestBackup.absolutePath)
     }
 
