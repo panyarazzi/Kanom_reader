@@ -179,7 +179,7 @@ class ReaderViewModel @Inject constructor(
                 navigator?.submitPreferences(EpubPreferencesMapper.map(p))
                 _uiState.update { s -> if (s is ReaderUiState.Ready) s.copy(prefs = p) else s }
                 applyPublisherLineHeight()
-                applyPublisherLineHeight()
+                applyBoldText()
             }
         }
         // Collect bookmarks and keep Ready.bookmarks up-to-date + push Decoration group.
@@ -327,7 +327,10 @@ class ReaderViewModel @Inject constructor(
                 initialLocator = initialLocator,
                 listener = listener,
                 paginationListener = object : EpubNavigatorFragment.PaginationListener {
-                    override fun onPageLoaded() { applyPublisherLineHeight() }
+                    override fun onPageLoaded() {
+                        applyPublisherLineHeight()
+                        applyBoldText()
+                    }
                 },
                 initialPreferences = EpubPreferencesMapper.map(initialPrefs),
                 configuration = config,
@@ -370,6 +373,7 @@ class ReaderViewModel @Inject constructor(
         navigator = nav
         decorations.bind(nav)
         applyPublisherLineHeight(nav)
+        applyBoldText(nav)
         navLocatorJob = viewModelScope.launch {
             nav.currentLocator.collect { onLocatorChanged(it) }
         }
@@ -638,6 +642,28 @@ class ReaderViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { target.evaluateJavascript(script) }
                 .onFailure { android.util.Log.w("ReaderViewModel", "Could not apply publisher-compatible line height", it) }
+        }
+    }
+
+    /**
+     * Static EPUB fonts (including bundled Sarabun) need an explicit CSS weight
+     * override. Readium's fontWeight preference targets variable-font weight axes
+     * and is not sufficient for separate Regular/Bold font files. Reinstall this
+     * style on every resource load because each XHTML page has its own document.
+     */
+    private fun applyBoldText(nav: EpubNavigatorFragment? = navigator) {
+        val target = nav ?: return
+        val currentPrefs = (_uiState.value as? ReaderUiState.Ready)?.prefs ?: return
+        val script = if (currentPrefs.boldText) {
+            "(function(){var id='kanom-reader-bold-text';var s=document.getElementById(id);" +
+                "if(!s){s=document.createElement('style');s.id=id;(document.head||document.documentElement).appendChild(s);}" +
+                "s.textContent='body, body * {font-weight: 700 !important;}';})();"
+        } else {
+            "(function(){var s=document.getElementById('kanom-reader-bold-text');if(s)s.remove();})();"
+        }
+        viewModelScope.launch {
+            runCatching { target.evaluateJavascript(script) }
+                .onFailure { android.util.Log.w("ReaderViewModel", "Could not apply EPUB bold text", it) }
         }
     }
 
