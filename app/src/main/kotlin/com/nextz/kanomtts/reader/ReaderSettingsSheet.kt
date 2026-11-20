@@ -58,6 +58,9 @@ fun ReaderSettingsSheet(
         onFontSize = { viewModel.onFontSize(it) },
         onLineHeight = { viewModel.onLineHeight(it) },
         onMargin = { viewModel.onMargin(it) },
+        onTopMargin = { viewModel.onTopMargin(it) },
+        onBottomMargin = { viewModel.onBottomMargin(it) },
+        onBoldText = { viewModel.onBoldText(it) },
         onUsePublisherStyles = { viewModel.onUsePublisherStyles(it) },
         onForceFont = { viewModel.onForceFont(it) },
         onStripColors = { viewModel.onStripColors(it) },
@@ -78,6 +81,9 @@ internal fun ReaderSettingsSheetContent(
     onFontSize: (Int) -> Unit,
     onLineHeight: (Float) -> Unit,
     onMargin: (Int) -> Unit,
+    onTopMargin: (Int) -> Unit = {},
+    onBottomMargin: (Int) -> Unit = {},
+    onBoldText: (Boolean) -> Unit = {},
     onUsePublisherStyles: (Boolean) -> Unit = {},
     onForceFont: (Boolean) -> Unit = {},
     onStripColors: (Boolean) -> Unit = {},
@@ -155,7 +161,7 @@ internal fun ReaderSettingsSheetContent(
             Spacer(Modifier.height(8.dp))
 
             // ── Margin ─────────────────────────────────────────────────────────
-            SectionLabel("ระยะขอบ: ${prefs.marginDp} dp")
+            SectionLabel("ระยะขอบด้านข้าง: ${prefs.marginDp} dp")
             Slider(
                 value = prefs.marginDp.toFloat(),
                 onValueChange = { onMargin(it.toInt()) },
@@ -163,6 +169,16 @@ internal fun ReaderSettingsSheetContent(
                 steps = 63,
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            Spacer(Modifier.height(8.dp))
+
+            SectionLabel("ระยะขอบด้านบน: ${prefs.topMarginDp} dp")
+            Slider(value = prefs.topMarginDp.toFloat(), onValueChange = { onTopMargin(it.toInt()) }, valueRange = 0f..80f, steps = 79, modifier = Modifier.fillMaxWidth())
+
+            Spacer(Modifier.height(8.dp))
+
+            SectionLabel("ระยะขอบด้านล่าง: ${prefs.bottomMarginDp} dp")
+            Slider(value = prefs.bottomMarginDp.toFloat(), onValueChange = { onBottomMargin(it.toInt()) }, valueRange = 0f..80f, steps = 79, modifier = Modifier.fillMaxWidth())
 
             Spacer(Modifier.height(16.dp))
 
@@ -177,6 +193,11 @@ internal fun ReaderSettingsSheetContent(
                 label = "บังคับแบบอักษร",
                 checked = prefs.forceFont,
                 onCheckedChange = onForceFont,
+            )
+            ToggleRow(
+                label = "ตัวอักษรหนา",
+                checked = prefs.boldText,
+                onCheckedChange = onBoldText,
             )
             ToggleRow(
                 label = "ไม่ใช้สีผู้จัดพิมพ์",
