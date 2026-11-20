@@ -1,12 +1,12 @@
 package com.nextz.kanomtts.feature.settings
 
 import android.content.Context
-import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nextz.kanomtts.data.portable.PortableDataManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,11 +29,14 @@ data class FirstLaunchRecoveryUiState(
 
 @HiltViewModel
 class FirstLaunchRecoveryViewModel @Inject constructor(
-    @ApplicationContext context: Context,
+    @ApplicationContext private val context: Context,
     private val manager: PortableDataManager,
 ) : ViewModel() {
-    private val startupState: SharedPreferences =
-        context.getSharedPreferences(STARTUP_PREFS, Context.MODE_PRIVATE)
+    // noBackupFilesDir survives app updates but is not restored by Android Auto Backup.
+    // This lets a true reinstall be distinguished from an ordinary app update.
+    private val completeMarker = File(context.noBackupFilesDir, "portable-recovery-complete-v1")
+    private val pendingMarker = File(context.noBackupFilesDir, "portable-recovery-pending-v1")
+    private val inProgressMarker = File(context.noBackupFilesDir, "portable-recovery-in-progress-v1")
 
     private val _uiState = MutableStateFlow(FirstLaunchRecoveryUiState())
     val uiState: StateFlow<FirstLaunchRecoveryUiState> = _uiState.asStateFlow()
@@ -49,12 +52,10 @@ class FirstLaunchRecoveryViewModel @Inject constructor(
     }
 
     fun retryRestore() {
-        // Bypass the existing-data guard: a previous attempt may have restored Room
-        // successfully but failed before preferences were fully restored.
-        startupState.edit()
-            .putBoolean(KEY_RESTORE_IN_PROGRESS, true)
-            .remove(KEY_COMPLETE)
-            .apply()
+        completeMarker.delete()
+        pendingMarker.parentFile?.mkdirs()
+        pendingMarker.createNewFile()
+        inProgressMarker.delete()
         evaluate()
     }
 
@@ -63,8 +64,10 @@ class FirstLaunchRecoveryViewModel @Inject constructor(
     }
 
     fun continueWithoutPermission() {
-        // Do not mark setup complete: the permission/recovery prompt can be shown again
-        // on the next cold start, while the current session remains usable.
+        // Keep pendingMarker so a later cold start can resume recovery even if the
+        // installation receives an app update before the user grants permission.
+        pendingMarker.parentFile?.mkdirs()
+        pendingMarker.createNewFile()
         _uiState.value = FirstLaunchRecoveryUiState(FirstLaunchRecoveryStatus.READY)
     }
 
@@ -73,19 +76,24 @@ class FirstLaunchRecoveryViewModel @Inject constructor(
         evaluationJob = viewModelScope.launch {
             _uiState.value = FirstLaunchRecoveryUiState(FirstLaunchRecoveryStatus.CHECKING)
 
-            if (startupState.getBoolean(KEY_COMPLETE, false)) {
+            if (completeMarker.exists()) {
                 _uiState.value = FirstLaunchRecoveryUiState(FirstLaunchRecoveryStatus.READY)
                 return@launch
             }
 
-            val restoreWasInterrupted = startupState.getBoolean(KEY_RESTORE_IN_PROGRESS, false)
-            if (!restoreWasInterrupted && manager.hasLocalUserData()) {
-                // Existing installation/update: never overwrite its live data on first run
-                // of this startup-gate version.
+            val recoveryWasPending = pendingMarker.exists() || inProgressMarker.exists()
+            if (!recoveryWasPending && !isFreshInstall()) {
+                // First rollout of this feature on an existing installation: do not replace
+                // its live app data with an older portable snapshot.
                 markComplete()
                 _uiState.value = FirstLaunchRecoveryUiState(FirstLaunchRecoveryStatus.READY)
                 return@launch
             }
+
+            // Persist the fresh-install decision before requesting permission. If the user
+            // returns later, or updates the APK first, the recovery flow remains pending.
+            pendingMarker.parentFile?.mkdirs()
+            pendingMarker.createNewFile()
 
             if (!manager.hasStorageAccess()) {
                 _uiState.value = FirstLaunchRecoveryUiState(FirstLaunchRecoveryStatus.PERMISSION_REQUIRED)
@@ -99,9 +107,7 @@ class FirstLaunchRecoveryViewModel @Inject constructor(
             }
 
             _uiState.value = FirstLaunchRecoveryUiState(FirstLaunchRecoveryStatus.RESTORING)
-            // If Android kills the process mid-restore, the next launch retries. Restore is
-            // replacement-based and safe to repeat; this marker lives outside DataStore.
-            startupState.edit().putBoolean(KEY_RESTORE_IN_PROGRESS, true).apply()
+            inProgressMarker.createNewFile()
 
             runCatching { manager.restoreLatestBackup() }
                 .onSuccess {
@@ -118,16 +124,25 @@ class FirstLaunchRecoveryViewModel @Inject constructor(
         }
     }
 
+    private fun isFreshInstall(): Boolean {
+        val packageInfo = runCatching {
+            @Suppress("DEPRECATION")
+            context.packageManager.getPackageInfo(context.packageName, 0)
+        }.getOrNull() ?: return false
+
+        // On reinstall, Android assigns firstInstallTime and lastUpdateTime together.
+        // On an in-place app update, firstInstallTime remains older than lastUpdateTime.
+        return packageInfo.lastUpdateTime - packageInfo.firstInstallTime <= FRESH_INSTALL_WINDOW_MS
+    }
+
     private fun markComplete() {
-        startupState.edit()
-            .putBoolean(KEY_COMPLETE, true)
-            .remove(KEY_RESTORE_IN_PROGRESS)
-            .apply()
+        completeMarker.parentFile?.mkdirs()
+        completeMarker.createNewFile()
+        pendingMarker.delete()
+        inProgressMarker.delete()
     }
 
     private companion object {
-        const val STARTUP_PREFS = "kanom_portable_startup"
-        const val KEY_COMPLETE = "first_launch_recovery_complete_v1"
-        const val KEY_RESTORE_IN_PROGRESS = "first_launch_restore_in_progress_v1"
+        const val FRESH_INSTALL_WINDOW_MS = 5_000L
     }
 }

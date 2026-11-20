@@ -121,11 +121,14 @@ before entering the library. After permission is granted, it checks
 automatically when a valid backup is present. The user does not need to open
 Settings or press Restore.
 
-The startup marker is stored in a dedicated private SharedPreferences file,
-not in the DataStore payload that restore replaces. An interrupted restore is
-retried on the next launch. A failed restore is reported with retry and
-continue actions; it must not silently enter the library as though recovery
-succeeded.
+The startup markers are stored under Android's `noBackupFilesDir`: they survive
+app updates but are not copied back by Android Auto Backup after a reinstall.
+The gate distinguishes a fresh install from an in-place update using package
+installation timestamps, then persists a pending-recovery marker before asking
+for permission. This prevents Android-restored private data from suppressing
+the newer portable backup. An interrupted restore is retried on the next launch.
+A failed restore is reported with retry and continue actions; it must not
+silently enter the library as though recovery succeeded.
 
 For app updates, the gate checks for existing local Room or DataStore user data
 before attempting recovery. Existing installations are allowed into the app
