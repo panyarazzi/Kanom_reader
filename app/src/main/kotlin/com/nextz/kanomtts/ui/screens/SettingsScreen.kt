@@ -102,7 +102,7 @@ fun SettingsScreen(
         HorizontalDivider(Modifier.padding(vertical = 16.dp))
         Text("ข้อมูลถาวรของ Kanom", style = MaterialTheme.typography.titleLarge)
         Text(
-            "สำรองและกู้คืนข้อมูลผ่านโฟลเดอร์ Internal Storage/Kanom เพื่อเก็บข้อมูลไว้เมื่อติดตั้งแอปใหม่",
+            "สำรองและกู้คืนข้อมูลผ่านโฟลเดอร์ Internal Storage/Kanom เพื่อเก็บข้อมูลไว้เมื่อติดตั้งแอปใหม่ หากไม่คัดลอก EPUB ต้องคงไฟล์ต้นฉบับและอาจต้องเลือกไฟล์ใหม่หลังติดตั้งแอป",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 6.dp, bottom = 8.dp),
@@ -113,6 +113,23 @@ fun SettingsScreen(
         )
         Text("ตำแหน่ง: Internal Storage/Kanom", style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (portable.hasAccess) {
+            Row(
+                Modifier.fillMaxWidth().padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f).padding(end = 8.dp)) {
+                    Text("คัดลอกไฟล์ EPUB ไปไว้ใน Kanom/books", style = MaterialTheme.typography.bodyMedium)
+                    Text("เปิดใช้เมื่ออยากย้ายหนังสือไปเครื่องอื่นด้วย ใช้พื้นที่เพิ่มตามขนาดหนังสือทั้งหมด",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Checkbox(
+                    checked = portable.includeEpubFiles,
+                    onCheckedChange = portableVm::setIncludeEpubFiles,
+                    enabled = !portable.busy,
+                )
+            }
+        }
         if (!portable.hasAccess) {
             Button(
                 onClick = {
