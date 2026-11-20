@@ -10,7 +10,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
-import com.nextz.kanomtts.ui.navigation.FirstLaunchRecoveryScreen
 import androidx.compose.ui.Modifier
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -19,6 +18,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.nextz.kanomtts.feature.library.ImportViewModel
+import com.nextz.kanomtts.feature.settings.FirstLaunchRecoveryStatus
+import com.nextz.kanomtts.feature.settings.FirstLaunchRecoveryViewModel
 import com.nextz.kanomtts.feature.library.LibraryScreen
 import com.nextz.kanomtts.feature.replacement.ReplacementEditorScreen
 import com.nextz.kanomtts.playback.ui.MiniPlayer
@@ -29,13 +30,13 @@ import com.nextz.kanomtts.ui.screens.SettingsScreen
 
 @Composable
 fun KanomApp(
-    recoveryViewModel: com.nextz.kanomtts.feature.settings.FirstLaunchRecoveryViewModel,
+    recoveryViewModel: FirstLaunchRecoveryViewModel,
     onRequestStoragePermission: () -> Unit,
     onStartupFinished: () -> Unit,
 ) {
     val recoveryState by recoveryViewModel.uiState.collectAsState()
     androidx.compose.runtime.LaunchedEffect(recoveryState.status) {
-        if (recoveryState.status == com.nextz.kanomtts.feature.settings.FirstLaunchRecoveryStatus.READY) {
+        if (recoveryState.status == FirstLaunchRecoveryStatus.READY) {
             onStartupFinished()
         }
     }
@@ -45,6 +46,7 @@ fun KanomApp(
             onRequestPermission = onRequestStoragePermission,
             onRetry = recoveryViewModel::retryRestore,
             onContinueAfterFailure = recoveryViewModel::continueAfterFailure,
+            onContinueWithoutPermission = recoveryViewModel::continueWithoutPermission,
         )
         return
     }

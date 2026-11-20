@@ -25,6 +25,7 @@ fun FirstLaunchRecoveryScreen(
     onRequestPermission: () -> Unit,
     onRetry: () -> Unit,
     onContinueAfterFailure: () -> Unit,
+    onContinueWithoutPermission: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxSize().padding(28.dp),
@@ -48,6 +49,10 @@ fun FirstLaunchRecoveryScreen(
                 Spacer(Modifier.height(20.dp))
                 Button(onClick = onRequestPermission) {
                     Text("อนุญาตให้ Kanom เข้าถึงไฟล์")
+                }
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(onClick = onContinueWithoutPermission) {
+                    Text("ใช้งานแอปโดยไม่กู้คืนก่อน")
                 }
             }
             FirstLaunchRecoveryStatus.RESTORING -> {

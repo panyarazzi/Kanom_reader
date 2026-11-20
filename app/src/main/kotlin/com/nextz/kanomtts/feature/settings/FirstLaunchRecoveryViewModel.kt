@@ -62,6 +62,12 @@ class FirstLaunchRecoveryViewModel @Inject constructor(
         _uiState.value = FirstLaunchRecoveryUiState(FirstLaunchRecoveryStatus.READY)
     }
 
+    fun continueWithoutPermission() {
+        // Do not mark setup complete: the permission/recovery prompt can be shown again
+        // on the next cold start, while the current session remains usable.
+        _uiState.value = FirstLaunchRecoveryUiState(FirstLaunchRecoveryStatus.READY)
+    }
+
     private fun evaluate() {
         evaluationJob?.cancel()
         evaluationJob = viewModelScope.launch {
