@@ -46,6 +46,7 @@ import org.readium.r2.navigator.epub.css.FontStyle
 import org.readium.r2.navigator.epub.css.FontWeight
 import org.readium.r2.navigator.preferences.FontFamily
 import org.readium.r2.navigator.util.DirectionalNavigationAdapter
+import org.readium.r2.shared.DelicateReadiumApi
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Link
 import org.readium.r2.shared.publication.Locator
@@ -55,7 +56,7 @@ import org.readium.r2.shared.publication.services.content.content
 import org.readium.r2.shared.util.AbsoluteUrl
 import javax.inject.Inject
 
-@OptIn(ExperimentalReadiumApi::class, FlowPreview::class)
+@OptIn(ExperimentalReadiumApi::class, DelicateReadiumApi::class, FlowPreview::class)
 @HiltViewModel
 class ReaderViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
@@ -230,6 +231,8 @@ class ReaderViewModel @Inject constructor(
         // Register Sarabun font faces served from app/src/main/assets/fonts/.
         // servedAssets += "fonts/.*" is MANDATORY — without it the @font-face src 404s silently.
         val config = EpubNavigatorFragment.Configuration {
+            // WebView textZoom handles EPUBs whose CSS uses fixed font sizes more reliably.
+            useReadiumCssFontSize = false
             servedAssets += "fonts/.*"
             addFontFamilyDeclaration(FontFamily("Sarabun")) {
                 addFontFace {
@@ -316,6 +319,9 @@ class ReaderViewModel @Inject constructor(
             .createFragmentFactory(
                 initialLocator = initialLocator,
                 listener = listener,
+                paginationListener = object : EpubNavigatorFragment.PaginationListener {
+                    override fun onPageLoaded() { applyPublisherLineHeight() }
+                },
                 initialPreferences = EpubPreferencesMapper.map(initialPrefs),
                 configuration = config,
             )
@@ -356,6 +362,7 @@ class ReaderViewModel @Inject constructor(
         navigatorBound = true
         navigator = nav
         decorations.bind(nav)
+        applyPublisherLineHeight(nav)
         navLocatorJob = viewModelScope.launch {
             nav.currentLocator.collect { onLocatorChanged(it) }
         }
@@ -544,11 +551,36 @@ class ReaderViewModel @Inject constructor(
     // Each delegates to PreferencesRepository; the live-apply collector above submits
     // the updated EpubPreferences to the navigator automatically.
 
+    /**
+     * Readium disables its line-height preference while publisher styles are enabled.
+     * Keep publisher CSS active, but apply the user's line-height as a narrowly-scoped
+     * user override after each XHTML page finishes loading.
+     */
+    private fun applyPublisherLineHeight(nav: EpubNavigatorFragment? = navigator) {
+        val target = nav ?: return
+        val currentPrefs = (_uiState.value as? ReaderUiState.Ready)?.prefs ?: return
+        val script = if (currentPrefs.usePublisherStyles) {
+            val height = String.format(java.util.Locale.US, "%.2f", currentPrefs.lineHeight)
+            "(function(){var id='kanom-reader-line-height';var s=document.getElementById(id);" +
+                "if(!s){s=document.createElement('style');s.id=id;(document.head||document.documentElement).appendChild(s);}" +
+                "s.textContent='body, body p, body li, body div, body dd, body dt, body blockquote {line-height: ${height} !important;}';})();"
+        } else {
+            "(function(){var s=document.getElementById('kanom-reader-line-height');if(s)s.remove();})();"
+        }
+        viewModelScope.launch {
+            runCatching { target.evaluateJavascript(script) }
+                .onFailure { android.util.Log.w("ReaderViewModel", "Could not apply publisher-compatible line height", it) }
+        }
+    }
+
     fun onThemeSelected(t: ReaderTheme) = viewModelScope.launch { prefs.setReaderTheme(t) }
     fun onFontSelected(f: ReadingFont) = viewModelScope.launch { prefs.setReadingFont(f) }
     fun onFontSize(sp: Int) = viewModelScope.launch { prefs.setFontSizeSp(sp) }
     fun onLineHeight(v: Float) = viewModelScope.launch { prefs.setLineHeight(v) }
     fun onMargin(dp: Int) = viewModelScope.launch { prefs.setMarginDp(dp) }
+    fun onTopMargin(dp: Int) = viewModelScope.launch { prefs.setTopMarginDp(dp) }
+    fun onBottomMargin(dp: Int) = viewModelScope.launch { prefs.setBottomMarginDp(dp) }
+    fun onBoldText(enabled: Boolean) = viewModelScope.launch { prefs.setBoldText(enabled) }
     // Task 6 escape hatches
     fun onUsePublisherStyles(v: Boolean) = viewModelScope.launch { prefs.setUsePublisherStyles(v) }
     fun onForceFont(v: Boolean) = viewModelScope.launch { prefs.setForceFont(v) }
