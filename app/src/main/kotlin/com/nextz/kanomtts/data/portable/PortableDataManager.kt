@@ -317,7 +317,13 @@ class PortableDataManager @Inject constructor(
 
     private suspend fun restorePreferences(array: JSONArray) {
         dataStore.edit { prefs ->
+            // This entitlement is intentionally excluded from portable backups. Preserve the
+            // value already belonging to this installation instead of clearing it on restore.
+            val localPremiumEntitlement = prefs[booleanPreferencesKey("premium_unlocked")]
             prefs.clear()
+            if (localPremiumEntitlement != null) {
+                prefs[booleanPreferencesKey("premium_unlocked")] = localPremiumEntitlement
+            }
             for (i in 0 until array.length()) {
                 val item = array.getJSONObject(i)
                 val name = item.getString("name")
