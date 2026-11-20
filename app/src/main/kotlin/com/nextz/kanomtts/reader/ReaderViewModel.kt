@@ -459,8 +459,13 @@ class ReaderViewModel @Inject constructor(
                 val readiumEvent = ReadiumKeyEvent(ReadiumKeyEvent.Type.Down, event)
                 readiumEvent?.let { edgeAdapter?.onKey(it) } ?: false
             }
-            android.view.KeyEvent.KEYCODE_PAGE_DOWN,
             android.view.KeyEvent.KEYCODE_VOLUME_UP,
+            android.view.KeyEvent.KEYCODE_VOLUME_DOWN -> {
+                val movesForward = (keyCode == android.view.KeyEvent.KEYCODE_VOLUME_UP) xor reverseVolumeKeys
+                if (movesForward) nextPage() else previousPage()
+                true
+            }
+            android.view.KeyEvent.KEYCODE_PAGE_DOWN,
             android.view.KeyEvent.KEYCODE_MEDIA_NEXT,
             android.view.KeyEvent.KEYCODE_MOVE_HOME -> {
                 nextPage()
