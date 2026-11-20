@@ -1,0 +1,369 @@
+package com.nextz.kanomtts.feature.library
+
+import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.nextz.kanomtts.ui.theme.KanomTheme
+
+// ─── VM-bound entry point ───────────────────────────────────────────────────────
+
+/**
+ * Hilt-bound library screen. Includes a "+" FAB that launches the EPUB file picker
+ * and shows import-result snackbars. Delegates rendering to [LibraryContent].
+ */
+@Composable
+fun LibraryScreen(
+    onOpenBook: (String) -> Unit = {},
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(),
+    viewModel: LibraryViewModel = hiltViewModel(),
+    importViewModel: ImportViewModel,
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    BackHandler(enabled = uiState.isSelectionMode) { viewModel.clearSelection() }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            try {
+                context.contentResolver.takePersistableUriPermission(uri, FLAG_GRANT_READ_URI_PERMISSION)
+            } catch (_: SecurityException) {
+                // Content providers that don't support persistable permissions are fine —
+                // we still attempt import with the transient permission we have.
+            }
+            importViewModel.importFrom(uri)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        importViewModel.events.collect { result ->
+            val message = when (result) {
+                is ImportResult.Imported -> "เพิ่มหนังสือแล้ว"
+                is ImportResult.Duplicate -> "มีหนังสือนี้อยู่แล้ว"
+                is ImportResult.Unreadable -> "เปิดไฟล์ไม่ได้"
+            }
+            snackbarHostState.showSnackbar(message)
+        }
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            if (!uiState.isSelectionMode) {
+                FloatingActionButton(
+                    onClick = { launcher.launch(arrayOf("application/epub+zip", "application/octet-stream")) },
+                    // This screen's Scaffold is nested inside KanomApp's Scaffold, whose NavHost is NOT
+                    // inset by the bottom NavigationBar. The list content re-applies that inset via
+                    // combinedPadding, but the FAB lives in the Scaffold slot outside it — so without this
+                    // padding the FAB renders behind the bottom nav bar and is invisible/unclickable.
+                    modifier = Modifier.padding(bottom = contentPadding.calculateBottomPadding()),
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = "เพิ่มหนังสือ")
+                }
+            }
+        },
+    ) { innerPadding ->
+        // Merge outer contentPadding (from app scaffold) with inner padding from this scaffold.
+        val combinedPadding = PaddingValues(
+            top = contentPadding.calculateTopPadding() + innerPadding.calculateTopPadding(),
+            bottom = contentPadding.calculateBottomPadding() + innerPadding.calculateBottomPadding(),
+            start = contentPadding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
+            end = contentPadding.calculateRightPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
+        )
+        LibraryContent(
+            state = uiState,
+            onQueryChange = viewModel::setQuery,
+            onViewMode = viewModel::setViewMode,
+            onOpenBook = onOpenBook,
+            onToggleSelection = viewModel::toggleSelection,
+            onClearSelection = viewModel::clearSelection,
+            onDeleteSelected = viewModel::deleteSelected,
+            contentPadding = combinedPadding,
+            modifier = modifier,
+        )
+    }
+}
+
+// ─── State-hoisted content (previewable, no Hilt) ───────────────────────────────
+
+/**
+ * Pure-state library content: search bar / selection bar, view-mode toggle, continue-hero, book list.
+ * No ViewModel reference — safe to use in @Preview.
+ */
+@Composable
+fun LibraryContent(
+    state: LibraryUiState,
+    onQueryChange: (String) -> Unit,
+    onViewMode: (LibraryViewMode) -> Unit,
+    onOpenBook: (String) -> Unit,
+    onToggleSelection: (String) -> Unit,
+    onClearSelection: () -> Unit,
+    onDeleteSelected: () -> Unit,
+    contentPadding: PaddingValues = PaddingValues(),
+    modifier: Modifier = Modifier,
+) {
+    var showConfirm by remember { mutableStateOf(false) }
+    // Close a stale confirm dialog if selection is cleared externally (e.g. system back).
+    LaunchedEffect(state.isSelectionMode) { if (!state.isSelectionMode) showConfirm = false }
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(contentPadding)
+            .padding(horizontal = 16.dp),
+    ) {
+        Spacer(Modifier.height(8.dp))
+
+        if (state.isSelectionMode) {
+            SelectionBar(
+                count = state.selectedIds.size,
+                onClose = onClearSelection,
+                onDelete = { showConfirm = true },
+            )
+        } else {
+            BrandHeader()
+            Spacer(Modifier.height(12.dp))
+            // Search + toggle row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                LibrarySearchBar(
+                    query = state.query,
+                    onQueryChange = onQueryChange,
+                    modifier = Modifier.weight(1f),
+                )
+                ViewModeToggle(
+                    mode = state.viewMode,
+                    onSelect = onViewMode,
+                )
+            }
+        }
+
+        // Continue-listening hero (hidden in selection mode)
+        if (state.continueCard != null && !state.isSelectionMode) {
+            Spacer(Modifier.height(12.dp))
+            ContinueHero(
+                card = state.continueCard,
+                onClick = { onOpenBook(state.continueCard.id) },
+            )
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // Books or empty state
+        if (state.books.isEmpty() && state.query.isBlank()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = 32.dp),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                Text(
+                    text = "ยังไม่มีหนังสือ — แตะ + เพื่อเพิ่ม",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            when (state.viewMode) {
+                LibraryViewMode.GRID -> {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(140.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        items(state.books, key = { it.id }) { card ->
+                            BookGridItem(
+                                card = card,
+                                isSelectionMode = state.isSelectionMode,
+                                isSelected = card.id in state.selectedIds,
+                                onClick = { onOpenBook(card.id) },
+                                onToggle = { onToggleSelection(card.id) },
+                            )
+                        }
+                    }
+                }
+                LibraryViewMode.LIST,
+                LibraryViewMode.DETAIL,
+                -> {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        items(state.books, key = { it.id }) { card ->
+                            BookListItem(
+                                card = card,
+                                isSelectionMode = state.isSelectionMode,
+                                isSelected = card.id in state.selectedIds,
+                                onClick = { onOpenBook(card.id) },
+                                onToggle = { onToggleSelection(card.id) },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showConfirm) {
+        AlertDialog(
+            onDismissRequest = { showConfirm = false },
+            confirmButton = {
+                TextButton(onClick = { onDeleteSelected(); showConfirm = false }) { Text("ลบ") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirm = false }) { Text("ยกเลิก") }
+            },
+            title = { Text("ลบ ${state.selectedIds.size} เล่ม?") },
+            text = { Text("การลบนี้ย้อนกลับไม่ได้") },
+        )
+    }
+}
+
+// ─── Previews ───────────────────────────────────────────────────────────────────
+
+private val sampleBooks = listOf(
+    BookCard(
+        id = "1",
+        title = "นิทานพื้นบ้านไทย",
+        author = "ผู้แต่งไทย",
+        coverPath = null,
+        percent = 0.45f,
+        isReading = true,
+    ),
+    BookCard(
+        id = "2",
+        title = "สามก๊ก",
+        author = "โรแบร์ เดอ กรานด์",
+        coverPath = null,
+        percent = 0.0f,
+        isReading = false,
+    ),
+    BookCard(
+        id = "3",
+        title = "อุ้มบุญ: เรื่องสั้น",
+        author = null,
+        coverPath = null,
+        percent = 0.92f,
+        isReading = false,
+    ),
+    BookCard(
+        id = "4",
+        title = "ข้าวนอกนา",
+        author = "นักเขียนนิรนาม",
+        coverPath = null,
+        percent = 0.0f,
+        isReading = false,
+    ),
+)
+
+private val sampleContinueCard = sampleBooks.first()
+
+@Preview(name = "Library — GRID", showBackground = true)
+@Composable
+private fun LibraryGridPreview() {
+    KanomTheme {
+        LibraryContent(
+            state = LibraryUiState(
+                books = sampleBooks,
+                continueCard = sampleContinueCard,
+                viewMode = LibraryViewMode.GRID,
+                query = "",
+            ),
+            onQueryChange = {},
+            onViewMode = {},
+            onOpenBook = {},
+            onToggleSelection = {},
+            onClearSelection = {},
+            onDeleteSelected = {},
+        )
+    }
+}
+
+@Preview(name = "Library — LIST", showBackground = true)
+@Composable
+private fun LibraryListPreview() {
+    KanomTheme {
+        LibraryContent(
+            state = LibraryUiState(
+                books = sampleBooks,
+                continueCard = sampleContinueCard,
+                viewMode = LibraryViewMode.LIST,
+                query = "",
+            ),
+            onQueryChange = {},
+            onViewMode = {},
+            onOpenBook = {},
+            onToggleSelection = {},
+            onClearSelection = {},
+            onDeleteSelected = {},
+        )
+    }
+}
+
+@Preview(name = "Library — Empty", showBackground = true)
+@Composable
+private fun LibraryEmptyPreview() {
+    KanomTheme {
+        LibraryContent(
+            state = LibraryUiState(
+                books = emptyList(),
+                continueCard = null,
+                viewMode = LibraryViewMode.GRID,
+                query = "",
+            ),
+            onQueryChange = {},
+            onViewMode = {},
+            onOpenBook = {},
+            onToggleSelection = {},
+            onClearSelection = {},
+            onDeleteSelected = {},
+        )
+    }
+}

@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">KanomTTS</string>
+    <string name="menu_start_tts">อ่านจากตรงนี้</string>
+    <string name="menu_copy">คัดลอก</string>
+    <string name="menu_translate">แปล</string>
+    <string name="menu_add_replacement">เพิ่มคำแทนที่</string>
+    <string name="toast_copied">คัดลอกแล้ว</string>
+    <string name="toast_coming_soon">เร็วๆ นี้</string>
+    <string name="settings_replacements">คำแทนที่</string>
+    <string name="replacements_title">คำแทนที่</string>
+    <string name="replacements_empty">ยังไม่มีกฎ — เพิ่มกฎแรก</string>
+    <string name="replacements_inherited">+ %1$d กฎทั่วไปก็มีผลด้วย</string>
+    <string name="rule_pattern_hint">คำ/แพทเทิร์น</string>
+    <string name="rule_replacement_hint">แทนที่ด้วย</string>
+    <string name="rule_regex">ใช้ Regex</string>
+    <string name="rule_error_empty">ต้องไม่ว่าง</string>
+    <string name="rule_error_regex">Regex ไม่ถูกต้อง</string>
+    <string name="action_save">บันทึก</string>
+    <string name="action_delete">ลบ</string>
+    <string name="action_add">เพิ่ม</string>
+    <string name="rules_import">นำเข้า TSV</string>
+    <string name="rules_export">ส่งออก TSV</string>
+    <string name="rules_imported">นำเข้ากฎแล้ว</string>
+    <string name="rules_exported">ส่งออกแล้ว</string>
+    <string name="toast_replacement_added">เพิ่มคำแทนที่แล้ว</string>
+    <string name="reader_manage_replacements">จัดการคำแทนที่</string>
+    <string name="rule_scope_global">ทั่วไป</string>
+    <string name="rule_scope_book">เฉพาะเล่มนี้</string>
+    <string name="rule_show_in_reader">แสดงในหน้าอ่าน</string>
+</resources>

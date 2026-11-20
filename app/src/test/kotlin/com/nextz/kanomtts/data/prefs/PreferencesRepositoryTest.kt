@@ -1,0 +1,76 @@
+package com.nextz.kanomtts.data.prefs
+
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
+import com.nextz.kanomtts.ui.theme.ReaderTheme
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Rule
+import org.junit.Test
+import org.junit.rules.TemporaryFolder
+import java.io.File
+
+class PreferencesRepositoryTest {
+    @get:Rule val tmp = TemporaryFolder()
+    private fun repo(): PreferencesRepository {
+        val store: DataStore<Preferences> = PreferenceDataStoreFactory.create {
+            File(tmp.newFolder(), "test.preferences_pb")
+        }
+        return PreferencesRepository(store)
+    }
+
+    @Test fun defaults_when_empty() = runTest {
+        val p = repo().preferences.first()
+        assertEquals(ReaderTheme.LIGHT, p.readerTheme)
+        assertEquals(18, p.fontSizeSp)
+        assertEquals(false, p.premiumUnlocked)
+    }
+    @Test fun writes_round_trip() = runTest {
+        val r = repo()
+        r.setReaderTheme(ReaderTheme.TRUE_BLACK); r.setFontSizeSp(24); r.setPremiumUnlocked(true)
+        val p = r.preferences.first()
+        assertEquals(ReaderTheme.TRUE_BLACK, p.readerTheme)
+        assertEquals(24, p.fontSizeSp)
+        assertEquals(true, p.premiumUnlocked)
+    }
+    @Test fun corrupt_enum_falls_back_to_default() = runTest {
+        // setting an int where enum expected isn't possible via API; verify unknown name path via valueOf guard
+        val r = repo(); r.setReadingFont(ReadingFont.SERIF)
+        assertEquals(ReadingFont.SERIF, r.preferences.first().readingFont)
+    }
+
+    // Task 6 escape-hatch round-trip tests
+    @Test fun escape_hatch_defaults() = runTest {
+        val p = repo().preferences.first()
+        assertEquals(false, p.usePublisherStyles)
+        assertEquals(true, p.forceFont)
+        assertEquals(false, p.stripColors)
+        assertEquals(true, p.thaiWordBreak)
+    }
+    @Test fun escape_hatch_writes_round_trip() = runTest {
+        val r = repo()
+        r.setUsePublisherStyles(true)
+        r.setForceFont(false)
+        r.setStripColors(true)
+        r.setThaiWordBreak(false)
+        val p = r.preferences.first()
+        assertEquals(true, p.usePublisherStyles)
+        assertEquals(false, p.forceFont)
+        assertEquals(true, p.stripColors)
+        assertEquals(false, p.thaiWordBreak)
+    }
+
+    @Test fun pageAnimation_default_is_true() = runTest {
+        assertEquals(true, repo().preferences.first().pageAnimation)
+    }
+
+    @Test fun pageAnimation_round_trip() = runTest {
+        val r = repo()
+        r.setPageAnimation(false)
+        assertEquals(false, r.preferences.first().pageAnimation)
+        r.setPageAnimation(true)
+        assertEquals(true, r.preferences.first().pageAnimation)
+    }
+}

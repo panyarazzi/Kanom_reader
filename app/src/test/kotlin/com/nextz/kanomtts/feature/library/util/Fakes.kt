@@ -1,0 +1,40 @@
+package com.nextz.kanomtts.feature.library.util
+
+import com.nextz.kanomtts.data.db.BookEntity
+import com.nextz.kanomtts.data.db.ProgressEntity
+import com.nextz.kanomtts.data.repository.BookReader
+import com.nextz.kanomtts.data.repository.BookWriter
+import com.nextz.kanomtts.data.repository.ProgressReader
+import com.nextz.kanomtts.feature.library.BookMetadata
+import com.nextz.kanomtts.feature.library.MetadataExtractor
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
+
+class FakeBookRepository : BookWriter, BookReader {
+    val books = MutableStateFlow<List<BookEntity>>(emptyList())
+    override fun observeLibrary(): Flow<List<BookEntity>> = books
+    override suspend fun get(id: String): BookEntity? = books.value.find { it.id == id }
+    override suspend fun add(book: BookEntity) { books.value = books.value.filterNot { it.id == book.id } + book }
+    override suspend fun isDuplicate(uri: String, title: String, fileSize: Long): Boolean =
+        books.value.any { it.uri == uri || (title.isNotEmpty() && fileSize > 0 && it.title == title && it.fileSize == fileSize) }
+    suspend fun remove(id: String) { books.value = books.value.filterNot { it.id == id } }
+}
+
+class FakeProgressRepository : ProgressReader {
+    val progressMap = MutableStateFlow<Map<String, ProgressEntity?>>(emptyMap())
+
+    fun setProgress(bookId: String, progress: ProgressEntity?) {
+        progressMap.value = progressMap.value + (bookId to progress)
+    }
+
+    override suspend fun get(bookId: String): ProgressEntity? = progressMap.value[bookId]
+
+    override fun observe(bookId: String): Flow<ProgressEntity?> =
+        progressMap.map { it[bookId] }
+}
+
+class FakeMetadataExtractor(var result: BookMetadata?) : MetadataExtractor {
+    var lastUri: String? = null
+    override suspend fun extract(uri: String): BookMetadata? { lastUri = uri; return result }
+}

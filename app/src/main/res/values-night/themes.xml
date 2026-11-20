@@ -1,0 +1,4 @@
+<resources>
+    <!-- Night override — Material3, no action bar (Compose owns the UI). -->
+    <style name="Theme.KanomTTS" parent="Theme.Material3.DayNight.NoActionBar" />
+</resources>
