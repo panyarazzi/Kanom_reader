@@ -29,15 +29,30 @@ object ReaderTocFocus {
     /**
      * Index in [flatten]'s rendered row list for the first matching TOC entry in depth-first order.
      *
-     * Matching is fragment-insensitive: a TOC href "chapter.xhtml#section" matches a
-     * locator in "chapter.xhtml#paragraph". Because entries are checked in flattened
-     * order, a parent wins when it shares the same resource href with its descendants.
+     * Prefer an exact href (including fragment) so sibling sections in the same XHTML
+     * resource can be focused independently. If no exact fragment match exists, fall back
+     * to the first entry for the same resource, ignoring fragments.
      */
     fun currentIndex(toc: List<Link>, currentHref: Url?): Int? {
         if (currentHref == null) return null
-        val target = currentHref.toString().substringBefore('#')
-        return flatten(toc).indexOfFirst { entry ->
-            entry.link.href.toString().substringBefore('#') == target
+        val entries = flatten(toc)
+        val href = currentHref.toString()
+        val exactIndex = entries.indexOfFirst { it.link.href.toString() == href }
+        if (exactIndex >= 0) return exactIndex
+
+        val targetResource = href.substringBefore('#')
+        val targetFragment = href.substringAfter('#', missingDelimiterValue = "")
+        if (targetFragment.isNotEmpty()) {
+            val fragmentIndex = entries.indexOfFirst { entry ->
+                val entryHref = entry.link.href.toString()
+                entryHref.substringBefore('#') == targetResource &&
+                    entryHref.substringAfter('#', missingDelimiterValue = "") == targetFragment
+            }
+            if (fragmentIndex >= 0) return fragmentIndex
+        }
+
+        return entries.indexOfFirst { entry ->
+            entry.link.href.toString().substringBefore('#') == targetResource
         }.takeIf { it >= 0 }
     }
 }

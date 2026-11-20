@@ -84,6 +84,16 @@ class ReaderTocFocusTest {
         assertEquals(2, ReaderTocFocus.currentIndex(toc, Url("chapter.xhtml")!!))
     }
 
+    @Test fun `fragment match focuses nested section in the same XHTML resource`() {
+        val toc = listOf(
+            link("book.xhtml", children = listOf(
+                link("book.xhtml#chapter-one"),
+                link("book.xhtml#chapter-two"),
+            )),
+        )
+        assertEquals(2, ReaderTocFocus.currentIndex(toc, Url("book.xhtml#chapter-two")!!))
+    }
+
     @Test fun `match ignores fragments on both sides`() {
         val toc = listOf(link("ch1.xhtml"), link("ch2.xhtml#section-3"))
         assertEquals(1, ReaderTocFocus.currentIndex(toc, Url("ch2.xhtml#para-9")!!))
