@@ -53,6 +53,7 @@ class PreferencesRepository @Inject constructor(
             topMarginDp = p[Keys.topMargin] ?: DEFAULTS.topMarginDp,
             bottomMarginDp = p[Keys.bottomMargin] ?: DEFAULTS.bottomMarginDp,
             boldText = p[Keys.boldText] ?: DEFAULTS.boldText,
+            reverseVolumeKeys = p[Keys.reverseVolumeKeys] ?: DEFAULTS.reverseVolumeKeys,
             skipUrls = p[Keys.skipUrls] ?: DEFAULTS.skipUrls,
             highlightOn = p[Keys.highlight] ?: DEFAULTS.highlightOn,
             autoScroll = p[Keys.autoScroll] ?: DEFAULTS.autoScroll,
