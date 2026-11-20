@@ -62,6 +62,17 @@ class PreferencesRepositoryTest {
         assertEquals(false, p.thaiWordBreak)
     }
 
+    @Test fun readerTypographyAndVerticalMargins_round_trip() = runTest {
+        val r = repo()
+        r.setBoldText(true)
+        r.setTopMarginDp(28)
+        r.setBottomMarginDp(36)
+        val p = r.preferences.first()
+        assertEquals(true, p.boldText)
+        assertEquals(28, p.topMarginDp)
+        assertEquals(36, p.bottomMarginDp)
+    }
+
     @Test fun pageAnimation_default_is_true() = runTest {
         assertEquals(true, repo().preferences.first().pageAnimation)
     }
