@@ -48,6 +48,7 @@ data class PortableBackupSummary(
     val replacementRules: Int,
     val voiceConfigs: Int,
     val epubCopies: Int,
+    val epubCopyFailures: Int,
     val backupFile: String,
 )
 
@@ -193,7 +194,8 @@ class PortableDataManager @Inject constructor(
                 .put("latestBackup", "backup/kanom-latest.zip").toString(2),
             Charsets.UTF_8,
         )
-        PortableBackupSummary(books.size, progress.size, bookmarks.size, rules.size, voices.size, portableEpubs.size, latestBackup.absolutePath)
+        PortableBackupSummary(books.size, progress.size, bookmarks.size, rules.size, voices.size, portableEpubs.size,
+            if (includeEpubFiles) books.size - portableEpubs.size else 0, latestBackup.absolutePath)
     }
 
     suspend fun restoreLatestBackup(): PortableBackupSummary = withContext(Dispatchers.IO) {
@@ -286,8 +288,9 @@ class PortableDataManager @Inject constructor(
             database.voiceConfigDao().insertAll(voices)
         }
         restorePreferences(json.getJSONArray("preferences"))
+        val portableCount = books.count { it.uri.startsWith("file:") && it.uri.contains("/Kanom/books/") }
         PortableBackupSummary(books.size, progress.size, bookmarks.size, rules.size, voices.size,
-            books.count { it.uri.startsWith("file:") && it.uri.contains("/Kanom/books/") }, latestBackup.absolutePath)
+            portableCount, 0, latestBackup.absolutePath)
     }
 
     private fun requireStorageAccess() {
@@ -297,7 +300,7 @@ class PortableDataManager @Inject constructor(
     }
 
     private fun encodePreferences(prefs: Preferences): JSONArray = JSONArray().apply {
-        prefs.asMap().forEach { (key, value) ->
+        prefs.asMap().filterNot { it.key.name == "premium_unlocked" }.forEach { (key, value) ->
             val item = JSONObject().put("name", key.name)
             when (value) {
                 is Boolean -> item.put("type", "boolean").put("value", value)
