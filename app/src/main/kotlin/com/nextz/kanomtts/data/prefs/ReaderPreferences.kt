@@ -17,6 +17,7 @@ interface ReaderPreferences {
     suspend fun setTopMarginDp(v: Int)
     suspend fun setBottomMarginDp(v: Int)
     suspend fun setBoldText(v: Boolean)
+    suspend fun setReverseVolumeKeys(v: Boolean)
     suspend fun setUsePublisherStyles(v: Boolean)
     suspend fun setForceFont(v: Boolean)
     suspend fun setStripColors(v: Boolean)
