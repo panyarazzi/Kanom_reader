@@ -33,6 +33,8 @@ import org.json.JSONObject
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
@@ -59,6 +61,14 @@ class PortableDataManager @Inject constructor(
     private val backupDir get() = File(root, "backup")
     private val latestBackup get() = File(backupDir, "kanom-latest.zip")
 
+    private data class DbSnapshot(
+        val books: List<BookEntity>,
+        val progress: List<ProgressEntity>,
+        val bookmarks: List<BookmarkEntity>,
+        val rules: List<ReplacementRuleEntity>,
+        val voices: List<VoiceConfigEntity>,
+    )
+
     fun hasStorageAccess(): Boolean = when {
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> Environment.isExternalStorageManager()
         else -> ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
@@ -78,11 +88,20 @@ class PortableDataManager @Inject constructor(
     suspend fun createBackup(includeEpubFiles: Boolean = false): PortableBackupSummary = withContext(Dispatchers.IO) {
         requireStorageAccess()
         check(ensurePortableFolders()) { "สร้างโฟลเดอร์ Kanom ไม่สำเร็จ" }
-        val books = database.bookDao().getAllForBackup()
-        val progress = database.progressDao().getAllForBackup()
-        val bookmarks = database.bookmarkDao().getAllForBackup()
-        val rules = database.replacementRuleDao().getAllForBackup()
-        val voices = database.voiceConfigDao().getAllForBackup()
+        val snapshot = database.withTransaction {
+            DbSnapshot(
+                books = database.bookDao().getAllForBackup(),
+                progress = database.progressDao().getAllForBackup(),
+                bookmarks = database.bookmarkDao().getAllForBackup(),
+                rules = database.replacementRuleDao().getAllForBackup(),
+                voices = database.voiceConfigDao().getAllForBackup(),
+            )
+        }
+        val books = snapshot.books
+        val progress = snapshot.progress
+        val bookmarks = snapshot.bookmarks
+        val rules = snapshot.rules
+        val voices = snapshot.voices
         val prefs = dataStore.data.first()
         val portableEpubs = mutableMapOf<String, File>()
         if (includeEpubFiles) {
@@ -160,10 +179,11 @@ class PortableDataManager @Inject constructor(
                 zip.closeEntry()
             }
         }
-        check(temp.renameTo(latestBackup) || run {
-            latestBackup.delete()
-            temp.renameTo(latestBackup)
-        }) { "บันทึกไฟล์สำรองไม่สำเร็จ" }
+        runCatching {
+            Files.move(temp.toPath(), latestBackup.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+        }.recoverCatching {
+            Files.move(temp.toPath(), latestBackup.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }.getOrElse { throw IllegalStateException("บันทึกไฟล์สำรองไม่สำเร็จ", it) }
 
         val dated = File(backupDir, "kanom-${System.currentTimeMillis()}.zip")
         latestBackup.copyTo(dated, overwrite = true)
