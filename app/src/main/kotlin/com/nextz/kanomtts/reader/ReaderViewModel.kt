@@ -173,6 +173,7 @@ class ReaderViewModel @Inject constructor(
                 thaiWordBreak = p.thaiWordBreak
                 navigator?.submitPreferences(EpubPreferencesMapper.map(p))
                 _uiState.update { s -> if (s is ReaderUiState.Ready) s.copy(prefs = p) else s }
+                applyPublisherLineHeight()
             }
         }
         // Collect bookmarks and keep Ready.bookmarks up-to-date + push Decoration group.
