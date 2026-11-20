@@ -57,9 +57,10 @@ object EpubPreferencesMapper {
             textColor = RColor(fgArgb),
             fontFamily = family,
             fontSize = prefs.fontSizeSp / BASE_FONT_SP,
-            // Readium expects a multiplier of FontWeight.NORMAL (400), constrained to 0.0..2.5.
-            // 1.75 produces CSS 700 (bold); 1.0 keeps CSS 400 (normal).
-            fontWeight = if (prefs.boldText) 1.75 else 1.0,
+            // Match Liseur: leave the preference unset when Bold is OFF, so the EPUB
+            // keeps its own weight hierarchy. When ON, 1.75 requests CSS weight 700.
+            // Readium interprets this as a multiplier of NORMAL (400), not CSS 700.
+            fontWeight = if (prefs.boldText) 1.75 else null,
             lineHeight = prefs.lineHeight.toDouble(),
             pageMargins = prefs.marginDp / BASE_MARGIN_DP,
             publisherStyles = prefs.usePublisherStyles && !prefs.stripColors,
