@@ -560,7 +560,7 @@ class ReaderViewModel @Inject constructor(
     private fun applyPublisherLineHeight(nav: EpubNavigatorFragment? = navigator) {
         val target = nav ?: return
         val currentPrefs = (_uiState.value as? ReaderUiState.Ready)?.prefs ?: return
-        val script = if (currentPrefs.usePublisherStyles) {
+        val script = if (currentPrefs.usePublisherStyles && !currentPrefs.stripColors) {
             val height = String.format(java.util.Locale.US, "%.2f", currentPrefs.lineHeight)
             "(function(){var id='kanom-reader-line-height';var s=document.getElementById(id);" +
                 "if(!s){s=document.createElement('style');s.id=id;(document.head||document.documentElement).appendChild(s);}" +
