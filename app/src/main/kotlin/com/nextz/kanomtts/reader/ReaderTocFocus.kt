@@ -27,7 +27,7 @@ object ReaderTocFocus {
     }
 
     /**
-     * Index in [flatten]'s rendered row list for the deepest matching TOC entry.
+     * Index in [flatten]'s rendered row list for the first matching TOC entry in depth-first order.
      *
      * Matching is fragment-insensitive: a TOC href "chapter.xhtml#section" matches a
      * locator in "chapter.xhtml#paragraph". Because entries are checked in flattened
