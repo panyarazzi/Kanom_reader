@@ -61,6 +61,7 @@ fun ReaderSettingsSheet(
         onTopMargin = { viewModel.onTopMargin(it) },
         onBottomMargin = { viewModel.onBottomMargin(it) },
         onBoldText = { viewModel.onBoldText(it) },
+        onReverseVolumeKeys = { viewModel.onReverseVolumeKeys(it) },
         onUsePublisherStyles = { viewModel.onUsePublisherStyles(it) },
         onForceFont = { viewModel.onForceFont(it) },
         onStripColors = { viewModel.onStripColors(it) },
