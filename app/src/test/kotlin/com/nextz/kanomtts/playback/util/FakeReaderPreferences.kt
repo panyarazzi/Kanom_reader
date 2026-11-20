@@ -8,10 +8,7 @@ import com.nextz.kanomtts.ui.theme.ReaderTheme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 
-/**
- * In-memory fake for [ReaderPreferences] used in playback unit tests.
- * Starts with default [KanomPreferences] (sleepTimerDefaultMin = 30).
- */
+/** In-memory fake for [ReaderPreferences] used in playback unit tests. */
 class FakeReaderPreferences(
     initial: KanomPreferences = KanomPreferences(),
 ) : ReaderPreferences {
@@ -24,6 +21,9 @@ class FakeReaderPreferences(
     override suspend fun setFontSizeSp(v: Int) { _prefs.value = _prefs.value.copy(fontSizeSp = v) }
     override suspend fun setLineHeight(v: Float) { _prefs.value = _prefs.value.copy(lineHeight = v) }
     override suspend fun setMarginDp(v: Int) { _prefs.value = _prefs.value.copy(marginDp = v) }
+    override suspend fun setTopMarginDp(v: Int) { _prefs.value = _prefs.value.copy(topMarginDp = v) }
+    override suspend fun setBottomMarginDp(v: Int) { _prefs.value = _prefs.value.copy(bottomMarginDp = v) }
+    override suspend fun setBoldText(v: Boolean) { _prefs.value = _prefs.value.copy(boldText = v) }
     override suspend fun setUsePublisherStyles(v: Boolean) { _prefs.value = _prefs.value.copy(usePublisherStyles = v) }
     override suspend fun setForceFont(v: Boolean) { _prefs.value = _prefs.value.copy(forceFont = v) }
     override suspend fun setStripColors(v: Boolean) { _prefs.value = _prefs.value.copy(stripColors = v) }
