@@ -438,8 +438,6 @@ class ReaderViewModel @Inject constructor(
             android.view.KeyEvent.KEYCODE_SPACE,
             android.view.KeyEvent.KEYCODE_PAGE_UP,
             android.view.KeyEvent.KEYCODE_PAGE_DOWN,
-            android.view.KeyEvent.KEYCODE_VOLUME_UP,
-            android.view.KeyEvent.KEYCODE_VOLUME_DOWN,
             android.view.KeyEvent.KEYCODE_MEDIA_NEXT,
             android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS,
             android.view.KeyEvent.KEYCODE_MOVE_HOME,
