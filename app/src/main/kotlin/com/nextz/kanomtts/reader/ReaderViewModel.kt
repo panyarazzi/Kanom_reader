@@ -463,7 +463,7 @@ class ReaderViewModel @Inject constructor(
             }
             android.view.KeyEvent.KEYCODE_VOLUME_UP,
             android.view.KeyEvent.KEYCODE_VOLUME_DOWN -> {
-                val movesForward = (keyCode == android.view.KeyEvent.KEYCODE_VOLUME_UP) xor reverseVolumeKeys
+                val movesForward = volumeKeyMovesForward(keyCode, reverseVolumeKeys)
                 if (movesForward) nextPage() else previousPage()
                 true
             }
