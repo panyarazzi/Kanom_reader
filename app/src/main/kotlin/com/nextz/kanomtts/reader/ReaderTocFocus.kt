@@ -5,33 +5,62 @@ import org.readium.r2.shared.publication.Link
 import org.readium.r2.shared.util.Url
 
 /**
- * Pure logic for flattening nested Readium TOC links and focusing the entry matching
- * the reader's current resource.
+ * Pure logic for flattening nested Readium TOC links, tracking their tree paths,
+ * and determining which branches must be expanded to reveal the current location.
  */
 @OptIn(ExperimentalReadiumApi::class)
 object ReaderTocFocus {
 
-    /** A rendered TOC row retaining its original Link and nesting depth. */
-    data class Entry(val link: Link, val depth: Int)
+    /** A rendered TOC row retaining its original Link and stable tree path. */
+    data class Entry(
+        val link: Link,
+        val depth: Int,
+        val path: List<Int> = emptyList(),
+        val hasChildren: Boolean = link.children.isNotEmpty(),
+    ) {
+        val key: String get() = path.joinToString("/")
+    }
 
-    /**
-     * Flatten the hierarchy depth-first, preserving source order and the original Link objects.
-     * Every child is included, with depth 0 for root entries, 1 for their children, etc.
-     */
+    /** Flatten the complete hierarchy depth-first, preserving source order and Link objects. */
     fun flatten(toc: List<Link>): List<Entry> = buildList {
-        fun append(link: Link, depth: Int) {
-            add(Entry(link, depth))
-            link.children.forEach { child -> append(child, depth + 1) }
+        fun append(link: Link, depth: Int, path: List<Int>) {
+            add(Entry(link = link, depth = depth, path = path))
+            link.children.forEachIndexed { index, child ->
+                append(child, depth + 1, path + index)
+            }
         }
-        toc.forEach { link -> append(link, 0) }
+        toc.forEachIndexed { index, link -> append(link, 0, listOf(index)) }
     }
 
     /**
-     * Index in [flatten]'s rendered row list for the first matching TOC entry in depth-first order.
-     *
-     * Prefer an exact href (including fragment) so sibling sections in the same XHTML
-     * resource can be focused independently. If no exact fragment match exists, fall back
-     * to the first entry for the same resource, ignoring fragments.
+     * Flatten only rows whose parent branches are expanded.
+     * [expandedPaths] contains slash-separated [Entry.key] values.
+     */
+    fun visible(toc: List<Link>, expandedPaths: Set<String>): List<Entry> = buildList {
+        fun append(link: Link, depth: Int, path: List<Int>) {
+            val entry = Entry(link = link, depth = depth, path = path)
+            add(entry)
+            if (entry.hasChildren && entry.key in expandedPaths) {
+                link.children.forEachIndexed { index, child ->
+                    append(child, depth + 1, path + index)
+                }
+            }
+        }
+        toc.forEachIndexed { index, link -> append(link, 0, listOf(index)) }
+    }
+
+    /** Parent paths needed to make the current entry visible in the tree. */
+    fun expandedAncestors(toc: List<Link>, currentHref: Url?): Set<String> {
+        val index = currentIndex(toc, currentHref) ?: return emptySet()
+        val path = flatten(toc).getOrNull(index)?.path ?: return emptySet()
+        return (1 until path.size).map { length ->
+            path.take(length).joinToString("/")
+        }.toSet()
+    }
+
+    /**
+     * Index in the complete depth-first list for the first matching ToC entry.
+     * Prefer an exact href (including fragment), then fall back to the same resource.
      */
     fun currentIndex(toc: List<Link>, currentHref: Url?): Int? {
         if (currentHref == null) return null
