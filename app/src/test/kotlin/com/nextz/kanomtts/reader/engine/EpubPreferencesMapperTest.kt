@@ -41,9 +41,9 @@ class EpubPreferencesMapperTest {
         assertEquals(24.0 / 16.0, p.fontSize!!, 1e-9)
     }
 
-    @Test fun `bold toggle maps to Readium font weight multiplier`() {
+    @Test fun `bold toggle requests bold and leaves publisher weight untouched when off`() {
         assertEquals(1.75, EpubPreferencesMapper.map(KanomPreferences(boldText = true)).fontWeight!!, 0.0)
-        assertEquals(1.0, EpubPreferencesMapper.map(KanomPreferences(boldText = false)).fontWeight!!, 0.0)
+        assertNull(EpubPreferencesMapper.map(KanomPreferences(boldText = false)).fontWeight)
     }
 
     @Test fun `usePublisherStyles false by default so typography applies`() {
