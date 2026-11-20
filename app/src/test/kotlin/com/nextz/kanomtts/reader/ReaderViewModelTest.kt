@@ -71,6 +71,15 @@ class ReaderViewModelTest {
             ttsController = ttsController,
         )
 
+    @Test fun `volume keys use expected page direction with reverse off and on`() {
+        val up = android.view.KeyEvent.KEYCODE_VOLUME_UP
+        val down = android.view.KeyEvent.KEYCODE_VOLUME_DOWN
+        assertEquals(true, volumeKeyMovesForward(up, reversed = false))
+        assertEquals(false, volumeKeyMovesForward(down, reversed = false))
+        assertEquals(false, volumeKeyMovesForward(up, reversed = true))
+        assertEquals(true, volumeKeyMovesForward(down, reversed = true))
+    }
+
     @Test fun `missing book yields Error state`() = runTest {
         source.book = null
         val vm = vm("missing")
