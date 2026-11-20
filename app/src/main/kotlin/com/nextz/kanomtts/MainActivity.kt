@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.view.KeyEvent
 import androidx.activity.compose.setContent
@@ -14,6 +15,7 @@ import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import com.nextz.kanomtts.feature.library.ImportViewModel
+import com.nextz.kanomtts.feature.settings.FirstLaunchRecoveryViewModel
 import com.nextz.kanomtts.ui.navigation.KanomApp
 import com.nextz.kanomtts.ui.theme.KanomTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -44,21 +46,64 @@ class MainActivity : FragmentActivity() {
     }
 
     private val importViewModel: ImportViewModel by viewModels()
+    private val recoveryViewModel: FirstLaunchRecoveryViewModel by viewModels()
+
+    private var startupReady = false
+    private var startupIntent: Intent? = null
+
+    private val storageSettingsLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            recoveryViewModel.onPermissionResult()
+        }
+
+    private val legacyStoragePermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+            recoveryViewModel.onPermissionResult()
+        }
 
     private val requestNotificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* result ignored */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { KanomTheme { KanomApp() } }
+        startupIntent = intent
+        setContent {
+            KanomTheme {
+                KanomApp(
+                    recoveryViewModel = recoveryViewModel,
+                    onRequestStoragePermission = ::requestStoragePermission,
+                    onStartupFinished = ::onStartupFinished,
+                )
+            }
+        }
+    }
+
+    private fun requestStoragePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val appSettings = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                data = Uri.parse("package:${packageName}")
+            }
+            runCatching { storageSettingsLauncher.launch(appSettings) }.onFailure {
+                storageSettingsLauncher.launch(
+                    Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION),
+                )
+            }
+        } else {
+            legacyStoragePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        }
+    }
+
+    private fun onStartupFinished() {
+        if (startupReady) return
+        startupReady = true
         requestNotificationPermissionIfNeeded()
-        handleEpubIntent(intent)
+        startupIntent?.let(::handleEpubIntent)
+        startupIntent = null
     }
 
     /**
-     * On Android 13+ POST_NOTIFICATIONS is a runtime permission; the media-playback
-     * notification (and its lock-screen controls) won't show without it. Request it
-     * once on launch if not already granted. No-op on API < 33 (granted at install).
+     * Request notification permission only after the first-launch storage/recovery flow,
+     * so it cannot interrupt the permission request or automatic restore.
      */
     private fun requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
@@ -73,7 +118,12 @@ class MainActivity : FragmentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        handleEpubIntent(intent)
+        setIntent(intent)
+        if (startupReady) {
+            handleEpubIntent(intent)
+        } else {
+            startupIntent = intent
+        }
     }
 
     private fun handleEpubIntent(intent: Intent?) {

@@ -9,6 +9,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
+import com.nextz.kanomtts.ui.navigation.FirstLaunchRecoveryScreen
 import androidx.compose.ui.Modifier
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -26,7 +28,26 @@ import com.nextz.kanomtts.ui.screens.NowPlayingScreen
 import com.nextz.kanomtts.ui.screens.SettingsScreen
 
 @Composable
-fun KanomApp() {
+fun KanomApp(
+    recoveryViewModel: com.nextz.kanomtts.feature.settings.FirstLaunchRecoveryViewModel,
+    onRequestStoragePermission: () -> Unit,
+    onStartupFinished: () -> Unit,
+) {
+    val recoveryState by recoveryViewModel.uiState.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(recoveryState.status) {
+        if (recoveryState.status == com.nextz.kanomtts.feature.settings.FirstLaunchRecoveryStatus.READY) {
+            onStartupFinished()
+        }
+    }
+    if (recoveryState.status != com.nextz.kanomtts.feature.settings.FirstLaunchRecoveryStatus.READY) {
+        FirstLaunchRecoveryScreen(
+            state = recoveryState,
+            onRequestPermission = onRequestStoragePermission,
+            onRetry = recoveryViewModel::retryRestore,
+            onContinueAfterFailure = recoveryViewModel::continueAfterFailure,
+        )
+        return
+    }
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route

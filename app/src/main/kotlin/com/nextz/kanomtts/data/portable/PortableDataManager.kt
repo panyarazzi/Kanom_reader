@@ -76,6 +76,22 @@ class PortableDataManager @Inject constructor(
             PackageManager.PERMISSION_GRANTED
     }
 
+    /**
+     * Detect an existing installation before offering first-launch recovery. This prevents
+     * an app update from restoring an older portable snapshot over data already in use.
+     * SharedPreferences used by the startup gate are deliberately separate from DataStore,
+     * because restorePreferences() replaces the DataStore contents.
+     */
+    suspend fun hasLocalUserData(): Boolean = withContext(Dispatchers.IO) {
+        val hasRoomData =
+            database.bookDao().getAllForBackup().isNotEmpty() ||
+            database.progressDao().getAllForBackup().isNotEmpty() ||
+            database.bookmarkDao().getAllForBackup().isNotEmpty() ||
+            database.replacementRuleDao().getAllForBackup().isNotEmpty() ||
+            database.voiceConfigDao().getAllForBackup().isNotEmpty()
+        hasRoomData || dataStore.data.first().asMap().isNotEmpty()
+    }
+
     fun portableFolderPath(): String = root.absolutePath
 
     fun ensurePortableFolders(): Boolean {

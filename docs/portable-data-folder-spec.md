@@ -111,3 +111,40 @@ to Play Store.
 8. Import the same backup twice; verify no duplicates or corrupt records.
 9. Deny All files access; verify the rest of the app remains usable and the
    portable feature explains why it is unavailable.
+
+
+## First-launch automatic recovery
+
+On the first launch after a fresh install, the startup gate requests All files access
+before entering the library. After permission is granted, it checks
+`Kanom/backup/kanom-latest.zip` and invokes the existing restore operation
+automatically when a valid backup is present. The user does not need to open
+Settings or press Restore.
+
+The startup marker is stored in a dedicated private SharedPreferences file,
+not in the DataStore payload that restore replaces. An interrupted restore is
+retried on the next launch. A failed restore is reported with retry and
+continue actions; it must not silently enter the library as though recovery
+succeeded.
+
+For app updates, the gate checks for existing local Room or DataStore user data
+before attempting recovery. Existing installations are allowed into the app
+without restoring an older portable backup over their current data. If no
+backup exists after permission is granted, the app completes first-run setup
+and opens the library normally.
+
+The notification permission request is deferred until the storage/recovery
+flow is complete so that it cannot interrupt the first-launch permission step.
+
+Additional acceptance checks:
+
+10. Uninstall and reinstall while keeping `Internal storage/Kanom`; first launch
+    asks for storage access, then restores automatically without pressing Restore.
+11. Upgrade an installation that already contains local books or preferences;
+    verify that startup does not overwrite its current data with the portable ZIP.
+12. Kill the app during automatic restore and relaunch; verify the interrupted
+    restore is retried and completes.
+13. Use a corrupt or unsupported ZIP; verify the startup screen reports the
+    failure and offers retry or continue, without claiming success.
+14. Grant access when no backup exists; verify the app proceeds to the library
+    without getting stuck in the startup gate.
