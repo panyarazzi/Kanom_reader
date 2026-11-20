@@ -30,19 +30,18 @@ source copies.
 Internal storage/
   Kanom/
     manifest.json
-    books/                 # optional EPUB copies when portability is enabled
-    settings/
-    progress/
-    bookmarks/
-    covers/
     backup/
+    books/                 # created only when EPUB copying is explicitly enabled
       kanom-latest.zip
       kanom-<timestamp>.zip
 ```
 
-The live Room database and DataStore remain in private app storage. The ZIP
-contains a versioned JSON export and cover images, never a live SQLite file.
-The optional EPUB copies are stored in `Kanom/books` beside the ZIP; copy the
+The live Room database and DataStore remain in private app storage. Their
+portable export (including settings and reading progress) is stored together in
+`data.json` inside the ZIP; the folders `settings/`, `progress/`,
+`bookmarks/`, and `covers/` are not created as empty placeholders. Cover
+images are included inside the ZIP, never as a live SQLite file. The optional
+EPUB copies are stored in `Kanom/books` only when explicitly enabled; copy the
 entire `Kanom` folder when moving the library to another device.
 
 ## Backup payload
@@ -52,9 +51,9 @@ entire `Kanom` folder when moving the library to another device.
   `premium_unlocked` entitlement flag is deliberately excluded.
 - Cover images copied into the ZIP and restored to the app's private covers dir.
 - A versioned JSON manifest and timestamp.
-- EPUB source copies are enabled by default but can be turned off to save space.
-  When enabled, accessible source EPUBs are copied to `Kanom/books`; failed
-  copies are counted in the result. The original EPUB files are never deleted.
+- EPUB source copies are disabled by default. Only when explicitly enabled,
+  accessible source EPUBs are copied to `Kanom/books`; failed copies are counted
+  in the result. The original EPUB files are never deleted.
 
 ## Restore behavior
 
@@ -90,7 +89,8 @@ to Play Store.
 
 - Build the ZIP in a temporary file and atomically replace the latest archive
   only after the export completes.
-- Keep timestamped archives as recovery points.
+- Keep one current archive, `backup/kanom-latest.zip`, to avoid duplicating
+  the same backup payload in a timestamped copy.
 - Never delete source EPUBs during backup or restore.
 - Restore database tables transactionally and ask before replacing user data.
 - Report record totals and EPUB copy successes/failures.

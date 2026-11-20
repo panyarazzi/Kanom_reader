@@ -80,8 +80,9 @@ class PortableDataManager @Inject constructor(
 
     fun ensurePortableFolders(): Boolean {
         if (!hasStorageAccess()) return false
-        return listOf(root, File(root, "books"), File(root, "settings"), File(root, "progress"),
-            File(root, "bookmarks"), File(root, "covers"), backupDir).all { it.exists() || it.mkdirs() }
+        // Portable metadata is stored together in data.json inside the backup ZIP.
+        // Create only folders that have an actual on-disk purpose.
+        return listOf(root, backupDir).all { it.exists() || it.mkdirs() }
     }
 
     fun latestBackupExists(): Boolean = hasStorageAccess() && latestBackup.isFile
@@ -107,6 +108,7 @@ class PortableDataManager @Inject constructor(
         val portableEpubs = mutableMapOf<String, File>()
         if (includeEpubFiles) {
             val booksDir = File(root, "books")
+            check(booksDir.exists() || booksDir.mkdirs()) { "สร้างโฟลเดอร์ Kanom/books ไม่สำเร็จ" }
             books.forEach { book ->
                 val target = File(booksDir, "${safeName(book.id)}.epub")
                 val tempBook = File(booksDir, "${safeName(book.id)}.epub.tmp")
@@ -186,8 +188,6 @@ class PortableDataManager @Inject constructor(
             Files.move(temp.toPath(), latestBackup.toPath(), StandardCopyOption.REPLACE_EXISTING)
         }.getOrElse { throw IllegalStateException("บันทึกไฟล์สำรองไม่สำเร็จ", it) }
 
-        val dated = File(backupDir, "kanom-${System.currentTimeMillis()}.zip")
-        latestBackup.copyTo(dated, overwrite = true)
         File(root, "manifest.json").writeText(
             JSONObject().put("formatVersion", FORMAT_VERSION)
                 .put("lastBackupAt", System.currentTimeMillis())

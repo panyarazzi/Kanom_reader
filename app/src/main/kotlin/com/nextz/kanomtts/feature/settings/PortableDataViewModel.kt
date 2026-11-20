@@ -15,7 +15,7 @@ data class PortableDataUiState(
     val hasAccess: Boolean = false,
     val backupExists: Boolean = false,
     val busy: Boolean = false,
-    val includeEpubFiles: Boolean = true,
+    val includeEpubFiles: Boolean = false,
     val message: String? = null,
 )
 

@@ -120,7 +120,7 @@ fun SettingsScreen(
             ) {
                 Column(Modifier.weight(1f).padding(end = 8.dp)) {
                     Text("คัดลอกไฟล์ EPUB ไปไว้ใน Kanom/books", style = MaterialTheme.typography.bodyMedium)
-                    Text("เปิดใช้เมื่ออยากย้ายหนังสือไปเครื่องอื่นด้วย ใช้พื้นที่เพิ่มตามขนาดหนังสือทั้งหมด",
+                    Text("ปิดไว้โดยค่าเริ่มต้น — เปิดเฉพาะเมื่อต้องการสำรองไฟล์หนังสือด้วย จะใช้พื้นที่เพิ่มตามขนาดหนังสือทั้งหมด",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Checkbox(
