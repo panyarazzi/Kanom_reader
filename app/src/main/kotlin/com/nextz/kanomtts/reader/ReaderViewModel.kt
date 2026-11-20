@@ -140,6 +140,9 @@ class ReaderViewModel @Inject constructor(
      *  TTS highlight quote must carry matching ZWSP for Readium to locate it. */
     private var thaiWordBreak: Boolean = true
 
+    /** Mirrors KanomPreferences.reverseVolumeKeys; OFF keeps Up=Next and Down=Previous. */
+    private var reverseVolumeKeys: Boolean = false
+
     /** Buffer up to 1 pending locator; oldest dropped so tryEmit always keeps the latest value. */
     private val locatorChanges = MutableSharedFlow<Locator>(
         extraBufferCapacity = 1,
