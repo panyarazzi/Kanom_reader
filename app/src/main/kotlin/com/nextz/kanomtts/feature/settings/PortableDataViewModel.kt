@@ -15,6 +15,7 @@ data class PortableDataUiState(
     val hasAccess: Boolean = false,
     val backupExists: Boolean = false,
     val busy: Boolean = false,
+    val includeEpubFiles: Boolean = false,
     val message: String? = null,
 )
 
@@ -36,9 +37,13 @@ class PortableDataViewModel @Inject constructor(
         )
     }
 
+    fun setIncludeEpubFiles(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(includeEpubFiles = enabled)
+    }
+
     fun createBackup() = runOperation {
-        val result = manager.createBackup()
-        "สำรองข้อมูลสำเร็จ — หนังสือ ${result.books} เล่ม, ตำแหน่งอ่าน ${result.progress} รายการ, Bookmark ${result.bookmarks} รายการ"
+        val result = manager.createBackup(includeEpubFiles = _uiState.value.includeEpubFiles)
+        "สำรองข้อมูลสำเร็จ — หนังสือ ${result.books} เล่ม, ตำแหน่งอ่าน ${result.progress} รายการ, Bookmark ${result.bookmarks} รายการ, คัดลอก EPUB ${result.epubCopies} ไฟล์"
     }
 
     fun restoreBackup() = runOperation {
