@@ -10,18 +10,21 @@ data class KanomPreferences(
     val readingFont: ReadingFont = ReadingFont.SARABUN,
     val fontSizeSp: Int = 18,
     val lineHeight: Float = 1.6f,
+    /** Horizontal page-gutter factor, retained for compatibility with existing DataStore values. */
     val marginDp: Int = 16,
+    val topMarginDp: Int = 0,
+    val bottomMarginDp: Int = 0,
+    val boldText: Boolean = false,
     val skipUrls: Boolean = false,
     val highlightOn: Boolean = true,
     val autoScroll: Boolean = true,
     val sleepTimerDefaultMin: Int = 30,
     val premiumUnlocked: Boolean = false,
-    // Task 6 escape hatches
+    // Reader display controls.
     val usePublisherStyles: Boolean = false,
     val forceFont: Boolean = true,
     val stripColors: Boolean = false,
     val thaiWordBreak: Boolean = true,
-    // Page-flip animation toggle (true = animate, false = instant)
     val pageAnimation: Boolean = true,
     val visualReplacement: Boolean = false,
     val readingUnit: ReadingUnit = ReadingUnit.SENTENCE,
