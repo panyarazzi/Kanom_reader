@@ -18,34 +18,74 @@ class ReaderTocFocusTest {
     private fun link(href: String, children: List<Link> = emptyList()): Link =
         Link(href = Url(href)!!, title = href, children = children)
 
-    @Test fun `matches a top-level entry`() {
+    @Test fun `flattens H1 and H2 entries in depth-first order with indentation levels`() {
+        val toc = listOf(
+            link("volume1.xhtml", children = listOf(
+                link("chapter1.xhtml"),
+                link("chapter2.xhtml"),
+            )),
+            link("volume2.xhtml", children = listOf(link("chapter3.xhtml"))),
+        )
+
+        val entries = ReaderTocFocus.flatten(toc)
+
+        assertEquals(
+            listOf(
+                "volume1.xhtml" to 0,
+                "chapter1.xhtml" to 1,
+                "chapter2.xhtml" to 1,
+                "volume2.xhtml" to 0,
+                "chapter3.xhtml" to 1,
+            ),
+            entries.map { it.link.href.toString() to it.depth },
+        )
+    }
+
+    @Test fun `flattens deeper nested entries recursively`() {
+        val toc = listOf(
+            link("volume.xhtml", children = listOf(
+                link("part.xhtml", children = listOf(link("chapter.xhtml"))),
+            )),
+        )
+
+        assertEquals(
+            listOf(0, 1, 2),
+            ReaderTocFocus.flatten(toc).map { it.depth },
+        )
+    }
+
+    @Test fun `matches a top-level entry in flattened rows`() {
         val toc = listOf(link("ch1.xhtml"), link("ch2.xhtml"), link("ch3.xhtml"))
         assertEquals(1, ReaderTocFocus.currentIndex(toc, Url("ch2.xhtml")!!))
     }
 
-    @Test fun `nested child returns its top-level ancestor's index`() {
-        // Sheet renders only top-level rows: ch1(0), ch2(1).
-        // A position inside ch1-b (a child of ch1) must return 0, not the flattened position 2.
+    @Test fun `nested child resolves to its own flattened row index`() {
         val toc = listOf(
             link("ch1.xhtml", children = listOf(link("ch1-a.xhtml"), link("ch1-b.xhtml"))),
             link("ch2.xhtml"),
         )
-        assertEquals(0, ReaderTocFocus.currentIndex(toc, Url("ch1-b.xhtml")!!))
+        assertEquals(2, ReaderTocFocus.currentIndex(toc, Url("ch1-b.xhtml")!!))
     }
 
-    @Test fun `nested child in second top-level entry returns index 1 not flattened index`() {
-        // toc = [A (no match), B with child C (matches)]
-        // Flattened depth-first would give C index 2; top-level index of B is 1.
+    @Test fun `nested child in second parent resolves to its flattened row index`() {
         val toc = listOf(
             link("a.xhtml"),
             link("b.xhtml", children = listOf(link("c.xhtml"))),
         )
-        assertEquals(1, ReaderTocFocus.currentIndex(toc, Url("c.xhtml")!!))
+        assertEquals(2, ReaderTocFocus.currentIndex(toc, Url("c.xhtml")!!))
+    }
+
+    @Test fun `deeply nested child resolves to its own row index`() {
+        val toc = listOf(
+            link("volume.xhtml", children = listOf(
+                link("part.xhtml", children = listOf(link("chapter.xhtml"))),
+            )),
+        )
+        assertEquals(2, ReaderTocFocus.currentIndex(toc, Url("chapter.xhtml")!!))
     }
 
     @Test fun `match ignores fragments on both sides`() {
         val toc = listOf(link("ch1.xhtml"), link("ch2.xhtml#section-3"))
-        // current locator points at the same resource but a different fragment.
         assertEquals(1, ReaderTocFocus.currentIndex(toc, Url("ch2.xhtml#para-9")!!))
     }
 

@@ -35,15 +35,9 @@ import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.util.Url
 
 /**
- * Bottom sheet listing table-of-contents entries.
- * Tapping a row calls [onNavigate] then [onDismiss].
- *
- * When the sheet opens it scrolls to and visually marks the chapter the user is currently reading
- * (derived from [currentLocator] via [ReaderTocFocus.currentIndex]). The current row is bolded and
- * accented with [MaterialTheme.colorScheme.primary] (a leading dot + tinted text); rose is reserved
- * for highlights and is intentionally not used here.
- *
- * Task 5+ can add a search field or nested chapter expansion; the sheet is intentionally minimal.
+ * Bottom sheet listing every table-of-contents entry in depth-first order.
+ * Nested entries are indented by their depth and retain their original Readium Link,
+ * so selecting any level navigates through the same ReaderViewModel.goTo(link) path.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalReadiumApi::class)
 @Composable
@@ -54,10 +48,11 @@ fun ReaderTocSheet(
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val entries = ReaderTocFocus.flatten(toc)
     val currentIndex = ReaderTocFocus.currentIndex(toc, currentLocator?.href)
     val listState = rememberLazyListState()
 
-    // Open focused on the current chapter so the user does not have to hunt for their position.
+    // Focus the exact rendered entry, including nested chapters.
     LaunchedEffect(currentIndex) {
         if (currentIndex != null) listState.scrollToItem(currentIndex)
     }
@@ -74,7 +69,7 @@ fun ReaderTocSheet(
                 .padding(bottom = 8.dp),
         )
 
-        if (toc.isEmpty()) {
+        if (entries.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -89,12 +84,13 @@ fun ReaderTocSheet(
             }
         } else {
             LazyColumn(state = listState) {
-                itemsIndexed(toc) { index, link ->
+                itemsIndexed(entries) { index, entry ->
                     TocRow(
-                        link = link,
+                        link = entry.link,
+                        depth = entry.depth,
                         isCurrent = index == currentIndex,
                         onClick = {
-                            onNavigate(link)
+                            onNavigate(entry.link)
                             onDismiss()
                         },
                     )
@@ -107,23 +103,35 @@ fun ReaderTocSheet(
 
 @OptIn(ExperimentalReadiumApi::class)
 @Composable
-private fun TocRow(link: Link, isCurrent: Boolean, onClick: () -> Unit) {
+private fun TocRow(
+    link: Link,
+    depth: Int,
+    isCurrent: Boolean,
+    onClick: () -> Unit,
+) {
     val accent = MaterialTheme.colorScheme.primary
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(
+                start = (16 + depth * 18).dp,
+                end = 16.dp,
+                top = 14.dp,
+                bottom = 14.dp,
+            ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (isCurrent) {
-            // Subtle primary-tinted dot marking the current chapter.
             Surface(
                 color = accent,
                 shape = CircleShape,
                 modifier = Modifier.size(8.dp),
             ) {}
             Spacer(Modifier.width(10.dp))
+        } else if (depth > 0) {
+            // Keep nested titles aligned when the current-row marker is visible elsewhere.
+            Spacer(Modifier.width(18.dp))
         }
         Text(
             text = link.title ?: link.href.toString(),
@@ -143,7 +151,6 @@ private fun TocRow(link: Link, isCurrent: Boolean, onClick: () -> Unit) {
 @Composable
 private fun TocSheetPreview() {
     KanomTheme {
-        // Preview LazyColumn contents without the ModalBottomSheet wrapper (can't host modals in preview).
         androidx.compose.foundation.layout.Column {
             Text(
                 text = "สารบัญ",
@@ -151,13 +158,21 @@ private fun TocSheetPreview() {
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
             val sampleLinks = listOf(
-                SampleLink("บทที่ 1 — จุดเริ่มต้น"),
-                SampleLink("บทที่ 2 — การเดินทาง"),
-                SampleLink("บทที่ 3 — ความลับ"),
+                SampleLink("เล่มที่ 1", children = listOf(
+                    SampleLink("บทที่ 1 — จุดเริ่มต้น"),
+                    SampleLink("บทที่ 2 — การเดินทาง"),
+                )),
+                SampleLink("เล่มที่ 2", children = listOf(
+                    SampleLink("บทที่ 3 — ความลับ"),
+                )),
             )
-            sampleLinks.forEachIndexed { index, link ->
-                // Mark the second row as the current chapter to preview the focused styling.
-                TocRow(link = link, isCurrent = index == 1, onClick = {})
+            ReaderTocFocus.flatten(sampleLinks).forEachIndexed { index, entry ->
+                TocRow(
+                    link = entry.link,
+                    depth = entry.depth,
+                    isCurrent = index == 2,
+                    onClick = {},
+                )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
         }
@@ -186,7 +201,8 @@ private fun TocSheetEmptyPreview() {
 
 /** Sample [Link] for previews only. */
 @OptIn(ExperimentalReadiumApi::class)
-private fun SampleLink(title: String): Link = Link(
+private fun SampleLink(title: String, children: List<Link> = emptyList()): Link = Link(
     href = Href(Url("chapter/${title.hashCode()}.xhtml")!!),
     title = title,
+    children = children,
 )
