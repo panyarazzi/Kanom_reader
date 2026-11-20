@@ -32,6 +32,7 @@ class FakeReaderPreferences(
     override suspend fun setTopMarginDp(v: Int) { _prefs.value = _prefs.value.copy(topMarginDp = v) }
     override suspend fun setBottomMarginDp(v: Int) { _prefs.value = _prefs.value.copy(bottomMarginDp = v) }
     override suspend fun setBoldText(v: Boolean) { _prefs.value = _prefs.value.copy(boldText = v) }
+    override suspend fun setReverseVolumeKeys(v: Boolean) { _prefs.value = _prefs.value.copy(reverseVolumeKeys = v) }
     // Task 6 escape hatches
     override suspend fun setUsePublisherStyles(v: Boolean) { _prefs.value = _prefs.value.copy(usePublisherStyles = v) }
     override suspend fun setForceFont(v: Boolean) { _prefs.value = _prefs.value.copy(forceFont = v) }
