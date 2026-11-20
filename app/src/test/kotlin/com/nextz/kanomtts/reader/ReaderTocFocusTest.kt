@@ -55,6 +55,24 @@ class ReaderTocFocusTest {
         )
     }
 
+    @Test fun `visible rows respect collapsed and expanded parent paths`() {
+        val toc = listOf(link("volume.xhtml", children = listOf(
+            link("part.xhtml", children = listOf(link("chapter.xhtml"))),
+            link("appendix.xhtml"),
+        )))
+        assertEquals(listOf("volume.xhtml", "part.xhtml", "appendix.xhtml"),
+            ReaderTocFocus.visible(toc, setOf("0")).map { it.link.href.toString() })
+        assertEquals(listOf("volume.xhtml", "part.xhtml", "chapter.xhtml", "appendix.xhtml"),
+            ReaderTocFocus.visible(toc, setOf("0", "0/0")).map { it.link.href.toString() })
+    }
+
+    @Test fun `current location expands only its ancestor path`() {
+        val toc = listOf(link("volume.xhtml", children = listOf(
+            link("part.xhtml", children = listOf(link("chapter.xhtml"))),
+        )))
+        assertEquals(setOf("0", "0/0"), ReaderTocFocus.expandedAncestors(toc, Url("chapter.xhtml")!!))
+    }
+
     @Test fun `matches a top-level entry in flattened rows`() {
         val toc = listOf(link("ch1.xhtml"), link("ch2.xhtml"), link("ch3.xhtml"))
         assertEquals(1, ReaderTocFocus.currentIndex(toc, Url("ch2.xhtml")!!))
