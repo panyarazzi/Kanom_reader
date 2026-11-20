@@ -74,6 +74,14 @@ class PreferencesRepositoryTest {
         assertEquals(36, p.bottomMarginDp)
     }
 
+    @Test fun reverseVolumeKeys_round_trip() = runTest {
+        val r = repo()
+        r.setReverseVolumeKeys(true)
+        assertEquals(true, r.preferences.first().reverseVolumeKeys)
+        r.setReverseVolumeKeys(false)
+        assertEquals(false, r.preferences.first().reverseVolumeKeys)
+    }
+
     @Test fun pageAnimation_default_is_true() = runTest {
         assertEquals(true, repo().preferences.first().pageAnimation)
     }
