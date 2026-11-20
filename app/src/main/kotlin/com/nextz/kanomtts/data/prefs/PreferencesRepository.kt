@@ -77,6 +77,7 @@ class PreferencesRepository @Inject constructor(
     override suspend fun setTopMarginDp(v: Int) { store.edit { it[Keys.topMargin] = v } }
     override suspend fun setBottomMarginDp(v: Int) { store.edit { it[Keys.bottomMargin] = v } }
     override suspend fun setBoldText(v: Boolean) { store.edit { it[Keys.boldText] = v } }
+    override suspend fun setReverseVolumeKeys(v: Boolean) { store.edit { it[Keys.reverseVolumeKeys] = v } }
     override suspend fun setSkipUrls(v: Boolean) { store.edit { it[Keys.skipUrls] = v } }
     override suspend fun setHighlightOn(v: Boolean) { store.edit { it[Keys.highlight] = v } }
     override suspend fun setAutoScroll(v: Boolean) { store.edit { it[Keys.autoScroll] = v } }
