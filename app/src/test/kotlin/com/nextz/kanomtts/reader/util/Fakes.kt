@@ -82,6 +82,15 @@ private class FakeReplacementRuleDao : ReplacementRuleDao {
         state.value = state.value + rule.copy(id = id)
         return id
     }
+    override suspend fun insertAll(rules: List<ReplacementRuleEntity>) {
+        val existing = state.value.associateBy { it.id }.toMutableMap()
+        rules.forEach { rule -> existing[rule.id] = rule }
+        state.value = existing.values.toList()
+    }
+    override suspend fun getAllForBackup(): List<ReplacementRuleEntity> = state.value.toList()
+    override suspend fun deleteAll() {
+        state.value = emptyList()
+    }
     override suspend fun update(rule: ReplacementRuleEntity) {
         state.value = state.value.map { if (it.id == rule.id) rule else it }
     }
