@@ -676,3 +676,7 @@ class ReaderViewModel @Inject constructor(
         publicationToClose = null
     }
 }
+
+/** OFF: Volume Up advances and Volume Down goes back. ON: reverse those directions. */
+internal fun volumeKeyMovesForward(keyCode: Int, reversed: Boolean): Boolean =
+    (keyCode == android.view.KeyEvent.KEYCODE_VOLUME_UP) xor reversed
