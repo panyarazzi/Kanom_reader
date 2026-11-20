@@ -5,6 +5,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.readium.r2.shared.ExperimentalReadiumApi
+import org.readium.r2.shared.publication.Href
 import org.readium.r2.shared.publication.Link
 import org.readium.r2.shared.util.Url
 import org.robolectric.RobolectricTestRunner
@@ -16,7 +17,7 @@ import org.robolectric.annotation.Config
 class ReaderTocFocusTest {
 
     private fun link(href: String, children: List<Link> = emptyList()): Link =
-        Link(href = Url(href)!!, title = href, children = children)
+        Link(href = Href(Url(href)!!), title = href, children = children)
 
     @Test fun `flattens H1 and H2 entries in depth-first order with indentation levels`() {
         val toc = listOf(
