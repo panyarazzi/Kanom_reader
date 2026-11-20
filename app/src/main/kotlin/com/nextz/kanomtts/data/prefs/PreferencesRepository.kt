@@ -24,6 +24,7 @@ class PreferencesRepository @Inject constructor(
         val topMargin = intPreferencesKey("reader_top_margin_dp")
         val bottomMargin = intPreferencesKey("reader_bottom_margin_dp")
         val boldText = booleanPreferencesKey("reader_bold_text")
+        val reverseVolumeKeys = booleanPreferencesKey("reverse_volume_keys")
         val skipUrls = booleanPreferencesKey("skip_urls")
         val highlight = booleanPreferencesKey("highlight_on")
         val autoScroll = booleanPreferencesKey("auto_scroll")
