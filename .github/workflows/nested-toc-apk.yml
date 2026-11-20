@@ -1,8 +1,9 @@
 name: Kanom Reader APK
 
 on:
-  # Keep builds manual while the combined Reader improvement batch is in progress.
-  # The push trigger will be enabled after all source changes and tests are ready.
+  push:
+    branches:
+      - feature/reader-improvements-apk2
   workflow_dispatch:
 
 permissions:
