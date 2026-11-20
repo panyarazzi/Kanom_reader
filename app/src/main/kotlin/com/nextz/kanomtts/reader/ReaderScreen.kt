@@ -205,7 +205,10 @@ private fun ReaderContent(bookId: String, state: ReaderUiState.Ready, viewModel:
     }
 
     AndroidView(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().padding(
+            top = state.prefs.topMarginDp.dp,
+            bottom = state.prefs.bottomMarginDp.dp,
+        ),
         factory = { ctx -> FragmentContainerView(ctx).apply { id = containerId } },
         update = { container ->
             // View.post queues until the container is attached to the window, so the commit is
