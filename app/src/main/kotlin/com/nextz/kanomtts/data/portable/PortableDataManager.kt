@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
+import android.net.Uri
 import androidx.core.content.ContextCompat
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -44,6 +45,7 @@ data class PortableBackupSummary(
     val bookmarks: Int,
     val replacementRules: Int,
     val voiceConfigs: Int,
+    val epubCopies: Int,
     val backupFile: String,
 )
 
@@ -73,7 +75,7 @@ class PortableDataManager @Inject constructor(
 
     fun latestBackupExists(): Boolean = hasStorageAccess() && latestBackup.isFile
 
-    suspend fun createBackup(): PortableBackupSummary = withContext(Dispatchers.IO) {
+    suspend fun createBackup(includeEpubFiles: Boolean = false): PortableBackupSummary = withContext(Dispatchers.IO) {
         requireStorageAccess()
         check(ensurePortableFolders()) { "สร้างโฟลเดอร์ Kanom ไม่สำเร็จ" }
         val books = database.bookDao().getAllForBackup()
@@ -82,6 +84,22 @@ class PortableDataManager @Inject constructor(
         val rules = database.replacementRuleDao().getAllForBackup()
         val voices = database.voiceConfigDao().getAllForBackup()
         val prefs = dataStore.data.first()
+        val portableEpubs = mutableMapOf<String, File>()
+        if (includeEpubFiles) {
+            val booksDir = File(root, "books")
+            books.forEach { book ->
+                val target = File(booksDir, "${safeName(book.id)}.epub")
+                val tempBook = File(booksDir, "${safeName(book.id)}.epub.tmp")
+                val copied = runCatching {
+                    val input = context.contentResolver.openInputStream(Uri.parse(book.uri))
+                        ?: error("ไม่สามารถอ่านไฟล์ต้นฉบับ")
+                    input.use { source -> tempBook.outputStream().buffered().use { source.copyTo(it) } }
+                    check(tempBook.renameTo(target) || run { target.delete(); tempBook.renameTo(target) })
+                    target
+                }.getOrNull()
+                if (copied != null) portableEpubs[book.id] = copied else tempBook.delete()
+            }
+        }
         val payload = JSONObject().apply {
             put("formatVersion", FORMAT_VERSION)
             put("createdAt", System.currentTimeMillis())
@@ -92,7 +110,9 @@ class PortableDataManager @Inject constructor(
                     put(JSONObject().apply {
                         put("id", book.id); put("uri", book.uri); put("title", book.title)
                         putNullable("author", book.author); putNullable("lang", book.lang)
-                        putNullable("coverEntry", coverEntry); put("fileSize", book.fileSize)
+                        putNullable("coverEntry", coverEntry)
+                        putNullable("portableEpub", if (portableEpubs.containsKey(book.id)) "books/${safeName(book.id)}.epub" else null)
+                        put("fileSize", book.fileSize)
                         put("addedAt", book.addedAt); putNullable("lastOpenedAt", book.lastOpenedAt)
                     })
                 }
@@ -153,7 +173,7 @@ class PortableDataManager @Inject constructor(
                 .put("latestBackup", "backup/kanom-latest.zip").toString(2),
             Charsets.UTF_8,
         )
-        PortableBackupSummary(books.size, progress.size, bookmarks.size, rules.size, voices.size, latestBackup.absolutePath)
+        PortableBackupSummary(books.size, progress.size, bookmarks.size, rules.size, voices.size, portableEpubs.size, latestBackup.absolutePath)
     }
 
     suspend fun restoreLatestBackup(): PortableBackupSummary = withContext(Dispatchers.IO) {
@@ -183,13 +203,20 @@ class PortableDataManager @Inject constructor(
             val id = o.getString("id")
             val coverEntry = o.optString("coverEntry").takeIf { it.isNotBlank() && it != "null" }
             val coverBytes = coverEntry?.let(entries::get)
+            val portableEpubName = o.optNullableString("portableEpub")
+            val portableEpub = portableEpubName?.let { name ->
+                if (name.startsWith("books/") && name.substringAfter("books/").contains('/') .not()) {
+                    File(root, name).takeIf { it.isFile }
+                } else null
+            }
+            val restoredUri = portableEpub?.let { Uri.fromFile(it).toString() } ?: o.getString("uri")
             val coverPath = coverBytes?.let { bytes ->
                 val dir = File(context.filesDir, "covers")
                 check(dir.exists() || dir.mkdirs()) { "สร้างโฟลเดอร์ภาพปกไม่สำเร็จ" }
                 File(dir, "${safeName(id)}.bin").apply { writeBytes(bytes) }.absolutePath
             }
             BookEntity(
-                id = id, uri = o.getString("uri"), title = o.getString("title"),
+                id = id, uri = restoredUri, title = o.getString("title"),
                 author = o.optNullableString("author"), lang = o.optNullableString("lang"),
                 coverPath = coverPath, fileSize = o.getLong("fileSize"),
                 addedAt = o.getLong("addedAt"), lastOpenedAt = o.optNullableLong("lastOpenedAt"),
@@ -239,7 +266,8 @@ class PortableDataManager @Inject constructor(
             database.voiceConfigDao().insertAll(voices)
         }
         restorePreferences(json.getJSONArray("preferences"))
-        PortableBackupSummary(books.size, progress.size, bookmarks.size, rules.size, voices.size, latestBackup.absolutePath)
+        PortableBackupSummary(books.size, progress.size, bookmarks.size, rules.size, voices.size,
+            books.count { it.uri.startsWith("file:") && it.uri.contains("/Kanom/books/") }, latestBackup.absolutePath)
     }
 
     private fun requireStorageAccess() {
