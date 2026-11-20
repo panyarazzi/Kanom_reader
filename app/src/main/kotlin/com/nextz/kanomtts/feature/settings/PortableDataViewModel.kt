@@ -28,8 +28,10 @@ class PortableDataViewModel @Inject constructor(
     init { refresh() }
 
     fun refresh() {
+        val access = manager.hasStorageAccess()
+        if (access) manager.ensurePortableFolders()
         _uiState.value = _uiState.value.copy(
-            hasAccess = manager.hasStorageAccess(),
+            hasAccess = access,
             backupExists = manager.latestBackupExists(),
         )
     }
