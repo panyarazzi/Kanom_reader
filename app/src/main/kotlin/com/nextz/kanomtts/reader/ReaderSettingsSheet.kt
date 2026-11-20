@@ -85,6 +85,7 @@ internal fun ReaderSettingsSheetContent(
     onTopMargin: (Int) -> Unit = {},
     onBottomMargin: (Int) -> Unit = {},
     onBoldText: (Boolean) -> Unit = {},
+    onReverseVolumeKeys: (Boolean) -> Unit = {},
     onUsePublisherStyles: (Boolean) -> Unit = {},
     onForceFont: (Boolean) -> Unit = {},
     onStripColors: (Boolean) -> Unit = {},
