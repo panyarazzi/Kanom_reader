@@ -15,6 +15,8 @@ data class KanomPreferences(
     val topMarginDp: Int = 0,
     val bottomMarginDp: Int = 0,
     val boldText: Boolean = false,
+    /** When true, swap the page-turn direction assigned to volume keys. */
+    val reverseVolumeKeys: Boolean = false,
     val skipUrls: Boolean = false,
     val highlightOn: Boolean = true,
     val autoScroll: Boolean = true,
