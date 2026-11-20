@@ -11,8 +11,14 @@ interface BookDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(book: BookEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(books: List<BookEntity>)
+
     @Query("SELECT * FROM books ORDER BY lastOpenedAt DESC, addedAt DESC")
     fun observeAll(): Flow<List<BookEntity>>
+
+    @Query("SELECT * FROM books")
+    suspend fun getAllForBackup(): List<BookEntity>
 
     @Query("SELECT * FROM books WHERE id = :id")
     suspend fun getById(id: String): BookEntity?
@@ -22,4 +28,7 @@ interface BookDao {
 
     @Query("DELETE FROM books WHERE id = :id")
     suspend fun delete(id: String)
+
+    @Query("DELETE FROM books")
+    suspend fun deleteAll()
 }

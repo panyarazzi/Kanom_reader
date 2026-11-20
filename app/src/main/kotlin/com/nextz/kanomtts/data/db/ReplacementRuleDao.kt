@@ -10,12 +10,13 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ReplacementRuleDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insert(rule: ReplacementRuleEntity): Long
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertAll(rules: List<ReplacementRuleEntity>)
+    @Query("SELECT * FROM replacement_rules") suspend fun getAllForBackup(): List<ReplacementRuleEntity>
     @Update suspend fun update(rule: ReplacementRuleEntity)
     @Query("DELETE FROM replacement_rules WHERE id = :id") suspend fun delete(id: Long)
     @Query("DELETE FROM replacement_rules WHERE scope = 'book' AND bookId = :bookId")
     suspend fun deleteByBook(bookId: String)
 
-    // Effective rules for a book: global + that book's own, ordered.
     @Query("""SELECT * FROM replacement_rules
               WHERE scope = 'global' OR (scope = 'book' AND bookId = :bookId)
               ORDER BY position ASC""")
@@ -40,4 +41,7 @@ interface ReplacementRuleDao {
 
     @Update
     suspend fun updateAll(rules: List<ReplacementRuleEntity>)
+
+    @Query("DELETE FROM replacement_rules")
+    suspend fun deleteAll()
 }
