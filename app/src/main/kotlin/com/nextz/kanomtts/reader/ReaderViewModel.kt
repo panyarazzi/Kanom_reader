@@ -474,7 +474,6 @@ class ReaderViewModel @Inject constructor(
                 true
             }
             android.view.KeyEvent.KEYCODE_PAGE_UP,
-            android.view.KeyEvent.KEYCODE_VOLUME_DOWN,
             android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS,
             android.view.KeyEvent.KEYCODE_MOVE_END -> {
                 previousPage()
