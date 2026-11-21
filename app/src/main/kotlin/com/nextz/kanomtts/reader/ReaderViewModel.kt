@@ -144,6 +144,9 @@ class ReaderViewModel @Inject constructor(
      *  TTS highlight quote must carry matching ZWSP for Readium to locate it. */
     private var thaiWordBreak: Boolean = true
 
+    /** Actual ZWSP transform baked into the currently opened display publication. */
+    private var displayThaiWordBreak: Boolean = true
+
     /** Mirrors KanomPreferences.reverseVolumeKeys; OFF keeps Up=Next and Down=Previous. */
     private var reverseVolumeKeys: Boolean = false
 
@@ -228,6 +231,7 @@ class ReaderViewModel @Inject constructor(
 
         // Read prefs first so thaiWordBreak toggle is available before opening the display publication.
         val initialPrefs = prefs.preferences.first()
+        displayThaiWordBreak = initialPrefs.thaiWordBreak
 
         // Snapshot visual replacement rules at open time (apply-on-next-open).
         // Only fetch when the pref is on; empty list = no injection (today's behaviour).
@@ -645,11 +649,11 @@ class ReaderViewModel @Inject constructor(
         }
         viewModelScope.launch {
             val safeLocator = runCatching {
-                HighlightAnchorResolver.resolve(ready.publication, saved, ready.prefs.thaiWordBreak)
+                HighlightAnchorResolver.resolve(ready.publication, saved, displayThaiWordBreak)
             }.getOrNull()
             if (safeLocator == null) {
                 toast(R.string.toast_highlight_not_found)
-            } else {
+            } else if (navigator === nav && nav.view != null) {
                 nav.go(safeLocator, animated = animatePageTurns)
             }
         }
@@ -659,7 +663,7 @@ class ReaderViewModel @Inject constructor(
     private fun refreshHighlightDecorations(highlights: List<ReaderHighlightEntity>) {
         val ready = _uiState.value as? ReaderUiState.Ready ?: return
         val publication = ready.publication
-        val currentThaiWordBreak = ready.prefs.thaiWordBreak
+        val currentThaiWordBreak = displayThaiWordBreak
         highlightDecorationJob?.cancel()
         highlightDecorationJob = viewModelScope.launch {
             val verified = highlights.mapNotNull { entity ->
