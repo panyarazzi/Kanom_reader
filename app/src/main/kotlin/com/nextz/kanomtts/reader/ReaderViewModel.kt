@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import org.readium.r2.navigator.SelectableNavigator
 import org.readium.r2.navigator.VisualNavigator
 import org.readium.r2.navigator.epub.EpubNavigatorFactory
@@ -126,6 +127,9 @@ class ReaderViewModel @Inject constructor(
 
     /** Held for removal in [onCleared]; registered second → receives center taps + drag. */
     private var navListener: ReaderNavInputListener? = null
+
+    /** Cancels/restarts the 3-second reader chrome auto-hide timer. */
+    private var chromeAutoHideJob: Job? = null
 
     /** Mirrors KanomPreferences.pageAnimation; updated by the prefs collector in init. */
     private var animatePageTurns: Boolean = true
@@ -399,6 +403,7 @@ class ReaderViewModel @Inject constructor(
         nav.addInputListener(navListener)   // SECOND → center taps + drag reach here
         this.edgeAdapter = edgeAdapter
         this.navListener = navListener
+        scheduleChromeAutoHide()
     }
 
     /**
@@ -414,6 +419,8 @@ class ReaderViewModel @Inject constructor(
         navLocatorJob = null
         edgeAdapter?.let { nav.removeInputListener(it) }
         navListener?.let { nav.removeInputListener(it) }
+        chromeAutoHideJob?.cancel()
+        chromeAutoHideJob = null
         edgeAdapter = null
         navListener = null
         decorations.unbind()
@@ -463,7 +470,11 @@ class ReaderViewModel @Inject constructor(
             android.view.KeyEvent.KEYCODE_DPAD_DOWN,
             android.view.KeyEvent.KEYCODE_SPACE -> {
                 val readiumEvent = ReadiumKeyEvent(ReadiumKeyEvent.Type.Down, event)
-                readiumEvent?.let { edgeAdapter?.onKey(it) } ?: false
+                readiumEvent?.let { event ->
+                    val handled = edgeAdapter?.onKey(event) ?: false
+                    if (handled) scheduleChromeAutoHide()
+                    handled
+                } ?: false
             }
             android.view.KeyEvent.KEYCODE_VOLUME_UP,
             android.view.KeyEvent.KEYCODE_VOLUME_DOWN -> {
@@ -488,10 +499,16 @@ class ReaderViewModel @Inject constructor(
     }
 
     /** Go forward one page. Fire-and-forget; result ignored. */
-    fun nextPage() { navigator?.goForward(animated = animatePageTurns) }
+    fun nextPage() {
+        scheduleChromeAutoHide()
+        navigator?.goForward(animated = animatePageTurns)
+    }
 
     /** Go backward one page. Fire-and-forget; result ignored. */
-    fun previousPage() { navigator?.goBackward(animated = animatePageTurns) }
+    fun previousPage() {
+        scheduleChromeAutoHide()
+        navigator?.goBackward(animated = animatePageTurns)
+    }
 
     /**
      * Feed a locator update into the debounced save pipeline and mirror the latest position into
@@ -503,9 +520,38 @@ class ReaderViewModel @Inject constructor(
         _uiState.update { if (it is ReaderUiState.Ready) it.copy(currentLocator = loc) else it }
     }
 
-    /** Toggle chrome visibility from VM state; stable reference safe to pass as a callback. */
-    fun toggleChrome() = _uiState.update {
-        if (it is ReaderUiState.Ready) it.copy(chromeVisible = !it.chromeVisible) else it
+    /**
+     * Center tap toggles the reader chrome. Showing it starts a fresh 3-second timeout;
+     * hiding it cancels the pending timeout.
+     */
+    fun toggleChrome() {
+        val ready = _uiState.value as? ReaderUiState.Ready ?: return
+        if (ready.chromeVisible) {
+            chromeAutoHideJob?.cancel()
+            chromeAutoHideJob = null
+            _uiState.value = ready.copy(chromeVisible = false)
+        } else {
+            _uiState.value = ready.copy(chromeVisible = true)
+            scheduleChromeAutoHide()
+        }
+    }
+
+    /**
+     * Restart the timeout after reader interaction. Hardware page turns and swipe/edge
+     * navigation call this through the same page-turn path, so an open toolbar cannot remain
+     * pinned over the first line indefinitely.
+     */
+    private fun scheduleChromeAutoHide() {
+        val ready = _uiState.value as? ReaderUiState.Ready ?: return
+        if (!ready.chromeVisible) return
+        chromeAutoHideJob?.cancel()
+        chromeAutoHideJob = viewModelScope.launch {
+            delay(CHROME_AUTO_HIDE_DELAY_MS)
+            _uiState.update { state ->
+                if (state is ReaderUiState.Ready) state.copy(chromeVisible = false) else state
+            }
+            chromeAutoHideJob = null
+        }
     }
 
     /**
