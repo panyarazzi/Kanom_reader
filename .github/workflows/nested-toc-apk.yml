@@ -5,6 +5,7 @@ on:
     branches:
       - feature/reader-improvements-apk2
       - feature/portable-data-folder-apk1
+      - feature/ux-ui-completion-no-highlight
   workflow_dispatch:
 
 permissions:
