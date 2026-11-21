@@ -38,7 +38,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
 import org.readium.r2.navigator.SelectableNavigator
 import org.readium.r2.navigator.VisualNavigator
 import org.readium.r2.navigator.epub.EpubNavigatorFactory
@@ -134,9 +133,14 @@ class ReaderViewModel @Inject constructor(
     private var navListener: ReaderNavInputListener? = null
 
     /** Cancels/restarts the 3-second reader chrome auto-hide timer. */
-    private var chromeAutoHideJob: Job? = null
 
     /** Mirrors KanomPreferences.pageAnimation; updated by the prefs collector in init. */
+    private val chromeAutoHideTimer = ReaderChromeAutoHideTimer(viewModelScope) {
+        _uiState.update { state ->
+            if (state is ReaderUiState.Ready) state.copy(chromeVisible = false) else state
+        }
+    }
+
     private var animatePageTurns: Boolean = true
 
     /** Mirrors KanomPreferences.highlightOn; updated by the prefs collector in init. */
@@ -429,12 +433,13 @@ class ReaderViewModel @Inject constructor(
         edgeAdapter?.let { nav.removeInputListener(it) }
         navListener?.let { nav.removeInputListener(it) }
         interactionListener = null
-        chromeAutoHideJob?.cancel()
-        chromeAutoHideJob = null
+        chromeAutoHideTimer.cancel()
         edgeAdapter = null
         navListener = null
         decorations.unbind()
         navigator = null
+        chromeAutoHideTimer.cancel()
+        interactionListener = null
         navigatorBound = false
     }
 
@@ -537,8 +542,7 @@ class ReaderViewModel @Inject constructor(
     fun toggleChrome() {
         val ready = _uiState.value as? ReaderUiState.Ready ?: return
         if (ready.chromeVisible) {
-            chromeAutoHideJob?.cancel()
-            chromeAutoHideJob = null
+            chromeAutoHideTimer.cancel()
             _uiState.value = ready.copy(chromeVisible = false)
         } else {
             _uiState.value = ready.copy(chromeVisible = true)
@@ -554,14 +558,7 @@ class ReaderViewModel @Inject constructor(
     private fun scheduleChromeAutoHide() {
         val ready = _uiState.value as? ReaderUiState.Ready ?: return
         if (!ready.chromeVisible) return
-        chromeAutoHideJob?.cancel()
-        chromeAutoHideJob = viewModelScope.launch {
-            delay(CHROME_AUTO_HIDE_DELAY_MS)
-            _uiState.update { state ->
-                if (state is ReaderUiState.Ready) state.copy(chromeVisible = false) else state
-            }
-            chromeAutoHideJob = null
-        }
+        chromeAutoHideTimer.restart()
     }
 
     /**
