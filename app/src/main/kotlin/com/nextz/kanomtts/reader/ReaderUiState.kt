@@ -3,6 +3,7 @@ package com.nextz.kanomtts.reader
 import androidx.fragment.app.FragmentFactory
 import com.nextz.kanomtts.data.db.BookEntity
 import com.nextz.kanomtts.data.db.BookmarkEntity
+import com.nextz.kanomtts.data.db.ReaderHighlightEntity
 import com.nextz.kanomtts.data.prefs.KanomPreferences
 import org.readium.r2.shared.publication.Link
 import org.readium.r2.shared.publication.Locator
@@ -20,6 +21,7 @@ sealed interface ReaderUiState {
         val toc: List<Link> = emptyList(),
         val prefs: KanomPreferences = KanomPreferences(),
         val bookmarks: List<BookmarkEntity> = emptyList(),
+        val highlights: List<ReaderHighlightEntity> = emptyList(),
         /** Latest reading position; used to focus + mark the current chapter in the ToC sheet. */
         val currentLocator: Locator? = null,
     ) : ReaderUiState

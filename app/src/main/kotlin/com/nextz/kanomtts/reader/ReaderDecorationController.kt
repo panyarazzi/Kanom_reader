@@ -1,7 +1,9 @@
 package com.nextz.kanomtts.reader
 
 import com.nextz.kanomtts.data.db.BookmarkEntity
+import com.nextz.kanomtts.data.db.ReaderHighlightEntity
 import com.nextz.kanomtts.reader.decoration.BookmarkDecorations
+import com.nextz.kanomtts.reader.decoration.HighlightDecorations
 import com.nextz.kanomtts.reader.decoration.SentenceHighlightProbe
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -30,6 +32,7 @@ class ReaderDecorationController(
 ) {
 
     private var nav: EpubNavigatorFragment? = null
+    private var highlightJob: kotlinx.coroutines.Job? = null
 
     /** Bind the navigator. Must be called before any apply* method has effect. */
     fun bind(navigator: EpubNavigatorFragment) {
@@ -37,7 +40,7 @@ class ReaderDecorationController(
     }
 
     /** Drop the navigator when the fragment view is destroyed; apply* become no-ops until rebind. */
-    fun unbind() { nav = null }
+    fun unbind() { highlightJob?.cancel(); highlightJob = null; nav = null }
 
     /**
      * Push the "bookmarks" decoration group (group-replace semantics).
@@ -49,6 +52,20 @@ class ReaderDecorationController(
             (n as? DecorableNavigator)?.applyDecorations(
                 decorations = BookmarkDecorations.toDecorations(bookmarks, roseArgb),
                 group = "bookmarks",
+            )
+        }
+    }
+
+    /**
+     * Push only previously verified text-anchored persistent highlights.
+     */
+    fun applyHighlights(highlights: List<Pair<ReaderHighlightEntity, org.readium.r2.shared.publication.Locator>>) {
+        val n = nav ?: return
+        highlightJob?.cancel()
+        highlightJob = scope.launch {
+            (n as? DecorableNavigator)?.applyDecorations(
+                decorations = HighlightDecorations.toDecorations(highlights),
+                group = "highlights",
             )
         }
     }
