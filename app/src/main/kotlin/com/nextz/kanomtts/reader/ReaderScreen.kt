@@ -183,9 +183,12 @@ private fun ReaderChromeLayer(
     if (bookmarksOpen) {
         ReaderBookmarksSheet(
             bookmarks = state.bookmarks,
+            highlights = state.highlights,
             onAddCurrent = viewModel::addBookmarkAtCurrent,
-            onNavigate = { locatorJson -> viewModel.goToBookmark(locatorJson) },
-            onRemove = { id -> viewModel.removeBookmark(id) },
+            onNavigateBookmark = { locatorJson -> viewModel.goToBookmark(locatorJson) },
+            onRemoveBookmark = { id -> viewModel.removeBookmark(id) },
+            onNavigateHighlight = viewModel::goToHighlight,
+            onRemoveHighlight = viewModel::removeHighlight,
             onDismiss = { bookmarksOpen = false },
         )
     }
