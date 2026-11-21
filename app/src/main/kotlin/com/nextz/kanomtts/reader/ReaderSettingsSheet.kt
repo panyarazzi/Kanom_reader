@@ -1,6 +1,13 @@
 package com.nextz.kanomtts.reader
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -95,12 +102,8 @@ internal fun ReaderSettingsSheetContent(
     onDismiss: () -> Unit,
     onOpenReplacements: () -> Unit = {},
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-    ) {
+    @Composable
+    fun SettingsBody() {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -239,6 +242,40 @@ internal fun ReaderSettingsSheetContent(
             ) {
                 Text(stringResource(R.string.reader_manage_replacements), Modifier.weight(1f))
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
+            }
+        }
+    }
+
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        if (maxWidth >= 600.dp) {
+            // Wide reading surfaces use a persistent right-side settings panel.
+            // The EPUB remains visible at full height in the remaining area.
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.28f))
+                    .clickable(onClick = onDismiss),
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .fillMaxHeight()
+                        .width((maxWidth / 3).coerceIn(280.dp, 420.dp))
+                        .clickable(enabled = true, onClick = {}),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 8.dp,
+                    shadowElevation = 12.dp,
+                ) {
+                    SettingsBody()
+                }
+            }
+        } else {
+            val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+            ModalBottomSheet(
+                onDismissRequest = onDismiss,
+                sheetState = sheetState,
+            ) {
+                SettingsBody()
             }
         }
     }
