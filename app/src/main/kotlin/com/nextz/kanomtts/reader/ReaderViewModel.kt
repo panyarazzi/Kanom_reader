@@ -645,7 +645,7 @@ class ReaderViewModel @Inject constructor(
         }
         viewModelScope.launch {
             val safeLocator = runCatching {
-                HighlightAnchorResolver.resolve(ready.publication, saved, thaiWordBreak)
+                HighlightAnchorResolver.resolve(ready.publication, saved, ready.prefs.thaiWordBreak)
             }.getOrNull()
             if (safeLocator == null) {
                 toast(R.string.toast_highlight_not_found)
@@ -657,13 +657,15 @@ class ReaderViewModel @Inject constructor(
 
     /** Rebuild the persistent-decoration group from verified text quotes only. */
     private fun refreshHighlightDecorations(highlights: List<ReaderHighlightEntity>) {
-        val publication = (_uiState.value as? ReaderUiState.Ready)?.publication ?: return
+        val ready = _uiState.value as? ReaderUiState.Ready ?: return
+        val publication = ready.publication
+        val currentThaiWordBreak = ready.prefs.thaiWordBreak
         highlightDecorationJob?.cancel()
         highlightDecorationJob = viewModelScope.launch {
             val verified = highlights.mapNotNull { entity ->
                 val saved = LocatorSerializer.decode(entity.locator) ?: return@mapNotNull null
                 val resolved = runCatching {
-                    HighlightAnchorResolver.resolve(publication, saved, thaiWordBreak)
+                    HighlightAnchorResolver.resolve(publication, saved, currentThaiWordBreak)
                 }.getOrNull() ?: return@mapNotNull null
                 entity to resolved
             }

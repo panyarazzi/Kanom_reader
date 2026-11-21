@@ -7,6 +7,13 @@ object ReaderHighlightFactory {
         val rawQuote = locator.text.highlight ?: return null
         val selected = stripZwsp(rawQuote).replace(Regex("\\s+"), " ").trim()
         if (selected.isBlank()) return null
-        return ReaderHighlightEntity(bookId, LocatorSerializer.encode(locator), selected, locator.text.before, locator.text.after, now)
+        return ReaderHighlightEntity(
+            bookId = bookId,
+            locator = LocatorSerializer.encode(locator),
+            selectedText = selected,
+            beforeText = locator.text.before,
+            afterText = locator.text.after,
+            createdAt = now,
+        )
     }
 }

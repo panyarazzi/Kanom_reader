@@ -13,7 +13,7 @@ class HighlightAnchorMatcherTest {
         assertTrue(HighlightAnchorMatcher.hasUnambiguousExactMatch("ก่อนชุดหนึ่งคำซ้ำหลังชุดหนึ่ง กลางข้อความคำซ้ำท้ายอีกชุด","คำซ้ำ","ก่อนชุดหนึ่ง","หลังชุดหนึ่ง"))
     }
     @Test fun duplicateQuoteWithAmbiguousContextFailsClosed() {
-        assertFalse(HighlightAnchorMatcher.hasUnambiguousExactMatch("ก่อนคำซ้ำหลัง ก่อนคำซ้ำหลัง","คำซ้ำ","ก่อน","หลัง"))
+        assertFalse(HighlightAnchorMatcher.hasUnambiguousExactMatch("ก่อนคำซ้ำหลัง ก่อนคำซ้ำหลัง","คำซ้ำ",null,null))
     }
     @Test fun zeroWidthSpacesRemainPartOfTheAnchor() {
         assertTrue(HighlightAnchorMatcher.hasUnambiguousExactMatch("กรุง​เทพมหานคร","กรุง​เทพ",null,null))
