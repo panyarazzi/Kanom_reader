@@ -141,12 +141,12 @@ internal fun ReaderSettingsSheetContent(
             Spacer(Modifier.height(16.dp))
 
             // ── Font size ──────────────────────────────────────────────────────
-            SectionLabel("ขนาดตัวอักษร: ${prefs.fontSizeSp} sp")
+            SectionLabel("ขนาดตัวอักษร: ${prefs.fontSizeSp} sp (${prefs.fontSizeSp * 100 / 16}%)")
             Slider(
                 value = prefs.fontSizeSp.toFloat(),
                 onValueChange = { onFontSize(it.toInt()) },
-                valueRange = 12f..36f,
-                steps = 23,
+                valueRange = 12f..72f,
+                steps = 59,
                 modifier = Modifier.fillMaxWidth(),
             )
 
