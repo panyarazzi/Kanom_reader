@@ -22,6 +22,7 @@ import com.nextz.kanomtts.data.db.BookEntity
 import com.nextz.kanomtts.data.db.BookmarkEntity
 import com.nextz.kanomtts.data.db.KanomDatabase
 import com.nextz.kanomtts.data.db.ProgressEntity
+import com.nextz.kanomtts.data.db.ReaderHighlightEntity
 import com.nextz.kanomtts.data.db.ReplacementRuleEntity
 import com.nextz.kanomtts.data.db.VoiceConfigEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -45,6 +46,7 @@ data class PortableBackupSummary(
     val books: Int,
     val progress: Int,
     val bookmarks: Int,
+    val highlights: Int,
     val replacementRules: Int,
     val voiceConfigs: Int,
     val epubCopies: Int,
@@ -66,6 +68,7 @@ class PortableDataManager @Inject constructor(
         val books: List<BookEntity>,
         val progress: List<ProgressEntity>,
         val bookmarks: List<BookmarkEntity>,
+        val highlights: List<ReaderHighlightEntity>,
         val rules: List<ReplacementRuleEntity>,
         val voices: List<VoiceConfigEntity>,
     )
@@ -95,6 +98,7 @@ class PortableDataManager @Inject constructor(
                 books = database.bookDao().getAllForBackup(),
                 progress = database.progressDao().getAllForBackup(),
                 bookmarks = database.bookmarkDao().getAllForBackup(),
+                highlights = database.highlightDao().getAllForBackup(),
                 rules = database.replacementRuleDao().getAllForBackup(),
                 voices = database.voiceConfigDao().getAllForBackup(),
             )
@@ -102,6 +106,7 @@ class PortableDataManager @Inject constructor(
         val books = snapshot.books
         val progress = snapshot.progress
         val bookmarks = snapshot.bookmarks
+        val highlights = snapshot.highlights
         val rules = snapshot.rules
         val voices = snapshot.voices
         val prefs = dataStore.data.first()
@@ -152,6 +157,14 @@ class PortableDataManager @Inject constructor(
                     put("snippet", b.snippet); put("createdAt", b.createdAt)
                 }) }
             })
+            put("highlights", JSONArray().apply {
+                highlights.forEach { h -> put(JSONObject().apply {
+                    put("id", h.id); put("bookId", h.bookId); put("locator", h.locator)
+                    put("selectedText", h.selectedText)
+                    putNullable("beforeText", h.beforeText); putNullable("afterText", h.afterText)
+                    put("createdAt", h.createdAt)
+                }) }
+            })
             put("replacementRules", JSONArray().apply {
                 rules.forEach { r -> put(JSONObject().apply {
                     put("id", r.id); put("scope", r.scope); putNullable("bookId", r.bookId)
@@ -194,7 +207,7 @@ class PortableDataManager @Inject constructor(
                 .put("latestBackup", "backup/kanom-latest.zip").toString(2),
             Charsets.UTF_8,
         )
-        PortableBackupSummary(books.size, progress.size, bookmarks.size, rules.size, voices.size, portableEpubs.size,
+        PortableBackupSummary(books.size, progress.size, bookmarks.size, highlights.size, rules.size, voices.size, portableEpubs.size,
             if (includeEpubFiles) books.size - portableEpubs.size else 0, latestBackup.absolutePath)
     }
 
@@ -256,6 +269,16 @@ class PortableDataManager @Inject constructor(
             BookmarkEntity(o.getLong("id"), o.getString("bookId"), o.getString("locator"),
                 o.getString("snippet"), o.getLong("createdAt"))
         }
+        // Backward compatible with formatVersion 1 backups created before Highlight existed.
+        val highlightArray = json.optJSONArray("highlights") ?: JSONArray()
+        val highlights = (0 until highlightArray.length()).map { i ->
+            val o = highlightArray.getJSONObject(i)
+            ReaderHighlightEntity(
+                o.getLong("id"), o.getString("bookId"), o.getString("locator"),
+                o.getString("selectedText"), o.optNullableString("beforeText"),
+                o.optNullableString("afterText"), o.getLong("createdAt"),
+            )
+        }
         val ruleArray = json.getJSONArray("replacementRules")
         val rules = (0 until ruleArray.length()).map { i ->
             val o = ruleArray.getJSONObject(i)
@@ -271,12 +294,14 @@ class PortableDataManager @Inject constructor(
         }
         require(progress.all { p -> books.any { it.id == p.bookId } }) { "ข้อมูลตำแหน่งอ่านอ้างถึงหนังสือที่ไม่มีในชุดสำรอง" }
         require(bookmarks.all { b -> books.any { it.id == b.bookId } }) { "ข้อมูล Bookmark อ้างถึงหนังสือที่ไม่มีในชุดสำรอง" }
+        require(highlights.all { h -> books.any { it.id == h.bookId } }) { "ข้อมูล Highlight อ้างถึงหนังสือที่ไม่มีในชุดสำรอง" }
         require(rules.filter { it.scope == "book" }.all { r -> r.bookId != null && books.any { it.id == r.bookId } }) {
             "ข้อมูลกฎแทนที่อ้างถึงหนังสือที่ไม่มีในชุดสำรอง"
         }
 
         database.withTransaction {
             database.bookmarkDao().deleteAll()
+            database.highlightDao().deleteAll()
             database.progressDao().deleteAll()
             database.replacementRuleDao().deleteAll()
             database.voiceConfigDao().deleteAll()
@@ -284,12 +309,13 @@ class PortableDataManager @Inject constructor(
             database.bookDao().insertAll(books)
             database.progressDao().insertAll(progress)
             database.bookmarkDao().insertAll(bookmarks)
+            database.highlightDao().insertAll(highlights)
             database.replacementRuleDao().insertAll(rules)
             database.voiceConfigDao().insertAll(voices)
         }
         restorePreferences(json.getJSONArray("preferences"))
         val portableCount = books.count { it.uri.startsWith("file:") && it.uri.contains("/Kanom/books/") }
-        PortableBackupSummary(books.size, progress.size, bookmarks.size, rules.size, voices.size,
+        PortableBackupSummary(books.size, progress.size, bookmarks.size, highlights.size, rules.size, voices.size,
             portableCount, 0, latestBackup.absolutePath)
     }
 

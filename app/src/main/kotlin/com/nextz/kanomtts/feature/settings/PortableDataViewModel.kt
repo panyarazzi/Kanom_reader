@@ -43,7 +43,7 @@ class PortableDataViewModel @Inject constructor(
 
     fun createBackup() = runOperation {
         val result = manager.createBackup(includeEpubFiles = _uiState.value.includeEpubFiles)
-        "สำรองข้อมูลสำเร็จ — หนังสือ ${result.books} เล่ม, ตำแหน่งอ่าน ${result.progress} รายการ, Bookmark ${result.bookmarks} รายการ, กฎแทนที่ ${result.replacementRules} รายการ, เสียงพากย์ ${result.voiceConfigs} รายการ, คัดลอก EPUB ${result.epubCopies} ไฟล์, คัดลอกไม่สำเร็จ ${result.epubCopyFailures} ไฟล์"
+        "สำรองข้อมูลสำเร็จ — หนังสือ ${result.books} เล่ม, ตำแหน่งอ่าน ${result.progress} รายการ, Bookmark ${result.bookmarks} รายการ, Highlight ${result.highlights} รายการ, กฎแทนที่ ${result.replacementRules} รายการ, เสียงพากย์ ${result.voiceConfigs} รายการ, คัดลอก EPUB ${result.epubCopies} ไฟล์, คัดลอกไม่สำเร็จ ${result.epubCopyFailures} ไฟล์"
     }
 
     fun restoreBackup() = runOperation {
