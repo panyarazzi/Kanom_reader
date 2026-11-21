@@ -43,8 +43,8 @@ import com.nextz.kanomtts.ui.theme.KanomTheme
 import com.nextz.kanomtts.ui.theme.ReaderTheme
 
 /**
- * Bottom sheet for core display settings: theme, font family, font size,
- * line height, margin, and Task 6 escape-hatch toggles.
+ * Adaptive reader settings: a right-side panel on wide reading surfaces and
+ * a bottom sheet on compact phone layouts. Both share the same settings content.
  * Each control calls the corresponding [ReaderViewModel] setter, which writes
  * through [PreferencesRepository] and live-applies via the navigator's [submitPreferences].
  */
@@ -102,8 +102,7 @@ internal fun ReaderSettingsSheetContent(
     onDismiss: () -> Unit,
     onOpenReplacements: () -> Unit = {},
 ) {
-    @Composable
-    fun SettingsBody() {
+    val settingsBody: @Composable () -> Unit = {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -266,7 +265,7 @@ internal fun ReaderSettingsSheetContent(
                     tonalElevation = 8.dp,
                     shadowElevation = 12.dp,
                 ) {
-                    SettingsBody()
+                    settingsBody()
                 }
             }
         } else {
@@ -275,7 +274,7 @@ internal fun ReaderSettingsSheetContent(
                 onDismissRequest = onDismiss,
                 sheetState = sheetState,
             ) {
-                SettingsBody()
+                settingsBody()
             }
         }
     }
