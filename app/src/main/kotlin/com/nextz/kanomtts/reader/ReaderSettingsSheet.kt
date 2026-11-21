@@ -246,6 +246,8 @@ internal fun ReaderSettingsSheetContent(
     }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
+        // Capture the constraints-scope value before entering nested layout scopes.
+        val panelWidth = (maxWidth / 3).coerceIn(280.dp, 420.dp)
         if (maxWidth >= 600.dp) {
             // Wide reading surfaces use a persistent right-side settings panel.
             // The EPUB remains visible at full height in the remaining area.
@@ -259,7 +261,7 @@ internal fun ReaderSettingsSheetContent(
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
                         .fillMaxHeight()
-                        .width((maxWidth / 3).coerceIn(280.dp, 420.dp))
+                        .width(panelWidth)
                         .clickable(enabled = true, onClick = {}),
                     color = MaterialTheme.colorScheme.surface,
                     tonalElevation = 8.dp,
