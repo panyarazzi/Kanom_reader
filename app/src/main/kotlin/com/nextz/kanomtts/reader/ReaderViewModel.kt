@@ -123,7 +123,7 @@ class ReaderViewModel @Inject constructor(
     /** Tracks the per-bind navigator.currentLocator collector so unbind can cancel it (avoid leak + double-handling on rebind). */
     private var navLocatorJob: Job? = null
 
-    /** Held for removal in [onCleared]; registered first → consumes edge taps. */
+    /** Held for removal in [onCleared]; observes input without consuming EPUB gestures. */
     private var interactionListener: ReaderInteractionInputListener? = null
 
     /** Held for removal in [onCleared]; registered before page-turn listeners without consuming input. */
@@ -132,8 +132,7 @@ class ReaderViewModel @Inject constructor(
     /** Held for removal in [onCleared]; registered second → receives center taps + drag. */
     private var navListener: ReaderNavInputListener? = null
 
-    /** Cancels/restarts the 3-second reader chrome auto-hide timer. */
-
+    /** Owns the restartable 3-second reader chrome auto-hide timer. */
     /** Mirrors KanomPreferences.pageAnimation; updated by the prefs collector in init. */
     private val chromeAutoHideTimer = ReaderChromeAutoHideTimer(viewModelScope) {
         _uiState.update { state ->
@@ -438,8 +437,6 @@ class ReaderViewModel @Inject constructor(
         navListener = null
         decorations.unbind()
         navigator = null
-        chromeAutoHideTimer.cancel()
-        interactionListener = null
         navigatorBound = false
     }
 
@@ -745,10 +742,13 @@ class ReaderViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         navigator?.let { nav ->
+            interactionListener?.let { nav.removeInputListener(it) }
             edgeAdapter?.let { nav.removeInputListener(it) }
             navListener?.let { nav.removeInputListener(it) }
         }
+        chromeAutoHideTimer.cancel()
         navigator = null
+        interactionListener = null
         edgeAdapter = null
         navListener = null
         publicationToClose?.close()
