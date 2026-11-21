@@ -2,6 +2,7 @@ package com.nextz.kanomtts.reader.util
 
 import com.nextz.kanomtts.data.db.BookEntity
 import com.nextz.kanomtts.data.db.BookmarkEntity
+import com.nextz.kanomtts.data.db.ReaderHighlightEntity
 import com.nextz.kanomtts.data.db.ProgressEntity
 import com.nextz.kanomtts.data.db.ReplacementRuleDao
 import com.nextz.kanomtts.data.db.ReplacementRuleEntity
@@ -10,6 +11,7 @@ import com.nextz.kanomtts.data.prefs.ReadingFont
 import com.nextz.kanomtts.data.prefs.ReadingUnit
 import com.nextz.kanomtts.data.prefs.ReaderPreferences
 import com.nextz.kanomtts.data.repository.BookmarkStore
+import com.nextz.kanomtts.data.repository.ReaderHighlightStore
 import com.nextz.kanomtts.data.repository.ReplacementRuleRepository
 import com.nextz.kanomtts.reader.ReaderBookSource
 import com.nextz.kanomtts.text.replacement.ReplacementRule
@@ -66,6 +68,24 @@ class FakeBookmarkStore : BookmarkStore {
 
     override suspend fun updateSnippet(id: Long, snippet: String) {
         _bookmarks.value = _bookmarks.value.map { if (it.id == id) it.copy(snippet = snippet) else it }
+    }
+}
+
+class FakeReaderHighlightStore : ReaderHighlightStore {
+    private val _highlights = MutableStateFlow<List<ReaderHighlightEntity>>(emptyList())
+    private var nextId = 1L
+
+    override fun observe(bookId: String): Flow<List<ReaderHighlightEntity>> =
+        _highlights.map { rows -> rows.filter { it.bookId == bookId } }
+
+    override suspend fun add(highlight: ReaderHighlightEntity): Long {
+        val id = nextId++
+        _highlights.value = _highlights.value + highlight.copy(id = id)
+        return id
+    }
+
+    override suspend fun remove(id: Long) {
+        _highlights.value = _highlights.value.filterNot { it.id == id }
     }
 }
 

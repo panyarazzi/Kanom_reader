@@ -67,6 +67,7 @@ class ReaderViewModelTest {
             source = source,
             prefs = FakeReaderPreferences(),
             bookmarkStore = FakeBookmarkStore(),
+            highlightStore = FakeReaderHighlightStore(),
             replacementRuleRepository = fakeReplacementRuleRepository(),
             ttsController = ttsController,
         )
