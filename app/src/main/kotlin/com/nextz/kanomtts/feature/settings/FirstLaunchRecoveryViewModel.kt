@@ -76,6 +76,13 @@ class FirstLaunchRecoveryViewModel @Inject constructor(
         evaluationJob = viewModelScope.launch {
             _uiState.value = FirstLaunchRecoveryUiState(FirstLaunchRecoveryStatus.CHECKING)
 
+            // Re-check access on every launch, even after recovery was completed.
+            // A revoked permission must never be mistaken for a healthy portable folder.
+            if (!manager.hasStorageAccess()) {
+                _uiState.value = FirstLaunchRecoveryUiState(FirstLaunchRecoveryStatus.PERMISSION_REQUIRED)
+                return@launch
+            }
+
             if (completeMarker.exists()) {
                 _uiState.value = FirstLaunchRecoveryUiState(FirstLaunchRecoveryStatus.READY)
                 return@launch
@@ -95,11 +102,6 @@ class FirstLaunchRecoveryViewModel @Inject constructor(
             pendingMarker.parentFile?.mkdirs()
             pendingMarker.createNewFile()
 
-            if (!manager.hasStorageAccess()) {
-                _uiState.value = FirstLaunchRecoveryUiState(FirstLaunchRecoveryStatus.PERMISSION_REQUIRED)
-                return@launch
-            }
-
             if (!manager.latestBackupExists()) {
                 markComplete()
                 _uiState.value = FirstLaunchRecoveryUiState(FirstLaunchRecoveryStatus.READY)
@@ -115,7 +117,11 @@ class FirstLaunchRecoveryViewModel @Inject constructor(
                     _uiState.value = FirstLaunchRecoveryUiState(FirstLaunchRecoveryStatus.READY)
                 }
                 .onFailure { error ->
-                    markComplete()
+                    // Keep recovery pending. Marking it complete here would permanently
+                    // suppress another attempt after a transient read/restore failure.
+                    inProgressMarker.delete()
+                    pendingMarker.parentFile?.mkdirs()
+                    pendingMarker.createNewFile()
                     _uiState.value = FirstLaunchRecoveryUiState(
                         status = FirstLaunchRecoveryStatus.FAILED,
                         errorMessage = error.message ?: "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ",
