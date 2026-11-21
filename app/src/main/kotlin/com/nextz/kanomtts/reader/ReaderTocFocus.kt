@@ -32,6 +32,10 @@ object ReaderTocFocus {
         toc.forEachIndexed { index, link -> append(link, 0, listOf(index)) }
     }
 
+    /** Paths for every row that can be expanded, used by the global Expand all action. */
+    fun expandablePaths(toc: List<Link>): Set<String> =
+        flatten(toc).filter { it.hasChildren }.mapTo(linkedSetOf()) { it.key }
+
     /**
      * Flatten only rows whose parent branches are expanded.
      * [expandedPaths] contains slash-separated [Entry.key] values.

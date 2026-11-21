@@ -66,6 +66,42 @@ class ReaderTocFocusTest {
             ReaderTocFocus.visible(toc, setOf("0", "0/0")).map { it.link.href.toString() })
     }
 
+    @Test fun `expand all returns every node that has children`() {
+        val toc = listOf(
+            link("volume1.xhtml", children = listOf(
+                link("part1.xhtml", children = listOf(link("chapter1.xhtml"))),
+                link("part2.xhtml"),
+            )),
+            link("volume2.xhtml", children = listOf(link("chapter2.xhtml"))),
+        )
+
+        assertEquals(
+            setOf("0", "0/0", "1"),
+            ReaderTocFocus.expandablePaths(toc),
+        )
+        assertEquals(
+            listOf("volume1.xhtml", "part1.xhtml", "chapter1.xhtml", "part2.xhtml",
+                "volume2.xhtml", "chapter2.xhtml"),
+            ReaderTocFocus.visible(toc, ReaderTocFocus.expandablePaths(toc))
+                .map { it.link.href.toString() },
+        )
+    }
+
+    @Test fun `collapsed current child can be represented by its visible volume ancestor`() {
+        val toc = listOf(
+            link("volume1.xhtml", children = listOf(link("chapter1.xhtml"))),
+            link("volume2.xhtml", children = listOf(link("chapter2.xhtml"))),
+        )
+        val current = ReaderTocFocus.flatten(toc).first { it.link.href.toString() == "chapter2.xhtml" }
+        val visible = ReaderTocFocus.visible(toc, emptySet())
+        val focusedAncestor = visible
+            .filter { it.path.size <= current.path.size && current.path.take(it.path.size) == it.path }
+            .maxByOrNull { it.path.size }
+
+        assertEquals("1", focusedAncestor?.key)
+        assertEquals("volume2.xhtml", focusedAncestor?.link?.href.toString())
+    }
+
     @Test fun `current location expands only its ancestor path`() {
         val toc = listOf(link("volume.xhtml", children = listOf(
             link("part.xhtml", children = listOf(link("chapter.xhtml"))),
@@ -86,7 +122,7 @@ class ReaderTocFocusTest {
         assertEquals(2, ReaderTocFocus.currentIndex(toc, Url("ch1-b.xhtml")!!))
     }
 
-    @Test fun `nested child in second parent resolves to its flattened row index`() {
+    @Test fun `nested child in second parent resolves to its own flattened row index`() {
         val toc = listOf(
             link("a.xhtml"),
             link("b.xhtml", children = listOf(link("c.xhtml"))),
