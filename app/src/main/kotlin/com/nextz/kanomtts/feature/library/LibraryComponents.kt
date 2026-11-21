@@ -54,6 +54,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.nextz.kanomtts.R
+import com.nextz.kanomtts.data.progress.formatProgressPercent
 import com.nextz.kanomtts.ui.theme.KanomTheme
 
 // ─── Brand Header ───────────────────────────────────────────────────────────────
@@ -147,7 +148,7 @@ fun ContinueHero(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = "ฟังต่อ · ${(card.percent * 100).toInt()}%",
+                    text = "ฟังต่อ · ${formatProgressPercent(card.percent.toDouble()) ?: "—"}",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White.copy(alpha = 0.8f),
                 )
@@ -350,7 +351,7 @@ fun BookListItem(
                     trackColor = MaterialTheme.colorScheme.primaryContainer,
                 )
                 Text(
-                    text = "${(card.percent * 100).toInt()}%",
+                    text = formatProgressPercent(card.percent.toDouble()) ?: "—",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 2.dp),

@@ -1,5 +1,6 @@
 package com.nextz.kanomtts.reader
 
+import com.nextz.kanomtts.data.progress.formatProgressPercent
 import org.readium.r2.shared.publication.Locator
 
 /** Max characters of cleaned snippet text retained before truncation. */
@@ -58,7 +59,7 @@ data class BookmarkLabel(val primary: String, val secondary: String)
  */
 fun resolveBookmarkLabel(snippet: String, locator: Locator?): BookmarkLabel {
     val title = locator?.title?.let(::cleanSnippet)?.takeIf { it.isNotBlank() }
-    val percentInt = locator?.locations?.totalProgression?.let { (it * 100).toInt() }
+    val percentText = formatProgressPercent(locator?.locations?.totalProgression)
 
     val excerpt = snippet.takeIf { it.isNotBlank() }
 
@@ -71,12 +72,12 @@ fun resolveBookmarkLabel(snippet: String, locator: Locator?): BookmarkLabel {
     when {
         excerpt != null -> primary = excerpt
         title != null -> { primary = title; usedTitleAsPrimary = true }
-        percentInt != null -> { primary = "ตำแหน่ง $percentInt%"; usedPercentAsPrimary = true }
+        percentText != null -> { primary = "ตำแหน่ง $percentText%"; usedPercentAsPrimary = true }
         else -> primary = "ที่คั่นหน้า"
     }
 
     val secondary = listOfNotNull(
-        percentInt?.let { "อ่านแล้ว $it%" }.takeUnless { usedPercentAsPrimary },
+        percentText?.let { "อ่านแล้ว $it" }.takeUnless { usedPercentAsPrimary },
         title.takeUnless { usedTitleAsPrimary },
     ).joinToString(" · ")
 
