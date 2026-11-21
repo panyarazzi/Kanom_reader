@@ -72,6 +72,8 @@ class ReaderViewModel @Inject constructor(
 
     private val bookId: String = savedStateHandle.get<String>("bookId").orEmpty()
 
+    private companion object { const val CHROME_AUTO_HIDE_DELAY_MS = 3_000L }
+
     /** Argb int of KanomColors.highlight (RoseHighlight), used for bookmark decorations. */
     private val roseArgb: Int = RoseHighlight.toArgb()
 
