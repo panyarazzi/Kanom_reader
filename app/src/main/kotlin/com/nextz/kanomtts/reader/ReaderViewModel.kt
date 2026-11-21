@@ -9,9 +9,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nextz.kanomtts.R
 import com.nextz.kanomtts.data.db.ProgressEntity
+import com.nextz.kanomtts.data.db.ReaderHighlightEntity
 import com.nextz.kanomtts.data.prefs.ReadingFont
 import com.nextz.kanomtts.data.prefs.ReaderPreferences
 import com.nextz.kanomtts.data.repository.BookmarkStore
+import com.nextz.kanomtts.data.repository.ReaderHighlightStore
 import com.nextz.kanomtts.data.repository.ReplacementRuleRepository
 import com.nextz.kanomtts.BuildConfig
 import com.nextz.kanomtts.playback.PlaybackState
@@ -65,6 +67,7 @@ class ReaderViewModel @Inject constructor(
     private val source: ReaderBookSource,
     private val prefs: ReaderPreferences,
     private val bookmarkStore: BookmarkStore,
+    private val highlightStore: ReaderHighlightStore,
     private val replacementRuleRepository: ReplacementRuleRepository,
     private val ttsController: TtsPlaybackSource,
 ) : ViewModel() {
@@ -120,6 +123,7 @@ class ReaderViewModel @Inject constructor(
 
     /** Tracks the per-bind navigator.currentLocator collector so unbind can cancel it (avoid leak + double-handling on rebind). */
     private var navLocatorJob: Job? = null
+    private var highlightDecorationJob: Job? = null
 
     /** Held for removal in [onCleared]; registered first → consumes edge taps. */
     private var edgeAdapter: DirectionalNavigationAdapter? = null
@@ -189,6 +193,15 @@ class ReaderViewModel @Inject constructor(
                     if (s is ReaderUiState.Ready) s.copy(bookmarks = bookmarks) else s
                 }
                 decorations.applyBookmarks(bookmarks)
+            }
+        }
+        // Keep persisted text highlights in the same reader state as bookmarks.
+        viewModelScope.launch {
+            highlightStore.observe(bookId).collect { highlights ->
+                _uiState.update { current ->
+                    if (current is ReaderUiState.Ready) current.copy(highlights = highlights) else current
+                }
+                refreshHighlightDecorations(highlights)
             }
         }
         // Speech-driven sentence highlight + auto-scroll.
@@ -263,7 +276,7 @@ class ReaderViewModel @Inject constructor(
                     setFontWeight(FontWeight.BOLD)
                 }
             }
-            // Selection ActionMode: four items — Start TTS · Copy · Translate · Add Replacement.
+            // Selection ActionMode: Start TTS · Copy · Highlight · Translate · Add Replacement.
             // The Compose gesture overlay was removed (nav is via Readium InputListener), so a
             // long-press reaches the WebView and native text selection fires. Readium adds NO
             // system Copy/Select-All — the menu is exactly these four items.
@@ -273,8 +286,9 @@ class ReaderViewModel @Inject constructor(
                 override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
                     menu.add(0, R.id.read_from_here, 0, context.getString(R.string.menu_start_tts))
                     menu.add(0, R.id.copy_selection, 1, context.getString(R.string.menu_copy))
-                    menu.add(0, R.id.translate_selection, 2, context.getString(R.string.menu_translate))
-                    menu.add(0, R.id.add_replacement, 3, context.getString(R.string.menu_add_replacement))
+                    menu.add(0, R.id.highlight_selection, 2, context.getString(R.string.menu_highlight))
+                    menu.add(0, R.id.translate_selection, 3, context.getString(R.string.menu_translate))
+                    menu.add(0, R.id.add_replacement, 4, context.getString(R.string.menu_add_replacement))
                     return true
                 }
                 override fun onPrepareActionMode(mode: ActionMode, menu: Menu): Boolean = false
@@ -299,6 +313,21 @@ class ReaderViewModel @Inject constructor(
                                 context.getSystemService(android.content.ClipboardManager::class.java)
                                     ?.setPrimaryClip(android.content.ClipData.newPlainText("kanom", text))
                                 toast(R.string.toast_copied)
+                            }
+                            nav?.clearSelection()
+                            mode.finish()
+                        }
+                        R.id.highlight_selection -> viewModelScope.launch {
+                            val nav = navigator as? SelectableNavigator
+                            val selectedLocator = nav?.currentSelection()?.locator
+                            val entity = selectedLocator?.let {
+                                ReaderHighlightFactory.build(bookId, it, System.currentTimeMillis())
+                            }
+                            if (entity == null) {
+                                toast(R.string.toast_highlight_unavailable)
+                            } else {
+                                val saved = runCatching { highlightStore.add(entity) }.isSuccess
+                                toast(if (saved) R.string.toast_highlight_saved else R.string.toast_highlight_failed)
                             }
                             nav?.clearSelection()
                             mode.finish()
@@ -344,6 +373,7 @@ class ReaderViewModel @Inject constructor(
         // seeding here, a reopen would show default prefs (e.g. "สว่าง" instead of the persisted
         // "ซีเปีย") and an empty bookmarks list / missing in-page outlines.
         val initialBookmarks = bookmarkStore.observe(bookId).first()
+        val initialHighlights = highlightStore.observe(bookId).first()
 
         _uiState.value = ReaderUiState.Ready(
             book = book,
@@ -353,6 +383,7 @@ class ReaderViewModel @Inject constructor(
             toc = publication.tableOfContents,
             prefs = initialPrefs,
             bookmarks = initialBookmarks,
+            highlights = initialHighlights,
             currentLocator = initialLocator,
         )
     }
@@ -380,6 +411,8 @@ class ReaderViewModel @Inject constructor(
         // Re-apply current bookmarks now that we have a navigator reference.
         val currentBookmarks = (_uiState.value as? ReaderUiState.Ready)?.bookmarks ?: emptyList()
         decorations.applyBookmarks(currentBookmarks)
+        val currentHighlights = (_uiState.value as? ReaderUiState.Ready)?.highlights ?: emptyList()
+        refreshHighlightDecorations(currentHighlights)
 
         // Page-nav via Readium input (replaces the deleted Compose overlay).
         // DirectionalNavigationAdapter handles edge-tap + key page turns; the custom listener
@@ -412,6 +445,8 @@ class ReaderViewModel @Inject constructor(
         if (navigator !== nav) return
         navLocatorJob?.cancel()
         navLocatorJob = null
+        highlightDecorationJob?.cancel()
+        highlightDecorationJob = null
         edgeAdapter?.let { nav.removeInputListener(it) }
         navListener?.let { nav.removeInputListener(it) }
         edgeAdapter = null
@@ -592,6 +627,48 @@ class ReaderViewModel @Inject constructor(
     /** Navigate to the locator encoded as JSON string. No-op on decode failure. */
     fun goToBookmark(locatorJson: String) {
         LocatorSerializer.decode(locatorJson)?.let { navigator?.go(it, animated = animatePageTurns) }
+    }
+
+    /** Remove a persistent text highlight. */
+    fun removeHighlight(id: Long) = viewModelScope.launch { highlightStore.remove(id) }
+
+    /**
+     * Navigate only after the exact quote is found in the current EPUB resource.
+     * If it is missing or ambiguous, the current page is left untouched.
+     */
+    fun goToHighlight(highlight: ReaderHighlightEntity) {
+        val ready = _uiState.value as? ReaderUiState.Ready ?: return
+        val nav = navigator ?: return
+        val saved = LocatorSerializer.decode(highlight.locator) ?: run {
+            toast(R.string.toast_highlight_not_found)
+            return
+        }
+        viewModelScope.launch {
+            val safeLocator = runCatching {
+                HighlightAnchorResolver.resolve(ready.publication, saved, thaiWordBreak)
+            }.getOrNull()
+            if (safeLocator == null) {
+                toast(R.string.toast_highlight_not_found)
+            } else {
+                nav.go(safeLocator, animated = animatePageTurns)
+            }
+        }
+    }
+
+    /** Rebuild the persistent-decoration group from verified text quotes only. */
+    private fun refreshHighlightDecorations(highlights: List<ReaderHighlightEntity>) {
+        val publication = (_uiState.value as? ReaderUiState.Ready)?.publication ?: return
+        highlightDecorationJob?.cancel()
+        highlightDecorationJob = viewModelScope.launch {
+            val verified = highlights.mapNotNull { entity ->
+                val saved = LocatorSerializer.decode(entity.locator) ?: return@mapNotNull null
+                val resolved = runCatching {
+                    HighlightAnchorResolver.resolve(publication, saved, thaiWordBreak)
+                }.getOrNull() ?: return@mapNotNull null
+                entity to resolved
+            }
+            decorations.applyHighlights(verified)
+        }
     }
 
     // ─── Debug probe ─────────────────────────────────────────────────────────
