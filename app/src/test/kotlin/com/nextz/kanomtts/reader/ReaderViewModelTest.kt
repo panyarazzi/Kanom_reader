@@ -117,6 +117,28 @@ class ReaderViewModelTest {
         assertEquals(LocatorSerializer.encode(locatorB), source.lastReadingLocator)
     }
 
+    @Test fun `reader chrome auto hides after three seconds and page interaction resets timer`() = runTest(dispatcher) {
+        val vm = vm("1")
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        runCurrent()
+
+        // Center tap hides the initially visible chrome; the next tap shows it and starts timeout.
+        vm.toggleChrome()
+        vm.toggleChrome()
+        assertEquals(true, (vm.uiState.value as ReaderUiState.Ready).chromeVisible)
+
+        advanceTimeBy(2_000)
+        runCurrent()
+        vm.nextPage() // A page turn restarts the timeout even if no navigator is attached in this unit test.
+        advanceTimeBy(2_000)
+        runCurrent()
+        assertEquals(true, (vm.uiState.value as ReaderUiState.Ready).chromeVisible)
+
+        advanceTimeBy(1_100)
+        runCurrent()
+        assertEquals(false, (vm.uiState.value as ReaderUiState.Ready).chromeVisible)
+    }
+
     // ─── toggleTts branching tests ────────────────────────────────────────────
     // Navigator is not bound in unit tests, so the idle path calls startAndPlay(bookId, null)
     // (firstVisibleElementLocator and currentLocator are both unavailable without a bound
