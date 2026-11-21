@@ -134,7 +134,7 @@ class ReaderViewModel @Inject constructor(
 
     /** Owns the restartable 3-second reader chrome auto-hide timer. */
     /** Mirrors KanomPreferences.pageAnimation; updated by the prefs collector in init. */
-    private val chromeAutoHideTimer = ReaderChromeAutoHideTimer(viewModelScope) {
+    private val chromeAutoHideTimer = ReaderChromeAutoHideTimer(viewModelScope, CHROME_AUTO_HIDE_DELAY_MS) {
         _uiState.update { state ->
             if (state is ReaderUiState.Ready) state.copy(chromeVisible = false) else state
         }
