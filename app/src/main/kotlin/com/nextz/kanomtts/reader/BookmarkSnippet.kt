@@ -72,7 +72,7 @@ fun resolveBookmarkLabel(snippet: String, locator: Locator?): BookmarkLabel {
     when {
         excerpt != null -> primary = excerpt
         title != null -> { primary = title; usedTitleAsPrimary = true }
-        percentText != null -> { primary = "ตำแหน่ง $percentText%"; usedPercentAsPrimary = true }
+        percentText != null -> { primary = "ตำแหน่ง $percentText"; usedPercentAsPrimary = true }
         else -> primary = "ที่คั่นหน้า"
     }
 
