@@ -5,6 +5,8 @@ import com.nextz.kanomtts.data.prefs.ReaderPreferences
 import com.nextz.kanomtts.data.repository.BookDeleter
 import com.nextz.kanomtts.data.repository.BookmarkRepository
 import com.nextz.kanomtts.data.repository.BookmarkStore
+import com.nextz.kanomtts.data.repository.ReaderHighlightRepository
+import com.nextz.kanomtts.data.repository.ReaderHighlightStore
 import com.nextz.kanomtts.data.repository.BookReader
 import com.nextz.kanomtts.data.repository.BookRepository
 import com.nextz.kanomtts.data.repository.DefaultBookDeleter
@@ -28,5 +30,6 @@ abstract class RepositoryBindings {
     @Binds @Singleton abstract fun readerBookSource(impl: DefaultReaderBookSource): ReaderBookSource
     @Binds @Singleton abstract fun readerPreferences(impl: PreferencesRepository): ReaderPreferences
     @Binds @Singleton abstract fun bookmarkStore(impl: BookmarkRepository): BookmarkStore
+    @Binds @Singleton abstract fun readerHighlightStore(impl: ReaderHighlightRepository): ReaderHighlightStore
     @Binds @Singleton abstract fun bookDeleter(impl: DefaultBookDeleter): BookDeleter
 }

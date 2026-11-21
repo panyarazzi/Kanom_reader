@@ -8,6 +8,7 @@ import androidx.room.Room
 import com.nextz.kanomtts.data.db.BookDao
 import com.nextz.kanomtts.data.db.BookmarkDao
 import com.nextz.kanomtts.data.db.KanomDatabase
+import com.nextz.kanomtts.data.db.ReaderHighlightDao
 import com.nextz.kanomtts.data.db.ProgressDao
 import com.nextz.kanomtts.data.db.ReplacementRuleDao
 import com.nextz.kanomtts.data.db.VoiceConfigDao
@@ -28,12 +29,13 @@ object DataModule {
     @Singleton
     fun provideDatabase(@ApplicationContext ctx: Context): KanomDatabase =
         Room.databaseBuilder(ctx, KanomDatabase::class.java, "kanom.db")
-            .addMigrations(com.nextz.kanomtts.data.db.MIGRATION_1_2)
+            .addMigrations(com.nextz.kanomtts.data.db.MIGRATION_1_2, com.nextz.kanomtts.data.db.MIGRATION_2_3)
             .build()
 
     @Provides fun provideBookDao(db: KanomDatabase): BookDao = db.bookDao()
     @Provides fun provideProgressDao(db: KanomDatabase): ProgressDao = db.progressDao()
     @Provides fun provideBookmarkDao(db: KanomDatabase): BookmarkDao = db.bookmarkDao()
+    @Provides fun provideHighlightDao(db: KanomDatabase): ReaderHighlightDao = db.highlightDao()
     @Provides fun provideReplacementRuleDao(db: KanomDatabase): ReplacementRuleDao = db.replacementRuleDao()
     @Provides fun provideVoiceConfigDao(db: KanomDatabase): VoiceConfigDao = db.voiceConfigDao()
 
