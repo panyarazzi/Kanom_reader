@@ -3,9 +3,14 @@ import com.nextz.kanomtts.reader.engine.LocatorSerializer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.util.Url
 import org.readium.r2.shared.util.mediatype.MediaType
+@Config(sdk = [35])
+@RunWith(RobolectricTestRunner::class)
 class ReaderHighlightFactoryTest {
     @Test fun storesOriginalLocatorAndCleanDisplayQuote() {
         val locator = Locator(href = Url("chapter.xhtml")!!, mediaType = MediaType.XHTML,

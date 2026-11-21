@@ -279,7 +279,7 @@ class ReaderViewModel @Inject constructor(
             // Selection ActionMode: Start TTS · Copy · Highlight · Translate · Add Replacement.
             // The Compose gesture overlay was removed (nav is via Readium InputListener), so a
             // long-press reaches the WebView and native text selection fires. Readium adds NO
-            // system Copy/Select-All — the menu is exactly these four items.
+            // system Copy/Select-All — the menu contains exactly our five actions.
             // mode.finish() is called INSIDE each coroutine, AFTER the suspend currentSelection()
             // read, so tearing down the ActionMode can never clear the selection before we read it.
             selectionActionModeCallback = object : ActionMode.Callback {

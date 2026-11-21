@@ -6,6 +6,7 @@ import com.nextz.kanomtts.data.db.BookEntity
 import com.nextz.kanomtts.playback.PlaybackState
 import com.nextz.kanomtts.reader.engine.LocatorSerializer
 import com.nextz.kanomtts.reader.util.FakeBookmarkStore
+import com.nextz.kanomtts.reader.util.FakeReaderHighlightStore
 import com.nextz.kanomtts.reader.util.FakeReaderBookSource
 import com.nextz.kanomtts.reader.util.FakeReaderPreferences
 import com.nextz.kanomtts.reader.util.FakeTtsPlaybackController
