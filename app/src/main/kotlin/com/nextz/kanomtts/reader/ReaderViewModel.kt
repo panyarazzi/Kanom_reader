@@ -125,6 +125,9 @@ class ReaderViewModel @Inject constructor(
     private var navLocatorJob: Job? = null
 
     /** Held for removal in [onCleared]; registered first → consumes edge taps. */
+    private var interactionListener: ReaderInteractionInputListener? = null
+
+    /** Held for removal in [onCleared]; registered before page-turn listeners without consuming input. */
     private var edgeAdapter: DirectionalNavigationAdapter? = null
 
     /** Held for removal in [onCleared]; registered second → receives center taps + drag. */
@@ -391,6 +394,7 @@ class ReaderViewModel @Inject constructor(
         // DirectionalNavigationAdapter handles edge-tap + key page turns; the custom listener
         // handles center-tap chrome-toggle + swipe.
         val thresholdPx = 48f * context.resources.displayMetrics.density
+        val interactionListener = ReaderInteractionInputListener(onInteraction = ::scheduleChromeAutoHide)
         val edgeAdapter = DirectionalNavigationAdapter(
             navigator = nav,
             horizontalEdgeThresholdPercent = 0.333,
@@ -401,8 +405,10 @@ class ReaderViewModel @Inject constructor(
             onPrevPage = ::previousPage,
             swipeThresholdPx = thresholdPx,
         )
-        nav.addInputListener(edgeAdapter)   // FIRST → consumes edge taps
-        nav.addInputListener(navListener)   // SECOND → center taps + drag reach here
+        nav.addInputListener(interactionListener) // FIRST → observes taps/drags without consuming them
+        nav.addInputListener(edgeAdapter)   // SECOND → consumes edge taps
+        nav.addInputListener(navListener)   // THIRD → center taps + drag reach here
+        this.interactionListener = interactionListener
         this.edgeAdapter = edgeAdapter
         this.navListener = navListener
         scheduleChromeAutoHide()
@@ -419,8 +425,10 @@ class ReaderViewModel @Inject constructor(
         if (navigator !== nav) return
         navLocatorJob?.cancel()
         navLocatorJob = null
+        interactionListener?.let { nav.removeInputListener(it) }
         edgeAdapter?.let { nav.removeInputListener(it) }
         navListener?.let { nav.removeInputListener(it) }
+        interactionListener = null
         chromeAutoHideJob?.cancel()
         chromeAutoHideJob = null
         edgeAdapter = null
