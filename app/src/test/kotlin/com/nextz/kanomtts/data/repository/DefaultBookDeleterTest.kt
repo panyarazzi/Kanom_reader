@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import com.nextz.kanomtts.data.db.BookEntity
 import com.nextz.kanomtts.data.db.BookmarkEntity
+import com.nextz.kanomtts.data.db.ReaderHighlightEntity
 import com.nextz.kanomtts.data.db.ProgressEntity
 import com.nextz.kanomtts.data.db.ReplacementRuleEntity
 import com.nextz.kanomtts.data.util.RoomTestBase
@@ -22,7 +23,7 @@ class DefaultBookDeleterTest : RoomTestBase() {
     private val ctx get() = ApplicationProvider.getApplicationContext<Context>()
 
     private fun deleter() = DefaultBookDeleter(
-        db.bookDao(), db.progressDao(), db.bookmarkDao(), db.replacementRuleDao(), ctx,
+        db.bookDao(), db.progressDao(), db.bookmarkDao(), db.highlightDao(), db.replacementRuleDao(), ctx,
     )
 
     private suspend fun book(id: String, uri: String, cover: String?) = db.bookDao().upsert(
@@ -39,6 +40,7 @@ class DefaultBookDeleterTest : RoomTestBase() {
         book("b2", "content://test/b2.epub", null)
         db.progressDao().upsert(ProgressEntity("b1", null, null, 0.5f, 0L))
         db.bookmarkDao().insert(BookmarkEntity(bookId = "b1", locator = "{}", snippet = "s", createdAt = 0L))
+        db.highlightDao().insert(ReaderHighlightEntity(bookId = "b1", locator = "{}", selectedText = "selected", createdAt = 0L))
         db.replacementRuleDao().insert(ReplacementRuleEntity(scope = "book", bookId = "b1", pattern = "a", replacement = "b", isRegex = false, enabled = true, position = 0))
         db.replacementRuleDao().insert(ReplacementRuleEntity(scope = "global", bookId = null, pattern = "g", replacement = "h", isRegex = false, enabled = true, position = 1))
 
@@ -48,6 +50,7 @@ class DefaultBookDeleterTest : RoomTestBase() {
         assertNotNull(db.bookDao().getById("b2"))
         assertNull(db.progressDao().get("b1"))
         assertEquals(0, db.bookmarkDao().observeForBook("b1").first().size)
+        assertEquals(0, db.highlightDao().observeForBook("b1").first().size)
         assertEquals(emptyList<String>(), db.replacementRuleDao().observeByBook("b1").first().map { it.pattern })
         assertEquals(listOf("g"), db.replacementRuleDao().observeGlobal().first().map { it.pattern })
         assertFalse(coverFile.exists())

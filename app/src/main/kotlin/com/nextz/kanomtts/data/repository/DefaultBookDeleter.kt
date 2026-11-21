@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import com.nextz.kanomtts.data.db.BookDao
 import com.nextz.kanomtts.data.db.BookmarkDao
+import com.nextz.kanomtts.data.db.ReaderHighlightDao
 import com.nextz.kanomtts.data.db.ProgressDao
 import com.nextz.kanomtts.data.db.ReplacementRuleDao
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -15,6 +16,7 @@ class DefaultBookDeleter @Inject constructor(
     private val bookDao: BookDao,
     private val progressDao: ProgressDao,
     private val bookmarkDao: BookmarkDao,
+    private val highlightDao: ReaderHighlightDao,
     private val replacementRuleDao: ReplacementRuleDao,
     @ApplicationContext private val context: Context,
 ) : BookDeleter {
@@ -28,6 +30,7 @@ class DefaultBookDeleter @Inject constructor(
         book.coverPath?.let { runCatching { File(it).delete() } }
         progressDao.deleteByBook(bookId)
         bookmarkDao.deleteByBook(bookId)
+        highlightDao.deleteByBook(bookId)
         replacementRuleDao.deleteByBook(bookId)
         bookDao.delete(bookId)
     }
