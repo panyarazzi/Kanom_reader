@@ -5,4 +5,5 @@
     <item name="copy_selection" type="id" />
     <item name="translate_selection" type="id" />
     <item name="add_replacement" type="id" />
+    <item name="highlight_selection" type="id" />
 </resources>

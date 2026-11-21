@@ -2,10 +2,15 @@
     <string name="app_name">KanomTTS</string>
     <string name="menu_start_tts">อ่านจากตรงนี้</string>
     <string name="menu_copy">คัดลอก</string>
+    <string name="menu_highlight">ไฮไลท์</string>
     <string name="menu_translate">แปล</string>
     <string name="menu_add_replacement">เพิ่มคำแทนที่</string>
     <string name="toast_copied">คัดลอกแล้ว</string>
     <string name="toast_coming_soon">เร็วๆ นี้</string>
+    <string name="toast_highlight_saved">บันทึกไฮไลท์แล้ว</string>
+    <string name="toast_highlight_failed">บันทึกไฮไลท์ไม่สำเร็จ</string>
+    <string name="toast_highlight_unavailable">ไม่พบข้อความที่เลือก กรุณาเลือกข้อความอีกครั้ง</string>
+    <string name="toast_highlight_not_found">ไม่พบข้อความเดิมหรือระบุตำแหน่งได้ไม่ชัดเจน จึงไม่ได้เปิดตำแหน่งใหม่</string>
     <string name="settings_replacements">คำแทนที่</string>
     <string name="replacements_title">คำแทนที่</string>
     <string name="replacements_empty">ยังไม่มีกฎ — เพิ่มกฎแรก</string>
