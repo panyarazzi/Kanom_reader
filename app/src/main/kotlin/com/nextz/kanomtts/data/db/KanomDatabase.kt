@@ -6,9 +6,9 @@ import androidx.room.RoomDatabase
 @Database(
     entities = [
         BookEntity::class, ProgressEntity::class, BookmarkEntity::class,
-        ReplacementRuleEntity::class, VoiceConfigEntity::class,
+        ReplacementRuleEntity::class, VoiceConfigEntity::class, ReadingSessionEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 abstract class KanomDatabase : RoomDatabase() {
@@ -17,4 +17,5 @@ abstract class KanomDatabase : RoomDatabase() {
     abstract fun bookmarkDao(): BookmarkDao
     abstract fun replacementRuleDao(): ReplacementRuleDao
     abstract fun voiceConfigDao(): VoiceConfigDao
+    abstract fun readingSessionDao(): ReadingSessionDao
 }
