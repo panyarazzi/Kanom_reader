@@ -14,6 +14,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nextz.kanomtts.R
 import com.nextz.kanomtts.data.db.ProgressEntity
+import com.nextz.kanomtts.data.db.ReadingSessionDao
+import com.nextz.kanomtts.data.db.ReadingSessionEntity
 import com.nextz.kanomtts.data.prefs.ReadingFont
 import com.nextz.kanomtts.data.prefs.ReaderPreferences
 import com.nextz.kanomtts.data.repository.BookmarkStore
@@ -42,6 +44,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.readium.r2.navigator.SelectableNavigator
 import org.readium.r2.navigator.HyperlinkNavigator
@@ -73,6 +76,7 @@ class ReaderViewModel @Inject constructor(
     private val bookmarkStore: BookmarkStore,
     private val replacementRuleRepository: ReplacementRuleRepository,
     private val ttsController: TtsPlaybackSource,
+    private val readingSessionDao: ReadingSessionDao,
 ) : ViewModel() {
 
     private val bookId: String = savedStateHandle.get<String>("bookId").orEmpty()
@@ -151,6 +155,63 @@ class ReaderViewModel @Inject constructor(
     }
 
     private var animatePageTurns: Boolean = true
+
+    // Reading time is counted only while this reader is foregrounded and has recent interaction.
+    private var readerVisibleForStats = false
+    private var lastReadingActivityAt: Long? = null
+    private var lastReadingAccruedAt: Long? = null
+    private var readingStatsJob: Job? = null
+
+    fun setReaderVisibleForStatistics(visible: Boolean) {
+        if (readerVisibleForStats == visible) return
+        readerVisibleForStats = visible
+        if (visible) {
+            val now = System.currentTimeMillis()
+            lastReadingActivityAt = now
+            lastReadingAccruedAt = now
+            readingStatsJob = viewModelScope.launch {
+                while (true) {
+                    delay(30_000L)
+                    if (!readerVisibleForStats) break
+                    accrueReadingTime()
+                }
+            }
+        } else {
+            accrueReadingTime()
+            readingStatsJob?.cancel()
+            readingStatsJob = null
+            lastReadingActivityAt = null
+            lastReadingAccruedAt = null
+        }
+    }
+
+    private fun markReadingActivity() {
+        if (!readerVisibleForStats) return
+        val now = System.currentTimeMillis()
+        accrueReadingTime(now)
+        lastReadingActivityAt = now
+        lastReadingAccruedAt = now
+    }
+
+    private fun accrueReadingTime(now: Long = System.currentTimeMillis()) {
+        val lastActivity = lastReadingActivityAt ?: return
+        val lastAccrued = lastReadingAccruedAt ?: lastActivity
+        if (now - lastActivity <= 120_000L) {
+            val duration = (now - lastAccrued).coerceIn(0L, 30_000L)
+            if (duration >= 1_000L) {
+                viewModelScope.launch {
+                    readingSessionDao.insert(
+                        ReadingSessionEntity(
+                            bookId = bookId,
+                            startedAt = now - duration,
+                            durationMs = duration,
+                        )
+                    )
+                }
+            }
+        }
+        lastReadingAccruedAt = now
+    }
 
     /** Mirrors KanomPreferences.highlightOn; updated by the prefs collector in init. */
     private var highlightOn: Boolean = true
@@ -431,7 +492,7 @@ class ReaderViewModel @Inject constructor(
         // Page navigation via Readium input. The adapter handles keyboard keys only; the custom
         // listener toggles chrome in the central zone and advances on every other unhandled tap.
         val thresholdPx = 48f * context.resources.displayMetrics.density
-        val interactionListener = ReaderInteractionInputListener(onInteraction = ::scheduleChromeAutoHide)
+        val interactionListener = ReaderInteractionInputListener(onInteraction = { scheduleChromeAutoHide(); markReadingActivity() })
         val edgeAdapter = DirectionalNavigationAdapter(
             navigator = nav,
             tapEdges = emptySet(),
@@ -548,12 +609,14 @@ class ReaderViewModel @Inject constructor(
 
     /** Go forward one page. Fire-and-forget; result ignored. */
     fun nextPage() {
+        markReadingActivity()
         scheduleChromeAutoHide()
         navigator?.goForward(animated = animatePageTurns)
     }
 
     /** Go backward one page. Fire-and-forget; result ignored. */
     fun previousPage() {
+        markReadingActivity()
         scheduleChromeAutoHide()
         navigator?.goBackward(animated = animatePageTurns)
     }
@@ -561,6 +624,7 @@ class ReaderViewModel @Inject constructor(
     /** Receive Readium's actual page index and page count for the current chapter. */
     fun onNavigatorPageChanged(pageIndex: Int, totalPages: Int, loc: Locator) {
         if (totalPages <= 0) return
+        markReadingActivity()
         locatorChanges.tryEmit(loc)
         _uiState.update { state ->
             if (state is ReaderUiState.Ready) state.copy(currentLocator = loc, chapterPageNumber = (pageIndex + 1).coerceIn(1, totalPages), chapterPageCount = totalPages) else state
@@ -573,6 +637,7 @@ class ReaderViewModel @Inject constructor(
      * Public for unit-testing.
      */
     fun onLocatorChanged(loc: Locator) {
+        markReadingActivity()
         locatorChanges.tryEmit(loc)
         _uiState.update { if (it is ReaderUiState.Ready) it.copy(currentLocator = loc) else it }
     }
@@ -869,6 +934,7 @@ class ReaderViewModel @Inject constructor(
     }
 
     override fun onCleared() {
+        setReaderVisibleForStatistics(false)
         super.onCleared()
         navigator?.let { nav ->
             interactionListener?.let { nav.removeInputListener(it) }
