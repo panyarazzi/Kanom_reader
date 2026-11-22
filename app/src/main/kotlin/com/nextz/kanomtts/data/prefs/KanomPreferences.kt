@@ -9,6 +9,8 @@ data class KanomPreferences(
     val readerTheme: ReaderTheme = ReaderTheme.LIGHT,
     val readingFont: ReadingFont = ReadingFont.SARABUN,
     val fontSizeSp: Int = 18,
+    /** Shared font size for persistent top/footer reading progress labels. */
+    val progressFontSizeSp: Int = 24,
     val lineHeight: Float = 1.6f,
     /** First-line paragraph indent in em units. */
     val paragraphIndentEm: Float = 1.0f,
