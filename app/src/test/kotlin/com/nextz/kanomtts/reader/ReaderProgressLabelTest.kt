@@ -2,11 +2,18 @@ package com.nextz.kanomtts.reader
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.readium.r2.shared.ExperimentalReadiumApi
+import org.readium.r2.shared.publication.Href
 import org.readium.r2.shared.publication.Link
 import org.readium.r2.shared.util.Url
-import org.readium.r2.shared.util.fromLegacyHref
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@OptIn(ExperimentalReadiumApi::class)
+@Config(sdk = [35])
+@RunWith(RobolectricTestRunner::class)
 class ReaderProgressLabelTest {
     @Test fun buildsIndependentProgressFieldsWithoutWholeBookPageCounts() {
         val content = buildProgressContent(
@@ -60,11 +67,11 @@ class ReaderProgressLabelTest {
 
     @Test fun resolvesNestedTocTitleByResourceHref() {
         val child = Link(
-            href = Url.fromLegacyHref("OPS/Text/chapter%2002.xhtml")!!,
+            href = Href(Url("OPS/Text/chapter%2002.xhtml")!!),
             title = "บทที่ 2 น้ำยาปรับสภาพยีน",
         )
         val parent = Link(
-            href = Url.fromLegacyHref("OPS/Text/part.xhtml")!!,
+            href = Href(Url("OPS/Text/part.xhtml")!!),
             title = "ภาคหนึ่ง",
             children = listOf(child),
         )
