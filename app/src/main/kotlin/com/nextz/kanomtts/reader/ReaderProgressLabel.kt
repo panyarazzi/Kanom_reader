@@ -113,7 +113,10 @@ internal fun buildProgressContent(
     return ProgressContent(
         chapterPage = page,
         bookPercent = percent,
-        chapterTitle = chapterTitle?.trim()?.takeIf { it.isNotEmpty() },
+        // The CHAPTER_TITLE slot must include chapter-local pagination before the title.
+        // Keep whole-book percentage in its own slot; do not mix it into the chapter label.
+        chapterTitle = formatChapterProgress(pageNumber, totalPages, chapterTitle)
+            ?: chapterTitle?.trim()?.takeIf { it.isNotEmpty() },
         bookTitle = bookTitle?.trim()?.takeIf { it.isNotEmpty() },
         time = time,
         battery = batteryPercent?.coerceIn(0, 100)?.let { "$it%" },
