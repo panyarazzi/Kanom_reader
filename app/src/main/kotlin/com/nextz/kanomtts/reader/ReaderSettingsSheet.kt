@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
@@ -178,8 +177,14 @@ internal fun ReaderSettingsSheetContent(
             Spacer(Modifier.height(8.dp))
 
             SectionLabel("ย่อหน้าบรรทัดแรก: ${"%.1f".format(prefs.paragraphIndentEm)} em")
-            Slider(value = prefs.paragraphIndentEm, onValueChange = { previewing = true; onParagraphIndent(it) },
-                onValueChangeFinished = { previewing = false }, valueRange = 0f..3.5f, steps = 34, // 0.1 increments modifier = Modifier.fillMaxWidth())
+            Slider(
+                value = prefs.paragraphIndentEm,
+                onValueChange = { previewing = true; onParagraphIndent(it) },
+                onValueChangeFinished = { previewing = false },
+                valueRange = 0f..3.5f,
+                steps = 34, // 0.1 increments
+                modifier = Modifier.fillMaxWidth(),
+            )
 
             Spacer(Modifier.height(8.dp))
 
@@ -272,7 +277,9 @@ internal fun ReaderSettingsSheetContent(
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         // Capture the constraints-scope value before entering nested layout scopes.
-        val panelWidth = (maxWidth / 3).coerceIn(280.dp, 420.dp)
+        // Give large e-reader settings panels ~12.5% more width so slider tracks
+        // are easier to manipulate without changing compact phone layouts.
+        val panelWidth = (maxWidth / 3 * 1.125f).coerceIn(315.dp, 472.dp)
         if (maxWidth >= 600.dp) {
             // Wide reading surfaces use a persistent right-side settings panel.
             // The EPUB remains visible at full height in the remaining area.
