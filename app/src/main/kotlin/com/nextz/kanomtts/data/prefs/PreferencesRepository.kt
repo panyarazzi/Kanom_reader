@@ -20,6 +20,8 @@ class PreferencesRepository @Inject constructor(
         val font = stringPreferencesKey("reading_font")
         val fontSize = intPreferencesKey("font_size_sp")
         val progressFontSize = intPreferencesKey("progress_font_size_sp")
+        val topProgressEnabled = booleanPreferencesKey("top_progress_enabled")
+        val footerProgressEnabled = booleanPreferencesKey("footer_progress_enabled")
         val lineHeight = floatPreferencesKey("line_height")
         val paragraphIndentEm = floatPreferencesKey("paragraph_indent_em")
         val paragraphSpacingEm = floatPreferencesKey("paragraph_spacing_em")
@@ -52,6 +54,8 @@ class PreferencesRepository @Inject constructor(
             readingFont = p[Keys.font]?.let { runCatching { ReadingFont.valueOf(it) }.getOrNull() } ?: DEFAULTS.readingFont,
             fontSizeSp = p[Keys.fontSize] ?: DEFAULTS.fontSizeSp,
             progressFontSizeSp = p[Keys.progressFontSize] ?: DEFAULTS.progressFontSizeSp,
+            topProgressEnabled = p[Keys.topProgressEnabled] ?: DEFAULTS.topProgressEnabled,
+            footerProgressEnabled = p[Keys.footerProgressEnabled] ?: DEFAULTS.footerProgressEnabled,
             lineHeight = p[Keys.lineHeight] ?: DEFAULTS.lineHeight,
             paragraphIndentEm = p[Keys.paragraphIndentEm] ?: DEFAULTS.paragraphIndentEm,
             paragraphSpacingEm = p[Keys.paragraphSpacingEm] ?: DEFAULTS.paragraphSpacingEm,
@@ -79,6 +83,8 @@ class PreferencesRepository @Inject constructor(
     override suspend fun setReadingFont(v: ReadingFont) { store.edit { it[Keys.font] = v.name } }
     override suspend fun setFontSizeSp(v: Int) { store.edit { it[Keys.fontSize] = v } }
     override suspend fun setProgressFontSizeSp(v: Int) { store.edit { it[Keys.progressFontSize] = v.coerceIn(8, 80) } }
+    override suspend fun setTopProgressEnabled(v: Boolean) { store.edit { it[Keys.topProgressEnabled] = v } }
+    override suspend fun setFooterProgressEnabled(v: Boolean) { store.edit { it[Keys.footerProgressEnabled] = v } }
     override suspend fun setLineHeight(v: Float) { store.edit { it[Keys.lineHeight] = v } }
     override suspend fun setParagraphIndentEm(v: Float) { store.edit { it[Keys.paragraphIndentEm] = v } }
     override suspend fun setParagraphSpacingEm(v: Float) { store.edit { it[Keys.paragraphSpacingEm] = v } }
