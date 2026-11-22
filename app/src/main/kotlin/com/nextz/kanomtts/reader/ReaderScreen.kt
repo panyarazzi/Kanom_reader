@@ -155,6 +155,8 @@ private fun ReaderChromeLayer(
         chromeVisible = state.chromeVisible,
         progressText = progressText,
         progressFontSizeSp = state.prefs.progressFontSizeSp,
+        topProgressEnabled = state.prefs.topProgressEnabled,
+        footerProgressEnabled = state.prefs.footerProgressEnabled,
         onBack = onBack,
         onTocOpen = { tocOpen = true },
         onSettingsOpen = { settingsOpen = true },
@@ -232,8 +234,8 @@ private fun ReaderContent(bookId: String, state: ReaderUiState.Ready, viewModel:
     }
     val hasProgress = state.chapterPageNumber != null &&
         state.chapterPageCount != null && state.chapterPageCount > 0
-    val progressTopSafeSpace = if (hasProgress) 64.dp + progressTextHeight + 8.dp else 0.dp
-    val progressFooterSafeSpace = if (hasProgress) progressTextHeight * 2f + 16.dp else 0.dp
+    val progressTopSafeSpace = if (hasProgress && state.prefs.topProgressEnabled) 64.dp + progressTextHeight + 8.dp else 0.dp
+    val progressFooterSafeSpace = if (hasProgress && state.prefs.footerProgressEnabled) progressTextHeight * 2f + 16.dp else 0.dp
 
     AndroidView(
         modifier = Modifier.fillMaxSize().padding(
