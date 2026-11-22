@@ -41,6 +41,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.platform.LocalContext
+import android.os.Build
 import androidx.compose.ui.window.DialogProperties
 import com.nextz.kanomtts.ui.theme.KanomTheme
 import org.readium.r2.shared.ExperimentalReadiumApi
@@ -63,6 +65,8 @@ fun ReaderTocSheet(
     onNavigate: (Link) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val widthFraction = remember(context) { readerTocWidthFraction(Build.MODEL.orEmpty(), Build.MANUFACTURER.orEmpty()) }
     val currentHref = currentLocator?.href
     val flattened = remember(toc) { ReaderTocFocus.flatten(toc) }
     val currentIndex = ReaderTocFocus.currentIndex(toc, currentHref)
@@ -113,7 +117,7 @@ fun ReaderTocSheet(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .fillMaxHeight()
-                    .width(maxWidth * 0.34f)
+                    .width(maxWidth * widthFraction)
                     .shadow(12.dp, RoundedCornerShape(topEnd = 14.dp, bottomEnd = 14.dp))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },

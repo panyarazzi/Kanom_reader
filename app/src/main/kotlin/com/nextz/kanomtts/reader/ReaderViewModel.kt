@@ -1,6 +1,11 @@
 package com.nextz.kanomtts.reader
 
 import android.content.Context
+import android.graphics.PointF
+import android.view.View
+import android.view.ViewGroup
+import android.webkit.JavascriptInterface
+import android.webkit.WebView
 import android.view.ActionMode
 import android.view.Menu
 import android.view.MenuItem
@@ -39,6 +44,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.readium.r2.navigator.SelectableNavigator
+import org.readium.r2.navigator.HyperlinkNavigator
 import org.readium.r2.navigator.VisualNavigator
 import org.readium.r2.navigator.epub.EpubNavigatorFactory
 import org.readium.r2.navigator.epub.EpubNavigatorFragment
@@ -83,8 +89,12 @@ class ReaderViewModel @Inject constructor(
     val uiState: StateFlow<ReaderUiState> = _uiState.asStateFlow()
 
     private val _quickAddText = MutableStateFlow<String?>(null)
+    private val _footnoteBubble = MutableStateFlow<ReaderFootnoteBubble?>(null)
+    val footnoteBubble: StateFlow<ReaderFootnoteBubble?> = _footnoteBubble.asStateFlow()
+    @Volatile private var lastFootnoteAnchorCss: PointF? = null
     val quickAddText: StateFlow<String?> = _quickAddText.asStateFlow()
     fun dismissQuickAdd() { _quickAddText.value = null }
+    fun dismissFootnoteBubble() { _footnoteBubble.value = null }
 
     /** Save a replacement rule from the selection. [toThisBook] false = global (default), true = this book. */
     fun addReplacement(pattern: String, replacement: String, isRegex: Boolean, toThisBook: Boolean, showInReader: Boolean = false) {
@@ -192,6 +202,7 @@ class ReaderViewModel @Inject constructor(
                 _uiState.update { s -> if (s is ReaderUiState.Ready) s.copy(prefs = p) else s }
                 applyPublisherLineHeight()
                 applyBoldText()
+                applyParagraphTypography()
             }
         }
         // Collect bookmarks and keep Ready.bookmarks up-to-date + push Decoration group.
@@ -242,9 +253,22 @@ class ReaderViewModel @Inject constructor(
 
         val initialLocator = LocatorSerializer.decode(source.progress(bookId)?.locator)
 
-        // No-op listener: external link handling is out of scope for Task 3.
+        // Intercept only semantic footnotes; all other internal links remain under Readium.
         val listener = object : EpubNavigatorFragment.Listener {
             override fun onExternalLinkActivated(url: AbsoluteUrl) {}
+
+            override fun shouldFollowInternalLink(link: Link, context: HyperlinkNavigator.LinkContext?): Boolean {
+                if (context is HyperlinkNavigator.FootnoteContext && context.noteContent.isNotBlank()) {
+                    val root = navigator?.activity?.findViewById<View>(android.R.id.content)
+                    val anchor = resolveFootnoteAnchor() ?: PointF(
+                        (root?.width ?: this@ReaderViewModel.context.resources.displayMetrics.widthPixels) / 2f,
+                        (root?.height ?: this@ReaderViewModel.context.resources.displayMetrics.heightPixels) / 2f,
+                    )
+                    _footnoteBubble.value = ReaderFootnoteBubble(context.noteContent, anchor.x, anchor.y)
+                    return false
+                }
+                return true
+            }
         }
 
         // Register Sarabun font faces served from app/src/main/assets/fonts/.
@@ -275,6 +299,7 @@ class ReaderViewModel @Inject constructor(
                     setFontWeight(FontWeight.BOLD)
                 }
             }
+            registerJavascriptInterface("KanomFootnoteBridge") { _ -> FootnoteTapBridge(::recordFootnoteAnchor) }
             // Selection ActionMode: four items — Start TTS · Copy · Translate · Add Replacement.
             // The Compose gesture overlay was removed (nav is via Readium InputListener), so a
             // long-press reaches the WebView and native text selection fires. Readium adds NO
@@ -339,9 +364,16 @@ class ReaderViewModel @Inject constructor(
                 initialLocator = initialLocator,
                 listener = listener,
                 paginationListener = object : EpubNavigatorFragment.PaginationListener {
+                    override fun onPageChanged(pageIndex: Int, totalPages: Int, locator: Locator) {
+                        onNavigatorPageChanged(pageIndex, totalPages, locator)
+                    }
+
                     override fun onPageLoaded() {
                         applyPublisherLineHeight()
                         applyBoldText()
+                        applyParagraphTypography()
+                        applyFootnoteTapCapture()
+                        applyThaiLineBoxFix()
                     }
                 },
                 initialPreferences = EpubPreferencesMapper.map(initialPrefs),
@@ -386,6 +418,9 @@ class ReaderViewModel @Inject constructor(
         decorations.bind(nav)
         applyPublisherLineHeight(nav)
         applyBoldText(nav)
+        applyParagraphTypography(nav)
+        applyFootnoteTapCapture(nav)
+        applyThaiLineBoxFix(nav)
         navLocatorJob = viewModelScope.launch {
             nav.currentLocator.collect { onLocatorChanged(it) }
         }
@@ -393,24 +428,25 @@ class ReaderViewModel @Inject constructor(
         val currentBookmarks = (_uiState.value as? ReaderUiState.Ready)?.bookmarks ?: emptyList()
         decorations.applyBookmarks(currentBookmarks)
 
-        // Page-nav via Readium input (replaces the deleted Compose overlay).
-        // DirectionalNavigationAdapter handles edge-tap + key page turns; the custom listener
-        // handles center-tap chrome-toggle + swipe.
+        // Page navigation via Readium input. The adapter handles keyboard keys only; the custom
+        // listener toggles chrome in the central zone and advances on every other unhandled tap.
         val thresholdPx = 48f * context.resources.displayMetrics.density
         val interactionListener = ReaderInteractionInputListener(onInteraction = ::scheduleChromeAutoHide)
         val edgeAdapter = DirectionalNavigationAdapter(
             navigator = nav,
-            horizontalEdgeThresholdPercent = 0.333,
+            tapEdges = emptySet(),
         )
         val navListener = ReaderNavInputListener(
             onToggleChrome = ::toggleChrome,
             onNextPage = ::nextPage,
             onPrevPage = ::previousPage,
             swipeThresholdPx = thresholdPx,
+            viewportWidthPx = { nav.view?.width?.toFloat() ?: 0f },
+            viewportHeightPx = { nav.view?.height?.toFloat() ?: 0f },
         )
         nav.addInputListener(interactionListener) // FIRST → observes taps/drags without consuming them
-        nav.addInputListener(edgeAdapter)   // SECOND → consumes edge taps
-        nav.addInputListener(navListener)   // THIRD → center taps + drag reach here
+        nav.addInputListener(edgeAdapter)   // SECOND → keyboard navigation only
+        nav.addInputListener(navListener)   // THIRD → center-menu tap, next-page tap + swipe
         this.interactionListener = interactionListener
         this.edgeAdapter = edgeAdapter
         this.navListener = navListener
@@ -520,6 +556,15 @@ class ReaderViewModel @Inject constructor(
     fun previousPage() {
         scheduleChromeAutoHide()
         navigator?.goBackward(animated = animatePageTurns)
+    }
+
+    /** Receive Readium's actual page index and page count for the current chapter. */
+    fun onNavigatorPageChanged(pageIndex: Int, totalPages: Int, loc: Locator) {
+        if (totalPages <= 0) return
+        locatorChanges.tryEmit(loc)
+        _uiState.update { state ->
+            if (state is ReaderUiState.Ready) state.copy(currentLocator = loc, chapterPageNumber = (pageIndex + 1).coerceIn(1, totalPages), chapterPageCount = totalPages) else state
+        }
     }
 
     /**
@@ -673,6 +718,76 @@ class ReaderViewModel @Inject constructor(
     // Each delegates to PreferencesRepository; the live-apply collector above submits
     // the updated EpubPreferences to the navigator automatically.
 
+    /** Called from WebView's JavascriptInterface thread: store raw CSS coordinates only. */
+    private fun recordFootnoteAnchor(xCss: Float, yCss: Float) {
+        lastFootnoteAnchorCss = PointF(xCss, yCss)
+    }
+
+    /** Resolve WebView coordinates on the UI thread when Readium reports a semantic footnote. */
+    private fun resolveFootnoteAnchor(): PointF? {
+        val cssPoint = lastFootnoteAnchorCss ?: return null
+        val nav = navigator ?: return null
+        val webView = findWebView(nav.view) ?: return null
+        val contentRoot = nav.activity?.findViewById<View>(android.R.id.content) ?: return null
+        val webLocation = IntArray(2)
+        val rootLocation = IntArray(2)
+        webView.getLocationInWindow(webLocation)
+        contentRoot.getLocationInWindow(rootLocation)
+        val density = webView.resources.displayMetrics.density
+        return PointF(
+            webLocation[0] - rootLocation[0] + cssPoint.x * density,
+            webLocation[1] - rootLocation[1] + cssPoint.y * density,
+        )
+    }
+    private fun findWebView(view: View?): WebView? {
+        if (view is WebView) return view
+        if (view is ViewGroup) {
+            for (index in 0 until view.childCount) findWebView(view.getChildAt(index))?.let { return it }
+        }
+        return null
+    }
+
+    /** Capture the tapped anchor's viewport position so footnote balloons can be placed nearby. */
+    private fun applyFootnoteTapCapture(nav: EpubNavigatorFragment? = navigator) {
+        val target = nav ?: return
+        val script = "(function(){if(window.__kanomFootnoteTapInstalled)return;window.__kanomFootnoteTapInstalled=true;" +
+            "document.addEventListener('click',function(e){var t=e.target;if(t&&t.nodeType===3)t=t.parentElement;var a=t&&t.closest?t.closest('a[href]'):null;if(!a)return;" +
+            "var r=a.getBoundingClientRect();var b=window.KanomFootnoteBridge;if(b&&b.capture)b.capture(r.left+r.width/2,r.top+r.height/2);},true);})();"
+        viewModelScope.launch {
+            runCatching { target.evaluateJavascript(script) }
+                .onFailure { android.util.Log.w("ReaderViewModel", "Could not install footnote tap capture", it) }
+        }
+    }
+    /** Apply independent paragraph controls on every XHTML resource. */
+    private fun applyParagraphTypography(nav: EpubNavigatorFragment? = navigator) {
+        val target = nav ?: return
+        val p = (_uiState.value as? ReaderUiState.Ready)?.prefs ?: return
+        val indent = String.format(java.util.Locale.US, "%.2f", p.paragraphIndentEm)
+        val spacing = String.format(java.util.Locale.US, "%.2f", p.paragraphSpacingEm)
+        val script = "(function(){var id='kanom-reader-paragraph-typography';var s=document.getElementById(id);" +
+            "if(!s){s=document.createElement('style');s.id=id;(document.head||document.documentElement).appendChild(s);}" +
+            "s.textContent='body p {text-indent: ${indent}em !important; margin-top: ${spacing}em !important; margin-bottom: ${spacing}em !important;}';})();"
+        viewModelScope.launch {
+            runCatching { target.evaluateJavascript(script) }
+                .onFailure { android.util.Log.w("ReaderViewModel", "Could not apply paragraph typography", it) }
+        }
+    }
+
+    /**
+     * Readium's default CSS uses glyph containment in line boxes. Relax glyph containment so
+     * Thai combining marks are not clipped by Android WebView font metrics at the top of a page.
+     * This keeps Readium's pagination and rendering pipeline intact.
+     */
+    private fun applyThaiLineBoxFix(nav: EpubNavigatorFragment? = navigator) {
+        val target = nav ?: return
+        val script = "(function(){var id='kanom-thai-line-box-fix';var s=document.getElementById(id);" +
+            "if(!s){s=document.createElement('style');s.id=id;(document.head||document.documentElement).appendChild(s);}" +
+            "s.textContent='html { -webkit-line-box-contain: block !important; }';})();"
+        viewModelScope.launch {
+            runCatching { target.evaluateJavascript(script) }
+                .onFailure { android.util.Log.w("ReaderViewModel", "Could not apply Thai line-box fix", it) }
+        }
+    }
     /**
      * Readium disables its line-height preference while publisher styles are enabled.
      * Keep publisher CSS active, but apply the user's line-height as a narrowly-scoped
@@ -720,7 +835,9 @@ class ReaderViewModel @Inject constructor(
     fun onThemeSelected(t: ReaderTheme) = viewModelScope.launch { prefs.setReaderTheme(t) }
     fun onFontSelected(f: ReadingFont) = viewModelScope.launch { prefs.setReadingFont(f) }
     fun onFontSize(sp: Int) = viewModelScope.launch { prefs.setFontSizeSp(sp) }
-    fun onLineHeight(v: Float) = viewModelScope.launch { prefs.setLineHeight(v) }
+    fun onLineHeight(v: Float) = viewModelScope.launch { prefs.setLineHeight(v.coerceIn(0.7f, 2.5f)) }
+    fun onParagraphIndent(v: Float) = viewModelScope.launch { prefs.setParagraphIndentEm(v.coerceIn(0f, 3f)) }
+    fun onParagraphSpacing(v: Float) = viewModelScope.launch { prefs.setParagraphSpacingEm(v.coerceIn(0f, 2f)) }
     fun onMargin(dp: Int) = viewModelScope.launch { prefs.setMarginDp(dp) }
     fun onTopMargin(dp: Int) = viewModelScope.launch { prefs.setTopMarginDp(dp) }
     fun onBottomMargin(dp: Int) = viewModelScope.launch { prefs.setBottomMarginDp(dp) }

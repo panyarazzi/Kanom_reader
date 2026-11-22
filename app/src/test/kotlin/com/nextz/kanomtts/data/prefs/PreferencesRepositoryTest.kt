@@ -27,6 +27,8 @@ class PreferencesRepositoryTest {
         assertEquals(18, p.fontSizeSp)
         assertEquals(false, p.premiumUnlocked)
         assertEquals(false, p.reverseVolumeKeys)
+        assertEquals(1.0f, p.paragraphIndentEm)
+        assertEquals(0.0f, p.paragraphSpacingEm)
     }
     @Test fun writes_round_trip() = runTest {
         val r = repo()
@@ -72,6 +74,17 @@ class PreferencesRepositoryTest {
         assertEquals(true, p.boldText)
         assertEquals(28, p.topMarginDp)
         assertEquals(36, p.bottomMarginDp)
+    }
+
+    @Test fun paragraphTypography_round_trip() = runTest {
+        val r = repo()
+        r.setLineHeight(0.75f)
+        r.setParagraphIndentEm(1.5f)
+        r.setParagraphSpacingEm(0.4f)
+        val p = r.preferences.first()
+        assertEquals(0.75f, p.lineHeight)
+        assertEquals(1.5f, p.paragraphIndentEm)
+        assertEquals(0.4f, p.paragraphSpacingEm)
     }
 
     @Test fun reverseVolumeKeys_round_trip() = runTest {

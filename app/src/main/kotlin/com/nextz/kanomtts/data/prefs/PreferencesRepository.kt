@@ -20,6 +20,8 @@ class PreferencesRepository @Inject constructor(
         val font = stringPreferencesKey("reading_font")
         val fontSize = intPreferencesKey("font_size_sp")
         val lineHeight = floatPreferencesKey("line_height")
+        val paragraphIndentEm = floatPreferencesKey("paragraph_indent_em")
+        val paragraphSpacingEm = floatPreferencesKey("paragraph_spacing_em")
         val margin = intPreferencesKey("margin_dp")
         val topMargin = intPreferencesKey("reader_top_margin_dp")
         val bottomMargin = intPreferencesKey("reader_bottom_margin_dp")
@@ -49,6 +51,8 @@ class PreferencesRepository @Inject constructor(
             readingFont = p[Keys.font]?.let { runCatching { ReadingFont.valueOf(it) }.getOrNull() } ?: DEFAULTS.readingFont,
             fontSizeSp = p[Keys.fontSize] ?: DEFAULTS.fontSizeSp,
             lineHeight = p[Keys.lineHeight] ?: DEFAULTS.lineHeight,
+            paragraphIndentEm = p[Keys.paragraphIndentEm] ?: DEFAULTS.paragraphIndentEm,
+            paragraphSpacingEm = p[Keys.paragraphSpacingEm] ?: DEFAULTS.paragraphSpacingEm,
             marginDp = p[Keys.margin] ?: DEFAULTS.marginDp,
             topMarginDp = p[Keys.topMargin] ?: DEFAULTS.topMarginDp,
             bottomMarginDp = p[Keys.bottomMargin] ?: DEFAULTS.bottomMarginDp,
@@ -73,6 +77,8 @@ class PreferencesRepository @Inject constructor(
     override suspend fun setReadingFont(v: ReadingFont) { store.edit { it[Keys.font] = v.name } }
     override suspend fun setFontSizeSp(v: Int) { store.edit { it[Keys.fontSize] = v } }
     override suspend fun setLineHeight(v: Float) { store.edit { it[Keys.lineHeight] = v } }
+    override suspend fun setParagraphIndentEm(v: Float) { store.edit { it[Keys.paragraphIndentEm] = v } }
+    override suspend fun setParagraphSpacingEm(v: Float) { store.edit { it[Keys.paragraphSpacingEm] = v } }
     override suspend fun setMarginDp(v: Int) { store.edit { it[Keys.margin] = v } }
     override suspend fun setTopMarginDp(v: Int) { store.edit { it[Keys.topMargin] = v } }
     override suspend fun setBottomMarginDp(v: Int) { store.edit { it[Keys.bottomMargin] = v } }

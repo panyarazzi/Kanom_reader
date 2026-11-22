@@ -15,6 +15,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -64,6 +69,8 @@ fun ReaderSettingsSheet(
         onFont = { viewModel.onFontSelected(it) },
         onFontSize = { viewModel.onFontSize(it) },
         onLineHeight = { viewModel.onLineHeight(it) },
+        onParagraphIndent = { viewModel.onParagraphIndent(it) },
+        onParagraphSpacing = { viewModel.onParagraphSpacing(it) },
         onMargin = { viewModel.onMargin(it) },
         onTopMargin = { viewModel.onTopMargin(it) },
         onBottomMargin = { viewModel.onBottomMargin(it) },
@@ -88,6 +95,8 @@ internal fun ReaderSettingsSheetContent(
     onFont: (ReadingFont) -> Unit,
     onFontSize: (Int) -> Unit,
     onLineHeight: (Float) -> Unit,
+    onParagraphIndent: (Float) -> Unit = {},
+    onParagraphSpacing: (Float) -> Unit = {},
     onMargin: (Int) -> Unit,
     onTopMargin: (Int) -> Unit = {},
     onBottomMargin: (Int) -> Unit = {},
@@ -102,13 +111,15 @@ internal fun ReaderSettingsSheetContent(
     onDismiss: () -> Unit,
     onOpenReplacements: () -> Unit = {},
 ) {
+    var previewing by remember { mutableStateOf(false) }
     val settingsBody: @Composable () -> Unit = {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp)
-                .padding(bottom = 32.dp),
+                .padding(bottom = 32.dp)
+                .graphicsLayer { alpha = if (previewing) 0f else 1f },
         ) {
             // ── Theme ──────────────────────────────────────────────────────────
             SectionLabel("ธีม")
@@ -144,7 +155,8 @@ internal fun ReaderSettingsSheetContent(
             SectionLabel("ขนาดตัวอักษร: ${prefs.fontSizeSp} sp (${prefs.fontSizeSp * 100 / 16}%)")
             Slider(
                 value = prefs.fontSizeSp.toFloat(),
-                onValueChange = { onFontSize(it.toInt()) },
+                onValueChange = { previewing = true; onFontSize(it.toInt()) },
+                onValueChangeFinished = { previewing = false },
                 valueRange = 12f..72f,
                 steps = 59,
                 modifier = Modifier.fillMaxWidth(),
@@ -156,11 +168,24 @@ internal fun ReaderSettingsSheetContent(
             SectionLabel("ระยะห่างบรรทัด: ${"%.1f".format(prefs.lineHeight)}")
             Slider(
                 value = prefs.lineHeight,
-                onValueChange = { onLineHeight(it) },
-                valueRange = 1.0f..2.5f,
-                steps = 29,
+                onValueChange = { previewing = true; onLineHeight(it) },
+                onValueChangeFinished = { previewing = false },
+                valueRange = 0.7f..2.5f,
+                steps = 35,
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            Spacer(Modifier.height(8.dp))
+
+            SectionLabel("ย่อหน้าบรรทัดแรก: ${"%.1f".format(prefs.paragraphIndentEm)} em")
+            Slider(value = prefs.paragraphIndentEm, onValueChange = { previewing = true; onParagraphIndent(it) },
+                onValueChangeFinished = { previewing = false }, valueRange = 0f..3f, steps = 29, modifier = Modifier.fillMaxWidth())
+
+            Spacer(Modifier.height(8.dp))
+
+            SectionLabel("ระยะห่างระหว่างย่อหน้า: ${"%.1f".format(prefs.paragraphSpacingEm)} em")
+            Slider(value = prefs.paragraphSpacingEm, onValueChange = { previewing = true; onParagraphSpacing(it) },
+                onValueChangeFinished = { previewing = false }, valueRange = 0f..2f, steps = 19, modifier = Modifier.fillMaxWidth())
 
             Spacer(Modifier.height(8.dp))
 
@@ -177,12 +202,12 @@ internal fun ReaderSettingsSheetContent(
             Spacer(Modifier.height(8.dp))
 
             SectionLabel("ระยะขอบด้านบน: ${prefs.topMarginDp} dp")
-            Slider(value = prefs.topMarginDp.toFloat(), onValueChange = { onTopMargin(it.toInt()) }, valueRange = 0f..80f, steps = 79, modifier = Modifier.fillMaxWidth())
+            Slider(value = prefs.topMarginDp.toFloat(), onValueChange = { previewing = true; onTopMargin(it.toInt()) }, onValueChangeFinished = { previewing = false }, valueRange = 0f..80f, steps = 79, modifier = Modifier.fillMaxWidth())
 
             Spacer(Modifier.height(8.dp))
 
             SectionLabel("ระยะขอบด้านล่าง: ${prefs.bottomMarginDp} dp")
-            Slider(value = prefs.bottomMarginDp.toFloat(), onValueChange = { onBottomMargin(it.toInt()) }, valueRange = 0f..80f, steps = 79, modifier = Modifier.fillMaxWidth())
+            Slider(value = prefs.bottomMarginDp.toFloat(), onValueChange = { previewing = true; onBottomMargin(it.toInt()) }, onValueChangeFinished = { previewing = false }, valueRange = 0f..80f, steps = 79, modifier = Modifier.fillMaxWidth())
 
             Spacer(Modifier.height(16.dp))
 
@@ -254,7 +279,7 @@ internal fun ReaderSettingsSheetContent(
             Box(
                 Modifier
                     .fillMaxSize()
-                    .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.28f))
+                    .background(Color.Black.copy(alpha = if (previewing) 0f else 0.28f))
                     .clickable(onClick = onDismiss),
             ) {
                 Surface(
@@ -263,8 +288,8 @@ internal fun ReaderSettingsSheetContent(
                         .fillMaxHeight()
                         .width(panelWidth)
                         .clickable(enabled = true, onClick = {}),
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 8.dp,
+                    color = if (previewing) Color.Transparent else MaterialTheme.colorScheme.surface,
+                    tonalElevation = if (previewing) 0.dp else 8.dp,
                     shadowElevation = 12.dp,
                 ) {
                     settingsBody()
@@ -275,6 +300,8 @@ internal fun ReaderSettingsSheetContent(
             ModalBottomSheet(
                 onDismissRequest = onDismiss,
                 sheetState = sheetState,
+                containerColor = if (previewing) Color.Transparent else MaterialTheme.colorScheme.surface,
+                scrimColor = if (previewing) Color.Transparent else Color.Black.copy(alpha = 0.32f),
             ) {
                 settingsBody()
             }

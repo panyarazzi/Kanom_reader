@@ -22,5 +22,9 @@ sealed interface ReaderUiState {
         val bookmarks: List<BookmarkEntity> = emptyList(),
         /** Latest reading position; used to focus + mark the current chapter in the ToC sheet. */
         val currentLocator: Locator? = null,
+        /** One-based page number within the current chapter, supplied by Readium pagination. */
+        val chapterPageNumber: Int? = null,
+        /** Total rendered pages in the current chapter/resource, supplied by Readium. */
+        val chapterPageCount: Int? = null,
     ) : ReaderUiState
 }

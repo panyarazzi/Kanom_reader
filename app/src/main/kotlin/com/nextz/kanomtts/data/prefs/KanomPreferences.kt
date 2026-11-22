@@ -10,6 +10,10 @@ data class KanomPreferences(
     val readingFont: ReadingFont = ReadingFont.SARABUN,
     val fontSizeSp: Int = 18,
     val lineHeight: Float = 1.6f,
+    /** First-line paragraph indent in em units. */
+    val paragraphIndentEm: Float = 1.0f,
+    /** Extra paragraph spacing in em units. */
+    val paragraphSpacingEm: Float = 0.0f,
     /** Horizontal page-gutter factor, retained for compatibility with existing DataStore values. */
     val marginDp: Int = 16,
     val topMarginDp: Int = 0,

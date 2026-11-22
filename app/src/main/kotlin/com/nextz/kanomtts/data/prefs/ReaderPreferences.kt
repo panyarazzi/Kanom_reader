@@ -13,6 +13,8 @@ interface ReaderPreferences {
     suspend fun setReadingFont(v: ReadingFont)
     suspend fun setFontSizeSp(v: Int)
     suspend fun setLineHeight(v: Float)
+    suspend fun setParagraphIndentEm(v: Float)
+    suspend fun setParagraphSpacingEm(v: Float)
     suspend fun setMarginDp(v: Int)
     suspend fun setTopMarginDp(v: Int)
     suspend fun setBottomMarginDp(v: Int)

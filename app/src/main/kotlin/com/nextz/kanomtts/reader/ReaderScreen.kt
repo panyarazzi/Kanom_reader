@@ -55,6 +55,7 @@ fun ReaderScreen(
 
     val state by viewModel.uiState.collectAsState()
     val quickAdd by viewModel.quickAddText.collectAsState()
+    val footnoteBubble by viewModel.footnoteBubble.collectAsState()
 
     Box(
         modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding()),
@@ -74,6 +75,9 @@ fun ReaderScreen(
                     viewModel = viewModel,
                     onOpenReplacements = { onOpenReplacements(bookId) },
                 )
+                footnoteBubble?.let { bubble ->
+                    ReaderFootnoteBalloon(bubble = bubble, onDismiss = viewModel::dismissFootnoteBubble)
+                }
             }
         }
     }
@@ -138,10 +142,16 @@ private fun ReaderChromeLayer(
     var probeOn by rememberSaveable { mutableStateOf(false) }
 
     val ttsPlaying by viewModel.ttsPlaying.collectAsState()
+    val progressText = formatChapterProgress(
+        pageNumber = state.chapterPageNumber,
+        totalPages = state.chapterPageCount,
+        chapterTitle = state.currentLocator?.title,
+    )
 
     ReaderChrome(
         title = state.book.title,
         chromeVisible = state.chromeVisible,
+        progressText = progressText,
         onBack = onBack,
         onTocOpen = { tocOpen = true },
         onSettingsOpen = { settingsOpen = true },

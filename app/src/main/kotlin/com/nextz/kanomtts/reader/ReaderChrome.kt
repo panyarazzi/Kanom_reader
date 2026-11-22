@@ -5,6 +5,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
@@ -26,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.nextz.kanomtts.ui.theme.KanomTheme
 
 /**
@@ -52,11 +55,29 @@ fun ReaderChrome(
     /** True when TTS is actively playing; determines the icon (Pause vs PlayArrow). */
     ttsPlaying: Boolean = false,
     onToggleTts: () -> Unit = {},
+    /** Current page / total pages and chapter title, based on Readium's pagination callback. */
+    progressText: String? = null,
     modifier: Modifier = Modifier,
     /** DEBUG-ONLY probe toggle. Pass null (default) in release / previews. */
     onToggleProbe: (() -> Unit)? = null,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
+        // Persistent progress labels stay visible even when the toolbar auto-hides.
+        if (!progressText.isNullOrBlank()) {
+            ProgressLabel(
+                text = progressText,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = if (chromeVisible) 64.dp else 8.dp),
+            )
+            ProgressLabel(
+                text = progressText,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 8.dp),
+            )
+        }
+
         // Top app bar — animated in/out with fade.
         AnimatedVisibility(
             visible = chromeVisible,
@@ -129,6 +150,25 @@ fun ReaderChrome(
                 ),
             )
         }
+    }
+}
+
+@Composable
+private fun ProgressLabel(text: String, modifier: Modifier = Modifier) {
+    androidx.compose.material3.Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shape = RoundedCornerShape(50),
+        tonalElevation = 2.dp,
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
