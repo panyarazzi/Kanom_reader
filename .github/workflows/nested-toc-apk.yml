@@ -8,6 +8,7 @@ on:
       - feature/ux-ui-completion-no-highlight
       - feature/apk62-status-preview-branding # APK 62
       - feature/apk63-reader-progress-numeric-settings # APK 64
+      - feature/apk65-reading-statistics # APK 65
   workflow_dispatch:
 
 permissions:
