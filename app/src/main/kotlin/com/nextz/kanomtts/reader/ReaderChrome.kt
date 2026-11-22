@@ -245,6 +245,7 @@ private fun ProgressLabel(
     maxLines: Int,
     modifier: Modifier = Modifier,
 ) {
+    val values = progressSlotValues(layout, content)
     androidx.compose.material3.Surface(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
@@ -255,23 +256,21 @@ private fun ProgressLabel(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ProgressSlot(layout.left, content, fontSizeSp, maxLines, Alignment.CenterStart, Modifier.weight(1f))
-            ProgressSlot(layout.center, content, fontSizeSp, maxLines, Alignment.Center, Modifier.weight(1f))
-            ProgressSlot(layout.right, content, fontSizeSp, maxLines, Alignment.CenterEnd, Modifier.weight(1f))
+            ProgressSlot(values.left, fontSizeSp, maxLines, Alignment.CenterStart, Modifier.weight(1f))
+            ProgressSlot(values.center, fontSizeSp, maxLines, Alignment.Center, Modifier.weight(1f))
+            ProgressSlot(values.right, fontSizeSp, maxLines, Alignment.CenterEnd, Modifier.weight(1f))
         }
     }
 }
 
 @Composable
 private fun ProgressSlot(
-    slot: String,
-    content: ProgressContent,
+    value: String?,
     fontSizeSp: Int,
     maxLines: Int,
     alignment: Alignment,
     modifier: Modifier,
 ) {
-    val value = progressSlotValue(slot, content)
     Box(modifier = modifier, contentAlignment = alignment) {
         if (!value.isNullOrBlank()) {
             Text(
