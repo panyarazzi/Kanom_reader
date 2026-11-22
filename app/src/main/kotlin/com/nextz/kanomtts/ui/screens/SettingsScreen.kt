@@ -20,6 +20,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nextz.kanomtts.R
 import com.nextz.kanomtts.data.prefs.ReadingUnit
@@ -89,6 +95,9 @@ fun SettingsScreen(
             onValueChange = { playbackVm.setSleepTimerDefaultMin(it.toInt()) },
             valueRange = 5f..120f, steps = 22, modifier = Modifier.fillMaxWidth(),
         )
+        IntegerValueField("ตั้งเวลานอนเริ่มต้น (5–120 นาที)", prefs.sleepTimerDefaultMin.toString()) {
+            it.toIntOrNull()?.let { value -> playbackVm.setSleepTimerDefaultMin(value.coerceIn(5, 120)) }
+        }
 
         HorizontalDivider(Modifier.padding(vertical = 16.dp))
         Row(
@@ -218,3 +227,29 @@ private fun ToggleRow(
         Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
+
+@Composable
+private fun IntegerValueField(
+    label: String,
+    value: String,
+    onCommit: (String) -> Unit,
+) {
+    val focusManager = LocalFocusManager.current
+    var input by remember(value) { mutableStateOf(value) }
+    var focused by remember { mutableStateOf(false) }
+    LaunchedEffect(value, focused) { if (!focused) input = value }
+    OutlinedTextField(
+        value = input,
+        onValueChange = { candidate -> if (candidate.matches(Regex("[0-9]*"))) input = candidate },
+        modifier = Modifier.fillMaxWidth().onFocusChanged { state ->
+            val wasFocused = focused
+            focused = state.isFocused
+            if (wasFocused && !state.isFocused) onCommit(input)
+        },
+        label = { Text(label) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(onDone = { onCommit(input); focusManager.clearFocus() }),
+    )
+}
+
