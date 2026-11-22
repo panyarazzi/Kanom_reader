@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -32,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nextz.kanomtts.ui.theme.KanomTheme
@@ -68,10 +71,13 @@ fun ReaderChrome(
     /** Footer tap opens ToC; double-tap opens reader settings while progress is visible. */
     onFooterTap: () -> Unit = {},
     onFooterDoubleTap: () -> Unit = {},
+    onTopProgressHeightChanged: (Dp) -> Unit = {},
+    onFooterProgressHeightChanged: (Dp) -> Unit = {},
     modifier: Modifier = Modifier,
     /** DEBUG-ONLY probe toggle. Pass null (default) in release / previews. */
     onToggleProbe: (() -> Unit)? = null,
 ) {
+    val density = LocalDensity.current
     Box(modifier = modifier.fillMaxSize()) {
         // Persistent progress labels stay visible even when the toolbar auto-hides.
         if (!progressText.isNullOrBlank()) {
@@ -81,7 +87,8 @@ fun ReaderChrome(
                 fontSizeSp = progressFontSizeSp,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 64.dp),
+                    .padding(top = 64.dp)
+                    .onSizeChanged { size -> onTopProgressHeightChanged(with(density) { size.height.toDp() }) },
             )
             }
             if (footerProgressEnabled) ProgressLabel(
@@ -90,7 +97,8 @@ fun ReaderChrome(
                 maxLines = 2,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 8.dp),
+                    .padding(bottom = 8.dp)
+                    .onSizeChanged { size -> onFooterProgressHeightChanged(with(density) { size.height.toDp() }) },
             )
             // The footer is an intentional touch target: single tap opens the ToC,
             // double tap opens reader settings. It exists only while Footer Progress is visible.
