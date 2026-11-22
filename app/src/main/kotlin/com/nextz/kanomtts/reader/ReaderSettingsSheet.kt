@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -78,6 +79,8 @@ fun ReaderSettingsSheet(
         onProgressFontSize = { viewModel.onProgressFontSize(it) },
         onTopProgressEnabled = { viewModel.onTopProgressEnabled(it) },
         onFooterProgressEnabled = { viewModel.onFooterProgressEnabled(it) },
+        onTopProgressLayout = { l, m, r -> viewModel.onTopProgressLayout(l, m, r) },
+        onFooterProgressLayout = { l, m, r -> viewModel.onFooterProgressLayout(l, m, r) },
         onLineHeight = { viewModel.onLineHeight(it) },
         onParagraphIndent = { viewModel.onParagraphIndent(it) },
         onParagraphSpacing = { viewModel.onParagraphSpacing(it) },
@@ -107,6 +110,8 @@ internal fun ReaderSettingsSheetContent(
     onProgressFontSize: (Int) -> Unit = {},
     onTopProgressEnabled: (Boolean) -> Unit = {},
     onFooterProgressEnabled: (Boolean) -> Unit = {},
+    onTopProgressLayout: (String, String, String) -> Unit = { _, _, _ -> },
+    onFooterProgressLayout: (String, String, String) -> Unit = { _, _, _ -> },
     onLineHeight: (Float) -> Unit,
     onParagraphIndent: (Float) -> Unit = {},
     onParagraphSpacing: (Float) -> Unit = {},
@@ -196,6 +201,18 @@ internal fun ReaderSettingsSheetContent(
             ToggleRow("ตัวแสดงสถานะด้านบน", prefs.topProgressEnabled, onTopProgressEnabled)
             ToggleRow("ตัวแสดงสถานะด้านล่าง", prefs.footerProgressEnabled, onFooterProgressEnabled)
 
+            Spacer(Modifier.height(8.dp))
+            ProgressLayoutSection(
+                title = "รูปแบบ Progress ด้านบน",
+                layout = ProgressLayout(prefs.topProgressLeft, prefs.topProgressCenter, prefs.topProgressRight),
+                onChange = onTopProgressLayout,
+            )
+            Spacer(Modifier.height(8.dp))
+            ProgressLayoutSection(
+                title = "รูปแบบ Progress ด้านล่าง",
+                layout = ProgressLayout(prefs.footerProgressLeft, prefs.footerProgressCenter, prefs.footerProgressRight),
+                onChange = onFooterProgressLayout,
+            )
             Spacer(Modifier.height(8.dp))
 
             // ── Line height ────────────────────────────────────────────────────
@@ -366,6 +383,62 @@ internal fun ReaderSettingsSheetContent(
                 scrimColor = if (previewing) Color.Transparent else Color.Black.copy(alpha = 0.32f),
             ) {
                 settingsBody()
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProgressLayoutSection(
+    title: String,
+    layout: ProgressLayout,
+    onChange: (String, String, String) -> Unit,
+) {
+    SectionLabel(title)
+    ProgressChoiceRow("ซ้าย", layout.left, listOf(
+        "CHAPTER_PAGE" to "หน้า/บท",
+        "BOOK_PERCENT" to "% ทั้งเล่ม",
+        "NONE" to "ไม่แสดง",
+    )) { onChange(it, layout.center, layout.right) }
+    ProgressChoiceRow("กลาง", layout.center, listOf(
+        "CHAPTER_TITLE" to "ชื่อบท",
+        "BOOK_TITLE" to "ชื่อหนังสือ",
+        "CHAPTER_PAGE" to "หน้า/บท",
+        "BOOK_PERCENT" to "% ทั้งเล่ม",
+        "NONE" to "ไม่แสดง",
+    )) { onChange(layout.left, it, layout.right) }
+    ProgressChoiceRow("ขวา", layout.right, listOf(
+        "TIME_BATTERY" to "เวลา+แบตฯ",
+        "TIME" to "เวลา",
+        "BATTERY" to "แบตเตอรี่",
+        "CHARGING" to "สถานะชาร์จ",
+        "NONE" to "ไม่แสดง",
+    )) { onChange(layout.left, layout.center, it) }
+}
+
+@Composable
+private fun ProgressChoiceRow(
+    label: String,
+    selected: String,
+    options: List<Pair<String, String>>,
+    onSelect: (String) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, modifier = Modifier.width(42.dp), style = MaterialTheme.typography.labelMedium)
+        Row(
+            modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            options.forEach { (value, text) ->
+                FilterChip(
+                    selected = selected == value,
+                    onClick = { onSelect(value) },
+                    label = { Text(text) },
+                    modifier = Modifier.padding(end = 6.dp),
+                )
             }
         }
     }
