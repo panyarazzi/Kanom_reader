@@ -61,11 +61,11 @@ fun ReadingStatisticsCard(
         colors = CardDefaults.cardColors(containerColor = StatsCream),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.AutoStories, contentDescription = null, tint = StatsBrown)
                 Spacer(Modifier.width(8.dp))
-                Text("สถิติการอ่าน", color = StatsBrown, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("สถิติการอ่าน", color = StatsBrown, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.weight(1f))
                 TextButton(onClick = onMore) {
                     Text("ดูข้อมูลเพิ่มเติม", color = StatsBrown)
@@ -78,10 +78,10 @@ fun ReadingStatisticsCard(
                         model = state.latestBook.coverPath,
                         contentDescription = "ปกหนังสือเล่มล่าสุด",
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.size(width = 48.dp, height = 66.dp).clip(RoundedCornerShape(5.dp)),
+                        modifier = Modifier.size(width = 40.dp, height = 54.dp).clip(RoundedCornerShape(5.dp)),
                     )
                 } else {
-                    Box(Modifier.size(width = 48.dp, height = 66.dp).clip(RoundedCornerShape(5.dp)).background(StatsTrack), contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(width = 40.dp, height = 54.dp).clip(RoundedCornerShape(5.dp)).background(StatsTrack), contentAlignment = Alignment.Center) {
                         Icon(Icons.Filled.AutoStories, contentDescription = null, tint = StatsBrown)
                     }
                 }
@@ -116,7 +116,7 @@ fun ReadingStatisticsCard(
 private fun MetricText(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(label, color = StatsBrown.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall)
-        Text(value, color = StatsBrown, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+        Text(value, color = StatsBrown, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -216,7 +216,7 @@ private fun ReadingDaysChart(days: List<ReadingDay>, compact: Boolean) {
     Row(
         Modifier
             .then(if (compact) Modifier.fillMaxWidth() else Modifier.horizontalScroll(rememberScrollState()))
-            .height(if (compact) 62.dp else 130.dp)
+            .height(if (compact) 42.dp else 130.dp)
             .padding(top = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(if (compact) 5.dp else 8.dp),
         verticalAlignment = Alignment.Bottom,
@@ -224,20 +224,20 @@ private fun ReadingDaysChart(days: List<ReadingDay>, compact: Boolean) {
         days.forEach { day ->
             val fraction = day.durationMs.toFloat() / maxDuration.toFloat()
             Column(
-                Modifier.width(if (compact) 34.dp else 32.dp).height(if (compact) 62.dp else 126.dp),
+                Modifier.width(if (compact) 30.dp else 32.dp).height(if (compact) 42.dp else 126.dp),
                 verticalArrangement = Arrangement.Bottom,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Box(
                     Modifier.fillMaxWidth(if (compact) 0.72f else 0.58f)
-                        .height((if (compact) 34f else 92f).times(fraction.coerceAtLeast(if (day.durationMs > 0) 0.08f else 0f)).dp)
+                        .height((if (compact) 22f else 92f).times(fraction.coerceAtLeast(if (day.durationMs > 0) 0.08f else 0f)).dp)
                         .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
                         .background(if (day.durationMs > 0) StatsGold else StatsTrack),
                 )
                 Text(
                     text = if (compact) day.date.dayOfMonth.toString() else formatReadingDay(day.date),
                     color = StatsBrown,
-                    fontSize = if (compact) 9.sp else 10.sp,
+                    fontSize = if (compact) 8.sp else 10.sp,
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
