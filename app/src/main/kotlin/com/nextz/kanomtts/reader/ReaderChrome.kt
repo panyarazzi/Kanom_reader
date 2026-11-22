@@ -78,11 +78,12 @@ fun ReaderChrome(
                 fontSizeSp = progressFontSizeSp,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = if (chromeVisible) 64.dp else 8.dp),
+                    .padding(top = 64.dp),
             )
             ProgressLabel(
                 text = progressText,
                 fontSizeSp = progressFontSizeSp,
+                maxLines = 2,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 8.dp),
@@ -179,7 +180,7 @@ fun ReaderChrome(
 }
 
 @Composable
-private fun ProgressLabel(text: String, fontSizeSp: Int, modifier: Modifier = Modifier) {
+private fun ProgressLabel(text: String, fontSizeSp: Int, maxLines: Int = 1, modifier: Modifier = Modifier) {
     androidx.compose.material3.Surface(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
@@ -191,7 +192,7 @@ private fun ProgressLabel(text: String, fontSizeSp: Int, modifier: Modifier = Mo
             text = text,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
             style = MaterialTheme.typography.bodySmall.copy(fontSize = fontSizeSp.coerceIn(8, 80).sp),
-            maxLines = 1,
+            maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,
         )
     }
