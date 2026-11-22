@@ -26,6 +26,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentContainerView
@@ -225,10 +227,18 @@ private fun ReaderContent(bookId: String, state: ReaderUiState.Ready, viewModel:
         }
     }
 
+    val progressTextHeight = with(LocalDensity.current) {
+        (state.prefs.progressFontSizeSp.coerceIn(8, 80).sp * 1.5f).toDp()
+    }
+    val hasProgress = state.chapterPageNumber != null &&
+        state.chapterPageCount != null && state.chapterPageCount > 0
+    val progressTopSafeSpace = if (hasProgress) 64.dp + progressTextHeight + 8.dp else 0.dp
+    val progressFooterSafeSpace = if (hasProgress) progressTextHeight * 2f + 16.dp else 0.dp
+
     AndroidView(
         modifier = Modifier.fillMaxSize().padding(
-            top = state.prefs.topMarginDp.dp,
-            bottom = state.prefs.bottomMarginDp.dp,
+            top = state.prefs.topMarginDp.dp + progressTopSafeSpace,
+            bottom = state.prefs.bottomMarginDp.dp + progressFooterSafeSpace,
         ),
         factory = { ctx -> FragmentContainerView(ctx).apply { id = containerId } },
         update = { container ->
