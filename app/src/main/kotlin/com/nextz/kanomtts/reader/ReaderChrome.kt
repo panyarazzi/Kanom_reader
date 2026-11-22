@@ -74,7 +74,8 @@ fun ReaderChrome(
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         // Persistent progress labels stay visible even when the toolbar auto-hides.
-        if (!progressText.isNullOrBlank() && topProgressEnabled) {
+        if (!progressText.isNullOrBlank()) {
+            if (topProgressEnabled) {
             ProgressLabel(
                 text = progressText,
                 fontSizeSp = progressFontSizeSp,
@@ -82,6 +83,7 @@ fun ReaderChrome(
                     .align(Alignment.TopCenter)
                     .padding(top = 64.dp),
             )
+            }
             if (footerProgressEnabled) ProgressLabel(
                 text = progressText,
                 fontSizeSp = progressFontSizeSp,
