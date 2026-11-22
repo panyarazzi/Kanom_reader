@@ -27,6 +27,7 @@ class ReaderProgressLabelTest {
             charging = true,
         )
         assertEquals("7/18", content.chapterPage)
+        assertEquals("7/18 บทที่ 2", content.chapterTitle)
         assertEquals("65.27%", content.bookPercent)
         assertEquals("หนังสือทดสอบ", content.bookTitle)
         assertEquals("B ~76%", progressSlotValue("CHARGING", content))
