@@ -41,7 +41,26 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Run unit tests and build debug APK
-        run: ./gradlew :app:testDebugUnitTest :app:assembleDebug --no-daemon --stacktrace
+        shell: bash
+        run: |
+          set +e
+          LOG_FILE="$RUNNER_TEMP/gradle-build.log"
+          for attempt in 1 2 3; do
+            echo "Gradle attempt $attempt/3"
+            ./gradlew :app:testDebugUnitTest :app:assembleDebug --no-daemon --stacktrace 2>&1 | tee "$LOG_FILE"
+            status=${PIPESTATUS[0]}
+            if [ "$status" -eq 0 ]; then
+              exit 0
+            fi
+
+            if grep -Eq 'HTTP response code: 429|status code: 429|HTTP 429' "$LOG_FILE" && [ "$attempt" -lt 3 ]; then
+              echo "Maven Central rate limit (HTTP 429); retrying after 30 seconds."
+              sleep 30
+            else
+              exit "$status"
+            fi
+          done
+          exit 1
 
       - name: Rename APK using workflow APK number
         run: |
