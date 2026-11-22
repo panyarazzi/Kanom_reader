@@ -117,3 +117,18 @@ internal fun buildProgressContent(
         charging = charging,
     )
 }
+
+internal data class ProgressSlotValues(
+    val left: String?,
+    val center: String?,
+    val right: String?,
+)
+
+internal fun progressSlotValues(layout: ProgressLayout, content: ProgressContent): ProgressSlotValues {
+    val left = progressSlotValue(layout.left, content)
+    val centerRaw = progressSlotValue(layout.center, content)
+    val center = centerRaw?.takeUnless { it == left }
+    val rightRaw = progressSlotValue(layout.right, content)
+    val right = rightRaw?.takeUnless { it == left || it == center }
+    return ProgressSlotValues(left, center, right)
+}
