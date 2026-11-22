@@ -28,6 +28,14 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -67,6 +75,7 @@ fun ReaderSettingsSheet(
         onTheme = { viewModel.onThemeSelected(it) },
         onFont = { viewModel.onFontSelected(it) },
         onFontSize = { viewModel.onFontSize(it) },
+        onProgressFontSize = { viewModel.onProgressFontSize(it) },
         onLineHeight = { viewModel.onLineHeight(it) },
         onParagraphIndent = { viewModel.onParagraphIndent(it) },
         onParagraphSpacing = { viewModel.onParagraphSpacing(it) },
@@ -93,6 +102,7 @@ internal fun ReaderSettingsSheetContent(
     onTheme: (ReaderTheme) -> Unit,
     onFont: (ReadingFont) -> Unit,
     onFontSize: (Int) -> Unit,
+    onProgressFontSize: (Int) -> Unit = {},
     onLineHeight: (Float) -> Unit,
     onParagraphIndent: (Float) -> Unit = {},
     onParagraphSpacing: (Float) -> Unit = {},
@@ -161,6 +171,25 @@ internal fun ReaderSettingsSheetContent(
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            NumericSettingField("ขนาดตัวอักษร (sp)", prefs.fontSizeSp.toString(), decimal = false) {
+                it.toIntOrNull()?.let { value -> onFontSize(value.coerceIn(12, 72)) }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            SectionLabel("ขนาดตัวอักษรแสดงสถานะบน/ล่าง: ${prefs.progressFontSizeSp} sp")
+            Slider(
+                value = prefs.progressFontSizeSp.toFloat(),
+                onValueChange = { previewing = true; onProgressFontSize(it.toInt()) },
+                onValueChangeFinished = { previewing = false },
+                valueRange = 8f..80f,
+                steps = 71,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            NumericSettingField("ขนาด Progress (8–80 sp)", prefs.progressFontSizeSp.toString(), decimal = false) {
+                it.toIntOrNull()?.let { value -> onProgressFontSize(value.coerceIn(8, 80)) }
+            }
+
             Spacer(Modifier.height(8.dp))
 
             // ── Line height ────────────────────────────────────────────────────
@@ -174,6 +203,10 @@ internal fun ReaderSettingsSheetContent(
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            NumericSettingField("ระยะห่างบรรทัด (เช่น 1.08)", prefs.lineHeight.toString()) {
+                it.toFloatOrNull()?.let(onLineHeight)
+            }
+
             Spacer(Modifier.height(8.dp))
 
             SectionLabel("ย่อหน้าบรรทัดแรก: ${"%.1f".format(prefs.paragraphIndentEm)} em")
@@ -186,11 +219,19 @@ internal fun ReaderSettingsSheetContent(
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            NumericSettingField("ย่อหน้าบรรทัดแรก (em)", prefs.paragraphIndentEm.toString()) {
+                it.toFloatOrNull()?.let(onParagraphIndent)
+            }
+
             Spacer(Modifier.height(8.dp))
 
             SectionLabel("ระยะห่างระหว่างย่อหน้า: ${"%.1f".format(prefs.paragraphSpacingEm)} em")
             Slider(value = prefs.paragraphSpacingEm, onValueChange = { previewing = true; onParagraphSpacing(it) },
                 onValueChangeFinished = { previewing = false }, valueRange = 0f..2f, steps = 19, modifier = Modifier.fillMaxWidth())
+
+            NumericSettingField("ระยะห่างย่อหน้า (em)", prefs.paragraphSpacingEm.toString()) {
+                it.toFloatOrNull()?.let(onParagraphSpacing)
+            }
 
             Spacer(Modifier.height(8.dp))
 
@@ -204,15 +245,27 @@ internal fun ReaderSettingsSheetContent(
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            NumericSettingField("ระยะขอบด้านข้าง (dp)", prefs.marginDp.toString(), decimal = false) {
+                it.toIntOrNull()?.let { value -> onMargin(value.coerceIn(0, 64)) }
+            }
+
             Spacer(Modifier.height(8.dp))
 
             SectionLabel("ระยะขอบด้านบน: ${prefs.topMarginDp} dp")
             Slider(value = prefs.topMarginDp.toFloat(), onValueChange = { previewing = true; onTopMargin(it.toInt()) }, onValueChangeFinished = { previewing = false }, valueRange = 0f..80f, steps = 79, modifier = Modifier.fillMaxWidth())
 
+            NumericSettingField("ระยะขอบด้านบน (dp)", prefs.topMarginDp.toString(), decimal = false) {
+                it.toIntOrNull()?.let { value -> onTopMargin(value.coerceIn(0, 80)) }
+            }
+
             Spacer(Modifier.height(8.dp))
 
             SectionLabel("ระยะขอบด้านล่าง: ${prefs.bottomMarginDp} dp")
             Slider(value = prefs.bottomMarginDp.toFloat(), onValueChange = { previewing = true; onBottomMargin(it.toInt()) }, onValueChangeFinished = { previewing = false }, valueRange = 0f..80f, steps = 79, modifier = Modifier.fillMaxWidth())
+
+            NumericSettingField("ระยะขอบด้านล่าง (dp)", prefs.bottomMarginDp.toString(), decimal = false) {
+                it.toIntOrNull()?.let { value -> onBottomMargin(value.coerceIn(0, 80)) }
+            }
 
             Spacer(Modifier.height(16.dp))
 
@@ -314,6 +367,40 @@ internal fun ReaderSettingsSheetContent(
             }
         }
     }
+}
+
+@Composable
+private fun NumericSettingField(
+    label: String,
+    value: String,
+    decimal: Boolean = true,
+    onCommit: (String) -> Unit,
+) {
+    val focusManager = LocalFocusManager.current
+    var input by remember(value) { mutableStateOf(value) }
+    var focused by remember { mutableStateOf(false) }
+    LaunchedEffect(value, focused) {
+        if (!focused) input = value
+    }
+    OutlinedTextField(
+        value = input,
+        onValueChange = { candidate ->
+            val valid = if (decimal) candidate.matches(Regex("[0-9]*(\\.[0-9]*)?")) else candidate.matches(Regex("[0-9]*"))
+            if (valid) input = candidate
+        },
+        modifier = Modifier.fillMaxWidth().onFocusChanged { state ->
+            val wasFocused = focused
+            focused = state.isFocused
+            if (wasFocused && !state.isFocused) onCommit(input)
+        },
+        label = { Text(label) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(
+            keyboardType = if (decimal) KeyboardType.Decimal else KeyboardType.Number,
+            imeAction = ImeAction.Done,
+        ),
+        keyboardActions = KeyboardActions(onDone = { onCommit(input); focusManager.clearFocus() }),
+    )
 }
 
 @Composable
