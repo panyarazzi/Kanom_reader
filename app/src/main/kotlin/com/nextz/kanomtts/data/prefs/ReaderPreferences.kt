@@ -15,6 +15,8 @@ interface ReaderPreferences {
     suspend fun setProgressFontSizeSp(v: Int)
     suspend fun setTopProgressEnabled(v: Boolean)
     suspend fun setFooterProgressEnabled(v: Boolean)
+    suspend fun setTopProgressLayout(left: String, center: String, right: String)
+    suspend fun setFooterProgressLayout(left: String, center: String, right: String)
     suspend fun setLineHeight(v: Float)
     suspend fun setParagraphIndentEm(v: Float)
     suspend fun setParagraphSpacingEm(v: Float)
