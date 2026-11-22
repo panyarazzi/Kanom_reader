@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.nextz.kanomtts.ui.theme.KanomTheme
 
 /**
@@ -61,6 +62,7 @@ fun ReaderChrome(
     onToggleTts: () -> Unit = {},
     /** Current page / total pages and chapter title, based on Readium's pagination callback. */
     progressText: String? = null,
+    progressFontSizeSp: Int = 24,
     /** Footer tap opens ToC; double-tap opens reader settings while progress is visible. */
     onFooterTap: () -> Unit = {},
     onFooterDoubleTap: () -> Unit = {},
@@ -73,12 +75,14 @@ fun ReaderChrome(
         if (!progressText.isNullOrBlank()) {
             ProgressLabel(
                 text = progressText,
+                fontSizeSp = progressFontSizeSp,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(top = if (chromeVisible) 64.dp else 8.dp),
             )
             ProgressLabel(
                 text = progressText,
+                fontSizeSp = progressFontSizeSp,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 8.dp),
@@ -175,7 +179,7 @@ fun ReaderChrome(
 }
 
 @Composable
-private fun ProgressLabel(text: String, modifier: Modifier = Modifier) {
+private fun ProgressLabel(text: String, fontSizeSp: Int, modifier: Modifier = Modifier) {
     androidx.compose.material3.Surface(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
@@ -186,7 +190,7 @@ private fun ProgressLabel(text: String, modifier: Modifier = Modifier) {
         Text(
             text = text,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = fontSizeSp.coerceIn(8, 80).sp),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
