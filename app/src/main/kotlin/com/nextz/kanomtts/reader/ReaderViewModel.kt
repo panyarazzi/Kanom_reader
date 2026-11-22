@@ -768,9 +768,9 @@ class ReaderViewModel @Inject constructor(
         // Apply to existing paragraphs and observe later DOM insertions during resource rendering.
         val script = "(function(){var id='kanom-reader-paragraph-typography';var s=document.getElementById(id);" +
             "if(!s){s=document.createElement('style');s.id=id;(document.head||document.documentElement).appendChild(s);}" +
-            "s.textContent='body p {margin-top: \${spacing}em !important;margin-bottom: \${spacing}em !important;}';" +
-            "function apply(root){if(!root)return;if(root.nodeType===1&&root.matches&&root.matches('p'))root.style.setProperty('text-indent','\${indent}em','important');" +
-            "if(root.querySelectorAll)root.querySelectorAll('p').forEach(function(p){p.style.setProperty('text-indent','\${indent}em','important');});}" +
+            "s.textContent='body p {margin-top: ${spacing}em !important;margin-bottom: ${spacing}em !important;}';" +
+            "function apply(root){if(!root)return;if(root.nodeType===1&&root.matches&&root.matches('p'))root.style.setProperty('text-indent','${indent}em','important');" +
+            "if(root.querySelectorAll)root.querySelectorAll('p').forEach(function(p){p.style.setProperty('text-indent','${indent}em','important');});}" +
             "apply(document.body);if(window.__kanomParagraphObserver)window.__kanomParagraphObserver.disconnect();" +
             "if(document.body&&window.MutationObserver){window.__kanomParagraphObserver=new MutationObserver(function(records){records.forEach(function(r){r.addedNodes.forEach(apply);});});" +
             "window.__kanomParagraphObserver.observe(document.body,{childList:true,subtree:true});}})();"
