@@ -62,3 +62,58 @@ private fun isUsefulChapterTitle(value: String): Boolean {
     if (value.matches(Regex("^เล่มที่\\s*\\[?\\d+]?\\s*$"))) return false
     return true
 }
+
+
+internal data class ProgressContent(
+    val chapterPage: String?,
+    val bookPercent: String?,
+    val chapterTitle: String?,
+    val bookTitle: String?,
+    val time: String?,
+    val battery: String?,
+    val charging: Boolean,
+)
+
+internal data class ProgressLayout(
+    val left: String,
+    val center: String,
+    val right: String,
+)
+
+internal fun progressSlotValue(slot: String, content: ProgressContent): String? = when (slot) {
+    "CHAPTER_PAGE" -> content.chapterPage
+    "BOOK_PERCENT" -> content.bookPercent
+    "CHAPTER_TITLE" -> content.chapterTitle
+    "BOOK_TITLE" -> content.bookTitle
+    "TIME_BATTERY" -> listOfNotNull(content.time, content.battery).joinToString(" ").ifBlank { null }
+    "TIME" -> content.time
+    "BATTERY" -> content.battery
+    "CHARGING" -> content.battery?.let { if (content.charging) "$it ⚡" else it }
+    else -> null
+}
+
+internal fun buildProgressContent(
+    pageNumber: Int?,
+    totalPages: Int?,
+    chapterTitle: String?,
+    bookTitle: String?,
+    totalProgression: Double?,
+    time: String?,
+    batteryPercent: Int?,
+    charging: Boolean,
+): ProgressContent {
+    val page = if (pageNumber != null && totalPages != null && totalPages > 0) {
+        "${pageNumber.coerceIn(1, totalPages)}/$totalPages"
+    } else null
+    val percent = totalProgression?.takeIf { it.isFinite() }?.coerceIn(0.0, 1.0)
+        ?.let { String.format(Locale.US, "%.2f%%", it * 100.0) }
+    return ProgressContent(
+        chapterPage = page,
+        bookPercent = percent,
+        chapterTitle = chapterTitle?.trim()?.takeIf { it.isNotEmpty() },
+        bookTitle = bookTitle?.trim()?.takeIf { it.isNotEmpty() },
+        time = time,
+        battery = batteryPercent?.coerceIn(0, 100)?.let { "$it%" },
+        charging = charging,
+    )
+}
