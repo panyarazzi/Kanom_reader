@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.readium.r2.shared.publication.Link
 import org.readium.r2.shared.util.Url
+import org.readium.r2.shared.util.fromLegacyHref
 import org.junit.Test
 
 class ReaderProgressLabelTest {
