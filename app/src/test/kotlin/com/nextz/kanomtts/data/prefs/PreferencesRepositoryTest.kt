@@ -65,12 +65,12 @@ class PreferencesRepositoryTest {
 
     @Test fun topAndFooterProgressLayouts_round_trip_independently() = runTest {
         val r = repo()
-        r.setTopProgressLayout("BOOK_PERCENT", "BOOK_TITLE", "CHARGING")
+        r.setTopProgressLayout("BOOK_PERCENT", "BOOK_TITLE", "BOOK_PERCENT")
         r.setFooterProgressLayout("CHAPTER_PAGE", "CHAPTER_TITLE", "TIME")
         val p = r.preferences.first()
         assertEquals("BOOK_PERCENT", p.topProgressLeft)
         assertEquals("BOOK_TITLE", p.topProgressCenter)
-        assertEquals("CHARGING", p.topProgressRight)
+        assertEquals("BOOK_PERCENT", p.topProgressRight)
         assertEquals("CHAPTER_PAGE", p.footerProgressLeft)
         assertEquals("CHAPTER_TITLE", p.footerProgressCenter)
         assertEquals("TIME", p.footerProgressRight)
