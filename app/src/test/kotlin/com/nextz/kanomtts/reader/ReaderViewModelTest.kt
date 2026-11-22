@@ -3,6 +3,8 @@ package com.nextz.kanomtts.reader
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.nextz.kanomtts.data.db.BookEntity
+import com.nextz.kanomtts.data.db.ReadingSessionDao
+import com.nextz.kanomtts.data.db.ReadingSessionEntity
 import com.nextz.kanomtts.playback.PlaybackState
 import com.nextz.kanomtts.reader.engine.LocatorSerializer
 import com.nextz.kanomtts.reader.util.FakeBookmarkStore
@@ -13,6 +15,8 @@ import com.nextz.kanomtts.reader.util.fakeReplacementRuleRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -69,6 +73,11 @@ class ReaderViewModelTest {
             bookmarkStore = FakeBookmarkStore(),
             replacementRuleRepository = fakeReplacementRuleRepository(),
             ttsController = ttsController,
+            readingSessionDao = object : ReadingSessionDao {
+                override suspend fun insert(session: ReadingSessionEntity) = Unit
+                override fun observeAll(): Flow<List<ReadingSessionEntity>> = flowOf(emptyList())
+                override suspend fun deleteBefore(cutoff: Long) = Unit
+            },
         )
 
     @Test fun `volume keys use expected page direction with reverse off and on`() {
