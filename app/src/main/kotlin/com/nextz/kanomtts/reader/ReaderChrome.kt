@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -44,7 +45,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -113,11 +117,11 @@ fun ReaderChrome(
                 val scale = intent?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
                 batteryPercent = if (level >= 0 && scale > 0) (level * 100 / scale) else null
                 val status = intent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
-                isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
-                    status == BatteryManager.BATTERY_STATUS_FULL
+                isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING
             }
         }
-        context.registerReceiver(receiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        val stickyBatteryIntent = context.registerReceiver(receiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        if (stickyBatteryIntent != null) receiver.onReceive(context, stickyBatteryIntent)
         onDispose { runCatching { context.unregisterReceiver(receiver) } }
     }
     val liveProgress = progressContent?.copy(
@@ -132,10 +136,10 @@ fun ReaderChrome(
                 content = liveProgress,
                 fontSizeSp = progressFontSizeSp,
                 maxLines = 1,
+                rightWidthSamples = listOf("100.00%"),
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .fillMaxWidth()
-                    .padding(top = 64.dp)
                     .onSizeChanged { size -> onTopProgressHeightChanged(with(density) { size.height.toDp() }) },
             )
             if (footerProgressEnabled) ProgressLabel(
@@ -143,6 +147,7 @@ fun ReaderChrome(
                 content = liveProgress,
                 fontSizeSp = progressFontSizeSp,
                 maxLines = 2,
+                rightWidthSamples = listOf("23:59 • B ~100%", "23:59", "B ~100%"),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
@@ -248,9 +253,26 @@ private fun ProgressLabel(
     content: ProgressContent,
     fontSizeSp: Int,
     maxLines: Int,
+    rightWidthSamples: List<String>,
     modifier: Modifier = Modifier,
 ) {
     val values = progressSlotValues(layout, content)
+    val textMeasurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val textStyle = MaterialTheme.typography.bodySmall.copy(
+        fontWeight = FontWeight.Medium,
+        fontSize = fontSizeSp.coerceIn(8, 80).sp,
+    )
+    // Reserve widths from the widest selectable value, not the currently selected value.
+    val leftWidth = with(density) {
+        maxOf(
+            textMeasurer.measure("9999/9999", textStyle).size.width,
+            textMeasurer.measure("100.00%", textStyle).size.width,
+        ).toDp() + 8.dp
+    }
+    val rightWidth = with(density) {
+        rightWidthSamples.maxOf { textMeasurer.measure(it, textStyle).size.width }.toDp() + 8.dp
+    }
     androidx.compose.material3.Surface(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
@@ -261,9 +283,9 @@ private fun ProgressLabel(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ProgressSlot(values.left, fontSizeSp, maxLines, Alignment.CenterStart, Modifier.weight(1f))
-            ProgressSlot(values.center, fontSizeSp, maxLines, Alignment.Center, Modifier.weight(1f))
-            ProgressSlot(values.right, fontSizeSp, maxLines, Alignment.CenterEnd, Modifier.weight(1f))
+            ProgressSlot(values.left, fontSizeSp, maxLines, Modifier.width(leftWidth))
+            ProgressSlot(values.center, fontSizeSp, maxLines, Modifier.weight(1f))
+            ProgressSlot(values.right, fontSizeSp, maxLines, Modifier.width(rightWidth))
         }
     }
 }
@@ -273,14 +295,17 @@ private fun ProgressSlot(
     value: String?,
     fontSizeSp: Int,
     maxLines: Int,
-    alignment: Alignment,
     modifier: Modifier,
 ) {
-    Box(modifier = modifier, contentAlignment = alignment) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
         if (!value.isNullOrBlank()) {
             Text(
                 text = value,
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = fontSizeSp.coerceIn(8, 80).sp),
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontWeight = FontWeight.Medium,
+                    fontSize = fontSizeSp.coerceIn(8, 80).sp,
+                ),
+                textAlign = TextAlign.Center,
                 maxLines = maxLines,
                 overflow = TextOverflow.Ellipsis,
             )

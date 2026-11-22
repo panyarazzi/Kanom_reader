@@ -262,7 +262,7 @@ private fun ReaderContent(
     }
 
     val hasProgress = state.prefs.topProgressEnabled || state.prefs.footerProgressEnabled
-    val progressTopSafeSpace = if (hasProgress && state.prefs.topProgressEnabled) 64.dp + measuredTopProgressHeight + 8.dp else 0.dp
+    val progressTopSafeSpace = if (hasProgress && state.prefs.topProgressEnabled) measuredTopProgressHeight + 8.dp else 0.dp
     val progressFooterSafeSpace = if (hasProgress && state.prefs.footerProgressEnabled) measuredFooterProgressHeight + 8.dp else 0.dp
 
     AndroidView(

@@ -15,7 +15,7 @@ data class KanomPreferences(
     val footerProgressEnabled: Boolean = true,
     val topProgressLeft: String = "CHAPTER_PAGE",
     val topProgressCenter: String = "CHAPTER_TITLE",
-    val topProgressRight: String = "TIME_BATTERY",
+    val topProgressRight: String = "BOOK_PERCENT",
     val footerProgressLeft: String = "BOOK_PERCENT",
     val footerProgressCenter: String = "CHAPTER_TITLE",
     val footerProgressRight: String = "TIME_BATTERY",

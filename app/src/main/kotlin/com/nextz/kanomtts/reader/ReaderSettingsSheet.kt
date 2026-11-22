@@ -205,6 +205,7 @@ internal fun ReaderSettingsSheetContent(
             ProgressLayoutSection(
                 title = "รูปแบบ Progress ด้านบน",
                 layout = ProgressLayout(prefs.topProgressLeft, prefs.topProgressCenter, prefs.topProgressRight),
+                rightOptions = listOf("BOOK_PERCENT" to "% ทั้งเล่ม", "NONE" to "ไม่แสดง"),
                 onChange = onTopProgressLayout,
             )
             Spacer(Modifier.height(8.dp))
@@ -392,6 +393,13 @@ internal fun ReaderSettingsSheetContent(
 private fun ProgressLayoutSection(
     title: String,
     layout: ProgressLayout,
+    rightOptions: List<Pair<String, String>> = listOf(
+        "TIME_BATTERY" to "เวลา+แบตฯ",
+        "TIME" to "เวลา",
+        "BATTERY" to "แบตเตอรี่",
+        "CHARGING" to "สถานะชาร์จ",
+        "NONE" to "ไม่แสดง",
+    ),
     onChange: (String, String, String) -> Unit,
 ) {
     SectionLabel(title)
@@ -407,13 +415,9 @@ private fun ProgressLayoutSection(
         "BOOK_PERCENT" to "% ทั้งเล่ม",
         "NONE" to "ไม่แสดง",
     )) { onChange(layout.left, it, layout.right) }
-    ProgressChoiceRow("ขวา", layout.right, listOf(
-        "TIME_BATTERY" to "เวลา+แบตฯ",
-        "TIME" to "เวลา",
-        "BATTERY" to "แบตเตอรี่",
-        "CHARGING" to "สถานะชาร์จ",
-        "NONE" to "ไม่แสดง",
-    )) { onChange(layout.left, layout.center, it) }
+    ProgressChoiceRow("ขวา", layout.right, rightOptions) {
+        onChange(layout.left, layout.center, it)
+    }
 }
 
 @Composable

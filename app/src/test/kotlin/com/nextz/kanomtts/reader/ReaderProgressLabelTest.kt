@@ -29,8 +29,14 @@ class ReaderProgressLabelTest {
         assertEquals("7/18", content.chapterPage)
         assertEquals("65.27%", content.bookPercent)
         assertEquals("หนังสือทดสอบ", content.bookTitle)
-        assertEquals("76% ⚡", progressSlotValue("CHARGING", content))
-        assertEquals("12:30 76%", progressSlotValue("TIME_BATTERY", content))
+        assertEquals("B ~76%", progressSlotValue("CHARGING", content))
+        assertEquals("12:30 • B ~76%", progressSlotValue("TIME_BATTERY", content))
+    }
+
+    @Test fun formatsBatteryWithoutChargingMarkerWhenNotCharging() {
+        val content = buildProgressContent(7, 18, "บทที่ 2", "หนังสือทดสอบ", 0.6527, "12:30", 76, false)
+        assertEquals("B 76%", progressSlotValue("BATTERY", content))
+        assertEquals("12:30 • B 76%", progressSlotValue("TIME_BATTERY", content))
     }
 
     @Test fun centersProgressAndSuppressesDuplicateValues() {

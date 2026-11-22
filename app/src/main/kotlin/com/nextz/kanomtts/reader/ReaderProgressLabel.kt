@@ -80,15 +80,18 @@ data class ProgressLayout(
     val right: String,
 )
 
+private fun batteryProgressText(content: ProgressContent): String? =
+    content.battery?.let { "B ${if (content.charging) "~" else ""}$it" }
+
 internal fun progressSlotValue(slot: String, content: ProgressContent): String? = when (slot) {
     "CHAPTER_PAGE" -> content.chapterPage
     "BOOK_PERCENT" -> content.bookPercent
     "CHAPTER_TITLE" -> content.chapterTitle
     "BOOK_TITLE" -> content.bookTitle
-    "TIME_BATTERY" -> listOfNotNull(content.time, content.battery).joinToString(" ").ifBlank { null }
+    "TIME_BATTERY" -> listOfNotNull(content.time, batteryProgressText(content))
+        .joinToString(" • ").ifBlank { null }
     "TIME" -> content.time
-    "BATTERY" -> content.battery
-    "CHARGING" -> content.battery?.let { if (content.charging) "$it ⚡" else it }
+    "BATTERY", "CHARGING" -> batteryProgressText(content)
     else -> null
 }
 

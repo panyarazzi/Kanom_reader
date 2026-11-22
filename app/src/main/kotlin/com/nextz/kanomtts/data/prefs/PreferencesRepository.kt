@@ -64,7 +64,7 @@ class PreferencesRepository @Inject constructor(
             footerProgressEnabled = p[Keys.footerProgressEnabled] ?: DEFAULTS.footerProgressEnabled,
             topProgressLeft = p[Keys.topProgressLeft] ?: DEFAULTS.topProgressLeft,
             topProgressCenter = p[Keys.topProgressCenter] ?: DEFAULTS.topProgressCenter,
-            topProgressRight = p[Keys.topProgressRight] ?: DEFAULTS.topProgressRight,
+            topProgressRight = p[Keys.topProgressRight]?.takeIf { it == "BOOK_PERCENT" || it == "NONE" } ?: DEFAULTS.topProgressRight,
             footerProgressLeft = p[Keys.footerProgressLeft] ?: DEFAULTS.footerProgressLeft,
             footerProgressCenter = p[Keys.footerProgressCenter] ?: DEFAULTS.footerProgressCenter,
             footerProgressRight = p[Keys.footerProgressRight] ?: DEFAULTS.footerProgressRight,
