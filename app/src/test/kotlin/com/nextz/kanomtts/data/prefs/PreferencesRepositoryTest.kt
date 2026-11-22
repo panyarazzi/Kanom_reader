@@ -63,6 +63,19 @@ class PreferencesRepositoryTest {
         assertEquals(true, p.footerProgressEnabled)
     }
 
+    @Test fun topAndFooterProgressLayouts_round_trip_independently() = runTest {
+        val r = repo()
+        r.setTopProgressLayout("BOOK_PERCENT", "BOOK_TITLE", "CHARGING")
+        r.setFooterProgressLayout("CHAPTER_PAGE", "CHAPTER_TITLE", "TIME")
+        val p = r.preferences.first()
+        assertEquals("BOOK_PERCENT", p.topProgressLeft)
+        assertEquals("BOOK_TITLE", p.topProgressCenter)
+        assertEquals("CHARGING", p.topProgressRight)
+        assertEquals("CHAPTER_PAGE", p.footerProgressLeft)
+        assertEquals("CHAPTER_TITLE", p.footerProgressCenter)
+        assertEquals("TIME", p.footerProgressRight)
+    }
+
     @Test fun corrupt_enum_falls_back_to_default() = runTest {
         // setting an int where enum expected isn't possible via API; verify unknown name path via valueOf guard
         val r = repo(); r.setReadingFont(ReadingFont.SERIF)
