@@ -157,7 +157,7 @@ private fun ReaderChromeLayer(
     var probeOn by rememberSaveable { mutableStateOf(false) }
 
     val ttsPlaying by viewModel.ttsPlaying.collectAsState()
-    val progressText = formatChapterProgress(
+    val progressContent = buildProgressContent(
         pageNumber = state.chapterPageNumber,
         totalPages = state.chapterPageCount,
         chapterTitle = resolveChapterTitle(
@@ -165,13 +165,19 @@ private fun ReaderChromeLayer(
             locatorTitle = state.currentLocator?.title,
             toc = state.toc,
         ),
+        bookTitle = state.book.title,
         totalProgression = state.currentLocator?.locations?.totalProgression,
+        time = null,
+        batteryPercent = null,
+        charging = false,
     )
 
     ReaderChrome(
         title = state.book.title,
         chromeVisible = state.chromeVisible,
-        progressText = progressText,
+        progressContent = progressContent,
+        topProgressLayout = ProgressLayout(state.prefs.topProgressLeft, state.prefs.topProgressCenter, state.prefs.topProgressRight),
+        footerProgressLayout = ProgressLayout(state.prefs.footerProgressLeft, state.prefs.footerProgressCenter, state.prefs.footerProgressRight),
         progressFontSizeSp = state.prefs.progressFontSizeSp,
         topProgressEnabled = state.prefs.topProgressEnabled,
         footerProgressEnabled = state.prefs.footerProgressEnabled,
@@ -255,8 +261,7 @@ private fun ReaderContent(
         }
     }
 
-    val hasProgress = state.chapterPageNumber != null &&
-        state.chapterPageCount != null && state.chapterPageCount > 0
+    val hasProgress = state.prefs.topProgressEnabled || state.prefs.footerProgressEnabled
     val progressTopSafeSpace = if (hasProgress && state.prefs.topProgressEnabled) 64.dp + measuredTopProgressHeight + 8.dp else 0.dp
     val progressFooterSafeSpace = if (hasProgress && state.prefs.footerProgressEnabled) measuredFooterProgressHeight + 8.dp else 0.dp
 
