@@ -33,6 +33,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.fragment.app.FragmentContainerView
 import com.nextz.kanomtts.BuildConfig
 import com.nextz.kanomtts.MainActivity
@@ -52,9 +53,10 @@ fun ReaderScreen(
     onOpenReplacements: (bookId: String) -> Unit = {},
 ) {
     val activity = LocalActivity.current
-    DisposableEffect(activity, viewModel) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(activity, lifecycleOwner, viewModel) {
         val host = activity as? MainActivity
-        val lifecycle = (activity as? FragmentActivity)?.lifecycle
+        val lifecycle = lifecycleOwner.lifecycle
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_RESUME -> viewModel.setReaderVisibleForStatistics(true)
