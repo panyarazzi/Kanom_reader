@@ -25,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalDensity
@@ -58,6 +59,8 @@ fun ReaderScreen(
     val state by viewModel.uiState.collectAsState()
     val quickAdd by viewModel.quickAddText.collectAsState()
     val footnoteBubble by viewModel.footnoteBubble.collectAsState()
+    var measuredTopProgressHeight by remember { mutableStateOf(0.dp) }
+    var measuredFooterProgressHeight by remember { mutableStateOf(0.dp) }
 
     Box(
         modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding()),
@@ -68,7 +71,13 @@ fun ReaderScreen(
             is ReaderUiState.Error -> Text(s.message, style = MaterialTheme.typography.titleMedium)
             is ReaderUiState.Ready -> {
                 // Fragment layer (bottom)
-                ReaderContent(bookId = bookId, state = s, viewModel = viewModel)
+                ReaderContent(
+                    bookId = bookId,
+                    state = s,
+                    viewModel = viewModel,
+                    measuredTopProgressHeight = measuredTopProgressHeight,
+                    measuredFooterProgressHeight = measuredFooterProgressHeight,
+                )
 
                 // Chrome + ToC sheet layer (top)
                 ReaderChromeLayer(
@@ -76,6 +85,8 @@ fun ReaderScreen(
                     onBack = onBack,
                     viewModel = viewModel,
                     onOpenReplacements = { onOpenReplacements(bookId) },
+                    onTopProgressHeightChanged = { measuredTopProgressHeight = it },
+                    onFooterProgressHeightChanged = { measuredFooterProgressHeight = it },
                 )
                 footnoteBubble?.let { bubble ->
                     ReaderFootnoteBalloon(bubble = bubble, onDismiss = viewModel::dismissFootnoteBubble)
@@ -136,6 +147,8 @@ private fun ReaderChromeLayer(
     onBack: () -> Unit,
     viewModel: ReaderViewModel,
     onOpenReplacements: () -> Unit = {},
+    onTopProgressHeightChanged: (Dp) -> Unit = {},
+    onFooterProgressHeightChanged: (Dp) -> Unit = {},
 ) {
     var tocOpen by rememberSaveable { mutableStateOf(false) }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
@@ -164,6 +177,8 @@ private fun ReaderChromeLayer(
         onBookmarksOpen = { bookmarksOpen = true },
         onFooterTap = { tocOpen = true },
         onFooterDoubleTap = { settingsOpen = true },
+        onTopProgressHeightChanged = onTopProgressHeightChanged,
+        onFooterProgressHeightChanged = onFooterProgressHeightChanged,
         ttsPlaying = ttsPlaying,
         onToggleTts = viewModel::toggleTts,
         // Wire debug probe only in DEBUG builds; null in release so the icon is never shown.
@@ -211,7 +226,13 @@ private fun ReaderChromeLayer(
 
 @OptIn(ExperimentalReadiumApi::class)
 @Composable
-private fun ReaderContent(bookId: String, state: ReaderUiState.Ready, viewModel: ReaderViewModel) {
+private fun ReaderContent(
+    bookId: String,
+    state: ReaderUiState.Ready,
+    viewModel: ReaderViewModel,
+    measuredTopProgressHeight: Dp,
+    measuredFooterProgressHeight: Dp,
+) {
     val activity = LocalActivity.current as FragmentActivity
     val containerId = rememberSaveable { View.generateViewId() }
     val tag = "reader-$bookId"
@@ -230,13 +251,10 @@ private fun ReaderContent(bookId: String, state: ReaderUiState.Ready, viewModel:
         }
     }
 
-    val progressTextHeight = with(LocalDensity.current) {
-        (state.prefs.progressFontSizeSp.coerceIn(8, 80).sp * 1.5f).toDp()
-    }
     val hasProgress = state.chapterPageNumber != null &&
         state.chapterPageCount != null && state.chapterPageCount > 0
-    val progressTopSafeSpace = if (hasProgress && state.prefs.topProgressEnabled) 64.dp + progressTextHeight + 8.dp else 0.dp
-    val progressFooterSafeSpace = if (hasProgress && state.prefs.footerProgressEnabled) progressTextHeight * 2f + 16.dp else 0.dp
+    val progressTopSafeSpace = if (hasProgress && state.prefs.topProgressEnabled) 64.dp + measuredTopProgressHeight + 8.dp else 0.dp
+    val progressFooterSafeSpace = if (hasProgress && state.prefs.footerProgressEnabled) measuredFooterProgressHeight + 8.dp else 0.dp
 
     AndroidView(
         modifier = Modifier.fillMaxSize().padding(
