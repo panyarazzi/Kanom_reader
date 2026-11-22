@@ -201,20 +201,20 @@ internal fun ReaderSettingsSheetContent(
             ToggleRow("ตัวแสดงสถานะด้านบน", prefs.topProgressEnabled, onTopProgressEnabled)
             ToggleRow("ตัวแสดงสถานะด้านล่าง", prefs.footerProgressEnabled, onFooterProgressEnabled)
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
             ProgressLayoutSection(
                 title = "รูปแบบ Progress ด้านบน",
                 layout = ProgressLayout(prefs.topProgressLeft, prefs.topProgressCenter, prefs.topProgressRight),
                 rightOptions = listOf("BOOK_PERCENT" to "% ทั้งเล่ม", "NONE" to "ไม่แสดง"),
                 onChange = onTopProgressLayout,
             )
-            Spacer(Modifier.height(8.dp))
+            HorizontalDivider(Modifier.padding(vertical = 16.dp))
             ProgressLayoutSection(
                 title = "รูปแบบ Progress ด้านล่าง",
                 layout = ProgressLayout(prefs.footerProgressLeft, prefs.footerProgressCenter, prefs.footerProgressRight),
                 onChange = onFooterProgressLayout,
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(16.dp))
 
             // ── Line height ────────────────────────────────────────────────────
             SectionLabel("ระยะห่างบรรทัด: ${String.format(java.util.Locale.US, "%.2f", prefs.lineHeight)}")
@@ -389,6 +389,7 @@ internal fun ReaderSettingsSheetContent(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ProgressLayoutSection(
     title: String,
@@ -402,24 +403,29 @@ private fun ProgressLayoutSection(
     ),
     onChange: (String, String, String) -> Unit,
 ) {
-    SectionLabel(title)
-    ProgressChoiceRow("ซ้าย", layout.left, listOf(
-        "CHAPTER_PAGE" to "หน้า/บท",
-        "BOOK_PERCENT" to "% ทั้งเล่ม",
-        "NONE" to "ไม่แสดง",
-    )) { onChange(it, layout.center, layout.right) }
-    ProgressChoiceRow("กลาง", layout.center, listOf(
-        "CHAPTER_TITLE" to "ชื่อบท",
-        "BOOK_TITLE" to "ชื่อหนังสือ",
-        "CHAPTER_PAGE" to "หน้า/บท",
-        "BOOK_PERCENT" to "% ทั้งเล่ม",
-        "NONE" to "ไม่แสดง",
-    )) { onChange(layout.left, it, layout.right) }
-    ProgressChoiceRow("ขวา", layout.right, rightOptions) {
-        onChange(layout.left, layout.center, it)
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(title, style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(8.dp))
+        ProgressChoiceRow("ซ้าย", layout.left, listOf(
+            "BOOK_PERCENT" to "% ทั้งเล่ม",
+            "NONE" to "ไม่แสดง",
+        )) { onChange(it, layout.center, layout.right) }
+        Spacer(Modifier.height(8.dp))
+        ProgressChoiceRow("กลาง", layout.center, listOf(
+            "CHAPTER_TITLE" to "ชื่อบท",
+            "BOOK_TITLE" to "ชื่อหนังสือ",
+            "CHAPTER_PAGE" to "หน้า/บท",
+            "BOOK_PERCENT" to "% ทั้งเล่ม",
+            "NONE" to "ไม่แสดง",
+        )) { onChange(layout.left, it, layout.right) }
+        Spacer(Modifier.height(8.dp))
+        ProgressChoiceRow("ขวา", layout.right, rightOptions) {
+            onChange(layout.left, layout.center, it)
+        }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ProgressChoiceRow(
     label: String,
@@ -427,22 +433,30 @@ private fun ProgressChoiceRow(
     options: List<Pair<String, String>>,
     onSelect: (String) -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, modifier = Modifier.width(42.dp), style = MaterialTheme.typography.labelMedium)
-        Row(
-            modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
-            verticalAlignment = Alignment.CenterVertically,
+    var expanded by remember { mutableStateOf(false) }
+    val selectedLabel = options.firstOrNull { it.first == selected }?.second ?: "ไม่แสดง"
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, modifier = Modifier.width(52.dp), style = MaterialTheme.typography.bodyMedium)
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it },
+            modifier = Modifier.weight(1f),
         ) {
-            options.forEach { (value, text) ->
-                FilterChip(
-                    selected = selected == value,
-                    onClick = { onSelect(value) },
-                    label = { Text(text) },
-                    modifier = Modifier.padding(end = 6.dp),
-                )
+            OutlinedTextField(
+                value = selectedLabel,
+                onValueChange = {},
+                readOnly = true,
+                singleLine = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                modifier = Modifier.menuAnchor().fillMaxWidth(),
+            )
+            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                options.forEach { (value, text) ->
+                    DropdownMenuItem(
+                        text = { Text(text) },
+                        onClick = { onSelect(value); expanded = false },
+                    )
+                }
             }
         }
     }
