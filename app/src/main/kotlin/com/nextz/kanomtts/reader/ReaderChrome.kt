@@ -1,5 +1,10 @@
 package com.nextz.kanomtts.reader
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.BatteryManager
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -11,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -30,6 +36,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -38,6 +50,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nextz.kanomtts.ui.theme.KanomTheme
+import kotlinx.coroutines.delay
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * Transparent overlay drawn OVER [EpubNavigatorFragment] that provides a [TopAppBar]
@@ -63,8 +79,9 @@ fun ReaderChrome(
     /** True when TTS is actively playing; determines the icon (Pause vs PlayArrow). */
     ttsPlaying: Boolean = false,
     onToggleTts: () -> Unit = {},
-    /** Current page / total pages and chapter title, based on Readium's pagination callback. */
-    progressText: String? = null,
+    progressContent: ProgressContent? = null,
+    topProgressLayout: ProgressLayout = ProgressLayout("CHAPTER_PAGE", "CHAPTER_TITLE", "TIME_BATTERY"),
+    footerProgressLayout: ProgressLayout = ProgressLayout("BOOK_PERCENT", "CHAPTER_TITLE", "TIME_BATTERY"),
     progressFontSizeSp: Int = 24,
     topProgressEnabled: Boolean = true,
     footerProgressEnabled: Boolean = true,
@@ -78,30 +95,59 @@ fun ReaderChrome(
     onToggleProbe: (() -> Unit)? = null,
 ) {
     val density = LocalDensity.current
+    val context = LocalContext.current
+    var clockText by remember { mutableStateOf("") }
+    var batteryPercent by remember { mutableStateOf<Int?>(null) }
+    var isCharging by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            clockText = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+            delay(30_000)
+        }
+    }
+    DisposableEffect(context) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context?, intent: Intent?) {
+                val level = intent?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
+                val scale = intent?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
+                batteryPercent = if (level >= 0 && scale > 0) (level * 100 / scale) else null
+                val status = intent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
+                isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                    status == BatteryManager.BATTERY_STATUS_FULL
+            }
+        }
+        context.registerReceiver(receiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        onDispose { runCatching { context.unregisterReceiver(receiver) } }
+    }
+    val liveProgress = progressContent?.copy(
+        time = clockText.takeIf { it.isNotBlank() },
+        battery = batteryPercent?.let { "$it%" },
+        charging = isCharging,
+    )
     Box(modifier = modifier.fillMaxSize()) {
-        // Persistent progress labels stay visible even when the toolbar auto-hides.
-        if (!progressText.isNullOrBlank()) {
-            if (topProgressEnabled) {
-            ProgressLabel(
-                text = progressText,
+        if (liveProgress != null) {
+            if (topProgressEnabled) ProgressLabel(
+                layout = topProgressLayout,
+                content = liveProgress,
                 fontSizeSp = progressFontSizeSp,
+                maxLines = 1,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
+                    .fillMaxWidth()
                     .padding(top = 64.dp)
                     .onSizeChanged { size -> onTopProgressHeightChanged(with(density) { size.height.toDp() }) },
             )
-            }
             if (footerProgressEnabled) ProgressLabel(
-                text = progressText,
+                layout = footerProgressLayout,
+                content = liveProgress,
                 fontSizeSp = progressFontSizeSp,
                 maxLines = 2,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
                     .padding(bottom = 8.dp)
                     .onSizeChanged { size -> onFooterProgressHeightChanged(with(density) { size.height.toDp() }) },
             )
-            // The footer is an intentional touch target: single tap opens the ToC,
-            // double tap opens reader settings. It exists only while Footer Progress is visible.
             if (footerProgressEnabled) Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -192,21 +238,49 @@ fun ReaderChrome(
 }
 
 @Composable
-private fun ProgressLabel(text: String, fontSizeSp: Int, maxLines: Int = 1, modifier: Modifier = Modifier) {
+private fun ProgressLabel(
+    layout: ProgressLayout,
+    content: ProgressContent,
+    fontSizeSp: Int,
+    maxLines: Int,
+    modifier: Modifier = Modifier,
+) {
     androidx.compose.material3.Surface(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
         contentColor = MaterialTheme.colorScheme.onSurface,
-        shape = RoundedCornerShape(50),
         tonalElevation = 2.dp,
     ) {
-        Text(
-            text = text,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.bodySmall.copy(fontSize = fontSizeSp.coerceIn(8, 80).sp),
-            maxLines = maxLines,
-            overflow = TextOverflow.Ellipsis,
-        )
+        androidx.compose.foundation.layout.Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ProgressSlot(layout.left, content, fontSizeSp, maxLines, Alignment.CenterStart, Modifier.weight(1f))
+            ProgressSlot(layout.center, content, fontSizeSp, maxLines, Alignment.Center, Modifier.weight(1f))
+            ProgressSlot(layout.right, content, fontSizeSp, maxLines, Alignment.CenterEnd, Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun ProgressSlot(
+    slot: String,
+    content: ProgressContent,
+    fontSizeSp: Int,
+    maxLines: Int,
+    alignment: Alignment,
+    modifier: Modifier,
+) {
+    val value = progressSlotValue(slot, content)
+    Box(modifier = modifier, contentAlignment = alignment) {
+        if (!value.isNullOrBlank()) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = fontSizeSp.coerceIn(8, 80).sp),
+                maxLines = maxLines,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
