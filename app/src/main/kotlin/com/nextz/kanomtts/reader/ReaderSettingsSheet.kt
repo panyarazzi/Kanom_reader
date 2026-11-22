@@ -225,10 +225,6 @@ internal fun ReaderSettingsSheetContent(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            NumericSettingField("ย่อหน้าบรรทัดแรก (em)", prefs.paragraphIndentEm.toString()) {
-                it.toFloatOrNull()?.let(onParagraphIndent)
-            }
-
             Spacer(Modifier.height(8.dp))
 
             SectionLabel("ระยะห่างระหว่างย่อหน้า: ${String.format(java.util.Locale.US, "%.2f", prefs.paragraphSpacingEm)} em")
