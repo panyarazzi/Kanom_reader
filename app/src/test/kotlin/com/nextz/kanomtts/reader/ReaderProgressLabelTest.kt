@@ -59,11 +59,11 @@ class ReaderProgressLabelTest {
 
     @Test fun resolvesNestedTocTitleByResourceHref() {
         val child = Link(
-            href = Url("https://example.com/OPS/Text/chapter%2002.xhtml")!!,
+            href = Url.fromEpubHref("OPS/Text/chapter%2002.xhtml")!!,
             title = "บทที่ 2 น้ำยาปรับสภาพยีน",
         )
         val parent = Link(
-            href = Url("https://example.com/OPS/Text/part.xhtml")!!,
+            href = Url.fromEpubHref("OPS/Text/part.xhtml")!!,
             title = "ภาคหนึ่ง",
             children = listOf(child),
         )
