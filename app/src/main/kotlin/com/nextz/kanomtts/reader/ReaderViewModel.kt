@@ -90,7 +90,7 @@ class ReaderViewModel @Inject constructor(
 
     private val _quickAddText = MutableStateFlow<String?>(null)
     private val _footnoteBubble = MutableStateFlow<ReaderFootnoteBubble?>(null)
-    val footnoteBubble: StateFlow<ReaderFootnoteBubble?> = _footnoteBubble.asStateFlow()
+    internal val footnoteBubble: StateFlow<ReaderFootnoteBubble?> = _footnoteBubble.asStateFlow()
     @Volatile private var lastFootnoteAnchorCss: PointF? = null
     val quickAddText: StateFlow<String?> = _quickAddText.asStateFlow()
     fun dismissQuickAdd() { _quickAddText.value = null }

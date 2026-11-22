@@ -1,5 +1,6 @@
 package com.nextz.kanomtts.reader
 
+import android.graphics.Color
 import android.text.Html
 import android.text.method.ScrollingMovementMethod
 import android.widget.TextView
@@ -79,7 +80,7 @@ internal fun ReaderFootnoteBalloon(bubble: ReaderFootnoteBubble, onDismiss: () -
                             setTextColor(textColor)
                             setPadding(4, 8, 4, 8)
                             movementMethod = ScrollingMovementMethod()
-                            setBackgroundColor(AndroidColor.TRANSPARENT)
+                            setBackgroundColor(Color.TRANSPARENT)
                         }
                     },
                     update = { view ->
