@@ -38,6 +38,22 @@ class PreferencesRepositoryTest {
         assertEquals(24, p.fontSizeSp)
         assertEquals(true, p.premiumUnlocked)
     }
+    @Test fun fractionalLineHeight_precision_round_trip() = runTest {
+        val r = repo()
+        r.setLineHeight(1.08f)
+        assertEquals(1.08f, r.preferences.first().lineHeight)
+    }
+
+    @Test fun progressFontSize_round_trip_and_clamps() = runTest {
+        val r = repo()
+        r.setProgressFontSizeSp(80)
+        assertEquals(80, r.preferences.first().progressFontSizeSp)
+        r.setProgressFontSizeSp(100)
+        assertEquals(80, r.preferences.first().progressFontSizeSp)
+        r.setProgressFontSizeSp(4)
+        assertEquals(8, r.preferences.first().progressFontSizeSp)
+    }
+
     @Test fun corrupt_enum_falls_back_to_default() = runTest {
         // setting an int where enum expected isn't possible via API; verify unknown name path via valueOf guard
         val r = repo(); r.setReadingFont(ReadingFont.SERIF)
