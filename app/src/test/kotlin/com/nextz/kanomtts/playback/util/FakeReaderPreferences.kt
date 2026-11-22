@@ -20,6 +20,8 @@ class FakeReaderPreferences(
     override suspend fun setReadingFont(v: ReadingFont) { _prefs.value = _prefs.value.copy(readingFont = v) }
     override suspend fun setFontSizeSp(v: Int) { _prefs.value = _prefs.value.copy(fontSizeSp = v) }
     override suspend fun setProgressFontSizeSp(v: Int) { _prefs.value = _prefs.value.copy(progressFontSizeSp = v.coerceIn(8, 80)) }
+    override suspend fun setTopProgressEnabled(v: Boolean) { _prefs.value = _prefs.value.copy(topProgressEnabled = v) }
+    override suspend fun setFooterProgressEnabled(v: Boolean) { _prefs.value = _prefs.value.copy(footerProgressEnabled = v) }
     override suspend fun setLineHeight(v: Float) { _prefs.value = _prefs.value.copy(lineHeight = v) }
     override suspend fun setParagraphIndentEm(v: Float) { _prefs.value = _prefs.value.copy(paragraphIndentEm = v) }
     override suspend fun setParagraphSpacingEm(v: Float) { _prefs.value = _prefs.value.copy(paragraphSpacingEm = v) }
