@@ -7,6 +7,7 @@ on:
       - feature/portable-data-folder-apk1
       - feature/ux-ui-completion-no-highlight
       - feature/apk62-status-preview-branding # APK 62
+      - feature/apk63-reader-progress-numeric-settings # APK 64
   workflow_dispatch:
 
 permissions:
