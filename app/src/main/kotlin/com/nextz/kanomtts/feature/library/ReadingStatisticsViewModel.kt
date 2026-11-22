@@ -131,11 +131,16 @@ private fun buildStatistics(
         StatisticsRange.MONTH -> today.minusDays(29)
         StatisticsRange.ALL -> durationsByDate.keys.minOrNull() ?: today.minusDays(6)
     }
-    val chartDays = generateSequence(chartStart) { date ->
-        if (date < today) date.plusDays(1) else null
-    }.plus(today).map { date ->
+    val chartDates = if (chartStart > today) {
+        listOf(today)
+    } else {
+        generateSequence(chartStart) { date ->
+            if (date < today) date.plusDays(1) else null
+        }.toList()
+    }
+    val chartDays = chartDates.map { date ->
         ReadingDay(date, durationsByDate[date] ?: 0L)
-    }.toList()
+    }
 
     return ReadingStatisticsUiState(
         todayReadingMs = durationsByDate[today] ?: 0L,
