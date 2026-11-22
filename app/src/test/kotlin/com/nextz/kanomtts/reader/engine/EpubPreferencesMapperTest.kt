@@ -42,7 +42,7 @@ class EpubPreferencesMapperTest {
     }
 
     @Test fun `line height below one is passed through to Readium`() {
-        assertEquals(0.7, EpubPreferencesMapper.map(KanomPreferences(lineHeight = 0.7f)).lineHeight!!, 0.0)
+        assertEquals(0.7, EpubPreferencesMapper.map(KanomPreferences(lineHeight = 0.7f)).lineHeight!!, 1e-6)
     }
 
     @Test fun `bold toggle requests bold and leaves publisher weight untouched when off`() {
