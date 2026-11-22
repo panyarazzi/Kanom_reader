@@ -59,19 +59,12 @@ import com.nextz.kanomtts.ui.theme.KanomTheme
 
 // ─── Brand Header ───────────────────────────────────────────────────────────────
 
-/**
- * Library brand lockup: the circular macaron mascot badge beside the two-tone
- * "KanomTTS" wordmark — rose "Kanom" + anchan "TTS", echoing the app logo — and a
- * sweet Thai tagline. The badge is decorative; the wordmark carries the name for a11y.
- */
+/** Kanom green-and-gold brand lockup based on the approved book emblem. */
 @Composable
 fun BrandHeader(
     modifier: Modifier = Modifier,
 ) {
-    val wordmark = buildAnnotatedString {
-        withStyle(SpanStyle(color = KanomTheme.colors.highlight)) { append("Kanom") }
-        withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append("TTS") }
-    }
+    val wordmarkColor = Color(0xFF087A36)
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -89,13 +82,14 @@ fun BrandHeader(
         )
         Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
             Text(
-                text = wordmark,
+                text = "Kanom",
                 style = MaterialTheme.typography.headlineMedium,
+                color = wordmarkColor,
             )
             Text(
-                text = "หนังสือเสียงแสนหวาน",
+                text = "อ่านได้... อร่อยด้วยความรู้",
                 style = MaterialTheme.typography.bodySmall,
-                color = KanomTheme.colors.muted,
+                color = wordmarkColor,
             )
         }
     }
