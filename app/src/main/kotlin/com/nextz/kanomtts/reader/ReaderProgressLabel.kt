@@ -64,7 +64,7 @@ private fun isUsefulChapterTitle(value: String): Boolean {
 }
 
 
-internal data class ProgressContent(
+data class ProgressContent(
     val chapterPage: String?,
     val bookPercent: String?,
     val chapterTitle: String?,
@@ -74,7 +74,7 @@ internal data class ProgressContent(
     val charging: Boolean,
 )
 
-internal data class ProgressLayout(
+data class ProgressLayout(
     val left: String,
     val center: String,
     val right: String,
