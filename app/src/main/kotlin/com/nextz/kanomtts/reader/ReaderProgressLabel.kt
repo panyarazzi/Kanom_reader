@@ -1,8 +1,8 @@
 package com.nextz.kanomtts.reader
 
-import android.net.Uri
 import org.readium.r2.shared.publication.Link
 import java.net.URI
+import java.net.URLDecoder
 import java.util.Locale
 
 /** Formats chapter-local pagination and Readium's whole-book progression. */
@@ -40,11 +40,11 @@ internal fun resolveChapterTitle(
 
     fun canonicalHref(value: String): String {
         val withoutFragment = value.substringBefore('#').substringBefore('?')
-        val path = runCatching { URI(withoutFragment).path }
+        val path = runCatching { URI(withoutFragment).rawPath }
             .getOrNull()
             ?.takeIf { it.isNotBlank() }
             ?: withoutFragment
-        return Uri.decode(path).trimStart('/')
+        return URLDecoder.decode(path.replace("+", "%2B"), "UTF-8").trimStart('/')
     }
 
     val target = locatorHref?.takeIf { it.isNotBlank() }?.let(::canonicalHref)
