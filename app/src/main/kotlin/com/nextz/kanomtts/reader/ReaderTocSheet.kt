@@ -42,6 +42,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import android.os.Build
 import androidx.compose.ui.window.DialogProperties
 import com.nextz.kanomtts.ui.theme.KanomTheme
@@ -66,7 +67,10 @@ fun ReaderTocSheet(
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
-    val widthFraction = remember(context) { readerTocWidthFraction(Build.MODEL.orEmpty(), Build.MANUFACTURER.orEmpty()) }
+    val screenWidthDp = LocalConfiguration.current.screenWidthDp
+    val widthFraction = remember(context, screenWidthDp) {
+        readerTocWidthFraction(Build.MODEL.orEmpty(), Build.MANUFACTURER.orEmpty(), screenWidthDp)
+    }
     val currentHref = currentLocator?.href
     val flattened = remember(toc) { ReaderTocFocus.flatten(toc) }
     val currentIndex = ReaderTocFocus.currentIndex(toc, currentHref)
