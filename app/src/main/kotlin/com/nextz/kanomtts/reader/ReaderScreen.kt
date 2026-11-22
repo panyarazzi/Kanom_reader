@@ -31,6 +31,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.fragment.app.FragmentContainerView
 import com.nextz.kanomtts.BuildConfig
 import com.nextz.kanomtts.MainActivity
@@ -52,8 +54,24 @@ fun ReaderScreen(
     val activity = LocalActivity.current
     DisposableEffect(activity, viewModel) {
         val host = activity as? MainActivity
+        val lifecycle = (activity as? FragmentActivity)?.lifecycle
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> viewModel.setReaderVisibleForStatistics(true)
+                Lifecycle.Event.ON_PAUSE, Lifecycle.Event.ON_STOP -> viewModel.setReaderVisibleForStatistics(false)
+                else -> Unit
+            }
+        }
         host?.setReaderKeyHandler(viewModel::onHardwareKeyEvent)
-        onDispose { host?.setReaderKeyHandler(null) }
+        lifecycle?.addObserver(observer)
+        if (lifecycle?.currentState?.isAtLeast(Lifecycle.State.RESUMED) == true) {
+            viewModel.setReaderVisibleForStatistics(true)
+        }
+        onDispose {
+            lifecycle?.removeObserver(observer)
+            viewModel.setReaderVisibleForStatistics(false)
+            host?.setReaderKeyHandler(null)
+        }
     }
 
     val state by viewModel.uiState.collectAsState()
