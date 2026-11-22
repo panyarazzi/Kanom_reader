@@ -76,6 +76,8 @@ fun ReaderSettingsSheet(
         onFont = { viewModel.onFontSelected(it) },
         onFontSize = { viewModel.onFontSize(it) },
         onProgressFontSize = { viewModel.onProgressFontSize(it) },
+        onTopProgressEnabled = { viewModel.onTopProgressEnabled(it) },
+        onFooterProgressEnabled = { viewModel.onFooterProgressEnabled(it) },
         onLineHeight = { viewModel.onLineHeight(it) },
         onParagraphIndent = { viewModel.onParagraphIndent(it) },
         onParagraphSpacing = { viewModel.onParagraphSpacing(it) },
@@ -103,6 +105,8 @@ internal fun ReaderSettingsSheetContent(
     onFont: (ReadingFont) -> Unit,
     onFontSize: (Int) -> Unit,
     onProgressFontSize: (Int) -> Unit = {},
+    onTopProgressEnabled: (Boolean) -> Unit = {},
+    onFooterProgressEnabled: (Boolean) -> Unit = {},
     onLineHeight: (Float) -> Unit,
     onParagraphIndent: (Float) -> Unit = {},
     onParagraphSpacing: (Float) -> Unit = {},
@@ -189,6 +193,8 @@ internal fun ReaderSettingsSheetContent(
             NumericSettingField("ขนาด Progress (8–80 sp)", prefs.progressFontSizeSp.toString(), decimal = false) {
                 it.toIntOrNull()?.let { value -> onProgressFontSize(value.coerceIn(8, 80)) }
             }
+            ToggleRow("ตัวแสดงสถานะด้านบน", prefs.topProgressEnabled, onTopProgressEnabled)
+            ToggleRow("ตัวแสดงสถานะด้านล่าง", prefs.footerProgressEnabled, onFooterProgressEnabled)
 
             Spacer(Modifier.height(8.dp))
 
