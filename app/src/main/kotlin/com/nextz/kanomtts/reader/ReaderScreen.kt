@@ -148,6 +148,7 @@ private fun ReaderChromeLayer(
         pageNumber = state.chapterPageNumber,
         totalPages = state.chapterPageCount,
         chapterTitle = state.currentLocator?.title,
+        totalProgression = state.currentLocator?.locations?.totalProgression,
     )
 
     ReaderChrome(
