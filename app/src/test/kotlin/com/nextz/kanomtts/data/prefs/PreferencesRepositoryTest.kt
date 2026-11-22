@@ -54,6 +54,15 @@ class PreferencesRepositoryTest {
         assertEquals(8, r.preferences.first().progressFontSizeSp)
     }
 
+    @Test fun topAndFooterProgress_visibility_round_trip() = runTest {
+        val r = repo()
+        r.setTopProgressEnabled(false)
+        r.setFooterProgressEnabled(true)
+        val p = r.preferences.first()
+        assertEquals(false, p.topProgressEnabled)
+        assertEquals(true, p.footerProgressEnabled)
+    }
+
     @Test fun corrupt_enum_falls_back_to_default() = runTest {
         // setting an int where enum expected isn't possible via API; verify unknown name path via valueOf guard
         val r = repo(); r.setReadingFont(ReadingFont.SERIF)
