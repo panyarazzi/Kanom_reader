@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.weight
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -99,6 +100,7 @@ fun ReaderChrome(
     var clockText by remember { mutableStateOf("") }
     var batteryPercent by remember { mutableStateOf<Int?>(null) }
     var isCharging by remember { mutableStateOf(false) }
+    var footerTouchHeight by remember { mutableStateOf(44.dp) }
     LaunchedEffect(Unit) {
         while (true) {
             clockText = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
@@ -146,13 +148,17 @@ fun ReaderChrome(
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .padding(bottom = 8.dp)
-                    .onSizeChanged { size -> onFooterProgressHeightChanged(with(density) { size.height.toDp() }) },
+                    .onSizeChanged { size ->
+                        val measured = with(density) { size.height.toDp() }
+                        onFooterProgressHeightChanged(measured)
+                        footerTouchHeight = (measured + 16.dp).coerceAtLeast(44.dp)
+                    },
             )
             if (footerProgressEnabled) Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .height(44.dp)
+                    .height(footerTouchHeight)
                     .pointerInput(onFooterTap, onFooterDoubleTap) {
                         detectTapGestures(
                             onTap = { onFooterTap() },
