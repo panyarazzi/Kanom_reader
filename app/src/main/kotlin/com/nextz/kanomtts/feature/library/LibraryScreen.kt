@@ -58,8 +58,11 @@ fun LibraryScreen(
     contentPadding: PaddingValues = PaddingValues(),
     viewModel: LibraryViewModel = hiltViewModel(),
     importViewModel: ImportViewModel,
+    onOpenStatistics: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val statisticsViewModel: ReadingStatisticsViewModel = hiltViewModel()
+    val statisticsState by statisticsViewModel.uiState.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -123,6 +126,8 @@ fun LibraryScreen(
             onToggleSelection = viewModel::toggleSelection,
             onClearSelection = viewModel::clearSelection,
             onDeleteSelected = viewModel::deleteSelected,
+            statistics = statisticsState,
+            onOpenStatistics = onOpenStatistics,
             contentPadding = combinedPadding,
             modifier = modifier,
         )
@@ -144,6 +149,8 @@ fun LibraryContent(
     onToggleSelection: (String) -> Unit,
     onClearSelection: () -> Unit,
     onDeleteSelected: () -> Unit,
+    statistics: ReadingStatisticsUiState? = null,
+    onOpenStatistics: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(),
     modifier: Modifier = Modifier,
 ) {
@@ -165,23 +172,32 @@ fun LibraryContent(
                 onDelete = { showConfirm = true },
             )
         } else {
-            BrandHeader()
-            Spacer(Modifier.height(12.dp))
-            // Search + toggle row
+            // Keep the Kanom brand at the far left; search and view controls use the
+            // open space on its right, leaving the former search row for statistics.
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                LibrarySearchBar(
-                    query = state.query,
-                    onQueryChange = onQueryChange,
-                    modifier = Modifier.weight(1f),
-                )
-                ViewModeToggle(
-                    mode = state.viewMode,
-                    onSelect = onViewMode,
-                )
+                BrandHeader(modifier = Modifier.weight(1f))
+                Column(
+                    modifier = Modifier.weight(1.45f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    LibrarySearchBar(
+                        query = state.query,
+                        onQueryChange = onQueryChange,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    ViewModeToggle(
+                        mode = state.viewMode,
+                        onSelect = onViewMode,
+                    )
+                }
+            }
+            if (statistics != null) {
+                Spacer(Modifier.height(10.dp))
+                ReadingStatisticsCard(state = statistics, onMore = onOpenStatistics)
             }
         }
 
