@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,6 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -161,6 +163,12 @@ fun ReadingStatisticsScreen(
                 }
             }
             item {
+                state.mostProgressedBook?.let { book ->
+                    SectionTitle("เล่มที่คืบหน้ามากที่สุด")
+                    StatisticsBookRow(book)
+                }
+            }
+            item {
                 SectionTitle("เวลาอ่านรายวัน")
                 ReadingDaysChart(state.chartDays, compact = false)
             }
@@ -199,14 +207,17 @@ private fun SectionTitle(title: String) {
 private fun ReadingDaysChart(days: List<ReadingDay>, compact: Boolean) {
     val maxDuration = (days.maxOfOrNull { it.durationMs } ?: 0L).coerceAtLeast(1L)
     Row(
-        Modifier.fillMaxWidth().height(if (compact) 62.dp else 130.dp).padding(top = 4.dp),
+        Modifier
+            .then(if (compact) Modifier.fillMaxWidth() else Modifier.horizontalScroll(rememberScrollState()))
+            .height(if (compact) 62.dp else 130.dp)
+            .padding(top = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(if (compact) 5.dp else 8.dp),
         verticalAlignment = Alignment.Bottom,
     ) {
         days.forEach { day ->
             val fraction = day.durationMs.toFloat() / maxDuration.toFloat()
             Column(
-                Modifier.weight(1f).fillMaxSize(),
+                Modifier.width(if (compact) 34.dp else 32.dp).height(if (compact) 62.dp else 126.dp),
                 verticalArrangement = Arrangement.Bottom,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -217,9 +228,9 @@ private fun ReadingDaysChart(days: List<ReadingDay>, compact: Boolean) {
                         .background(if (day.durationMs > 0) StatsGold else StatsTrack),
                 )
                 Text(
-                    text = day.date.dayOfMonth.toString(),
+                    text = if (compact) day.date.dayOfMonth.toString() else formatReadingDay(day.date),
                     color = StatsBrown,
-                    fontSize = if (compact) 9.sp else 11.sp,
+                    fontSize = if (compact) 9.sp else 10.sp,
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
