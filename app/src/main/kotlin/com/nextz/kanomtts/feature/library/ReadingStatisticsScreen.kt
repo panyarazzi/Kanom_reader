@@ -151,6 +151,13 @@ fun ReadingStatisticsScreen(
                 }
             }
             item {
+                Text(
+                    "เริ่มเก็บสถิติตั้งแต่ติดตั้งรุ่นนี้ และหยุดนับเมื่อไม่มีการใช้งานต่อเนื่องประมาณ 2 นาที",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            item {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     SummaryTile("เวลาอ่านวันนี้", formatReadingDuration(state.todayReadingMs), Modifier.weight(1f))
                     SummaryTile("วันที่อ่านในสัปดาห์นี้", "${state.daysReadThisWeek} / 7 วัน", Modifier.weight(1f))
