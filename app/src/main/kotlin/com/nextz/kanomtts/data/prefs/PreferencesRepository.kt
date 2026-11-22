@@ -22,6 +22,12 @@ class PreferencesRepository @Inject constructor(
         val progressFontSize = intPreferencesKey("progress_font_size_sp")
         val topProgressEnabled = booleanPreferencesKey("top_progress_enabled")
         val footerProgressEnabled = booleanPreferencesKey("footer_progress_enabled")
+        val topProgressLeft = stringPreferencesKey("top_progress_left")
+        val topProgressCenter = stringPreferencesKey("top_progress_center")
+        val topProgressRight = stringPreferencesKey("top_progress_right")
+        val footerProgressLeft = stringPreferencesKey("footer_progress_left")
+        val footerProgressCenter = stringPreferencesKey("footer_progress_center")
+        val footerProgressRight = stringPreferencesKey("footer_progress_right")
         val lineHeight = floatPreferencesKey("line_height")
         val paragraphIndentEm = floatPreferencesKey("paragraph_indent_em")
         val paragraphSpacingEm = floatPreferencesKey("paragraph_spacing_em")
@@ -56,6 +62,12 @@ class PreferencesRepository @Inject constructor(
             progressFontSizeSp = p[Keys.progressFontSize] ?: DEFAULTS.progressFontSizeSp,
             topProgressEnabled = p[Keys.topProgressEnabled] ?: DEFAULTS.topProgressEnabled,
             footerProgressEnabled = p[Keys.footerProgressEnabled] ?: DEFAULTS.footerProgressEnabled,
+            topProgressLeft = p[Keys.topProgressLeft] ?: DEFAULTS.topProgressLeft,
+            topProgressCenter = p[Keys.topProgressCenter] ?: DEFAULTS.topProgressCenter,
+            topProgressRight = p[Keys.topProgressRight] ?: DEFAULTS.topProgressRight,
+            footerProgressLeft = p[Keys.footerProgressLeft] ?: DEFAULTS.footerProgressLeft,
+            footerProgressCenter = p[Keys.footerProgressCenter] ?: DEFAULTS.footerProgressCenter,
+            footerProgressRight = p[Keys.footerProgressRight] ?: DEFAULTS.footerProgressRight,
             lineHeight = p[Keys.lineHeight] ?: DEFAULTS.lineHeight,
             paragraphIndentEm = p[Keys.paragraphIndentEm] ?: DEFAULTS.paragraphIndentEm,
             paragraphSpacingEm = p[Keys.paragraphSpacingEm] ?: DEFAULTS.paragraphSpacingEm,
@@ -85,6 +97,8 @@ class PreferencesRepository @Inject constructor(
     override suspend fun setProgressFontSizeSp(v: Int) { store.edit { it[Keys.progressFontSize] = v.coerceIn(8, 80) } }
     override suspend fun setTopProgressEnabled(v: Boolean) { store.edit { it[Keys.topProgressEnabled] = v } }
     override suspend fun setFooterProgressEnabled(v: Boolean) { store.edit { it[Keys.footerProgressEnabled] = v } }
+    override suspend fun setTopProgressLayout(left: String, center: String, right: String) { store.edit { it[Keys.topProgressLeft] = left; it[Keys.topProgressCenter] = center; it[Keys.topProgressRight] = right } }
+    override suspend fun setFooterProgressLayout(left: String, center: String, right: String) { store.edit { it[Keys.footerProgressLeft] = left; it[Keys.footerProgressCenter] = center; it[Keys.footerProgressRight] = right } }
     override suspend fun setLineHeight(v: Float) { store.edit { it[Keys.lineHeight] = v } }
     override suspend fun setParagraphIndentEm(v: Float) { store.edit { it[Keys.paragraphIndentEm] = v } }
     override suspend fun setParagraphSpacingEm(v: Float) { store.edit { it[Keys.paragraphSpacingEm] = v } }
