@@ -836,7 +836,7 @@ class ReaderViewModel @Inject constructor(
     fun onFontSelected(f: ReadingFont) = viewModelScope.launch { prefs.setReadingFont(f) }
     fun onFontSize(sp: Int) = viewModelScope.launch { prefs.setFontSizeSp(sp) }
     fun onLineHeight(v: Float) = viewModelScope.launch { prefs.setLineHeight(v.coerceIn(0.7f, 2.5f)) }
-    fun onParagraphIndent(v: Float) = viewModelScope.launch { prefs.setParagraphIndentEm(v.coerceIn(0f, 3f)) }
+    fun onParagraphIndent(v: Float) = viewModelScope.launch { prefs.setParagraphIndentEm(v.coerceIn(0f, 3.5f)) }
     fun onParagraphSpacing(v: Float) = viewModelScope.launch { prefs.setParagraphSpacingEm(v.coerceIn(0f, 2f)) }
     fun onMargin(dp: Int) = viewModelScope.launch { prefs.setMarginDp(dp) }
     fun onTopMargin(dp: Int) = viewModelScope.launch { prefs.setTopMarginDp(dp) }
