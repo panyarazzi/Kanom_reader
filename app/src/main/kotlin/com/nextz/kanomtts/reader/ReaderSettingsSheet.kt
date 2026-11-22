@@ -193,7 +193,7 @@ internal fun ReaderSettingsSheetContent(
             Spacer(Modifier.height(8.dp))
 
             // ── Line height ────────────────────────────────────────────────────
-            SectionLabel("ระยะห่างบรรทัด: ${"%.1f".format(prefs.lineHeight)}")
+            SectionLabel("ระยะห่างบรรทัด: ${String.format(java.util.Locale.US, "%.2f", prefs.lineHeight)}")
             Slider(
                 value = prefs.lineHeight,
                 onValueChange = { previewing = true; onLineHeight(it) },
@@ -209,7 +209,7 @@ internal fun ReaderSettingsSheetContent(
 
             Spacer(Modifier.height(8.dp))
 
-            SectionLabel("ย่อหน้าบรรทัดแรก: ${"%.1f".format(prefs.paragraphIndentEm)} em")
+            SectionLabel("ย่อหน้าบรรทัดแรก: ${String.format(java.util.Locale.US, "%.2f", prefs.paragraphIndentEm)} em")
             Slider(
                 value = prefs.paragraphIndentEm,
                 onValueChange = { previewing = true; onParagraphIndent(it) },
@@ -225,7 +225,7 @@ internal fun ReaderSettingsSheetContent(
 
             Spacer(Modifier.height(8.dp))
 
-            SectionLabel("ระยะห่างระหว่างย่อหน้า: ${"%.1f".format(prefs.paragraphSpacingEm)} em")
+            SectionLabel("ระยะห่างระหว่างย่อหน้า: ${String.format(java.util.Locale.US, "%.2f", prefs.paragraphSpacingEm)} em")
             Slider(value = prefs.paragraphSpacingEm, onValueChange = { previewing = true; onParagraphSpacing(it) },
                 onValueChangeFinished = { previewing = false }, valueRange = 0f..2f, steps = 19, modifier = Modifier.fillMaxWidth())
 
