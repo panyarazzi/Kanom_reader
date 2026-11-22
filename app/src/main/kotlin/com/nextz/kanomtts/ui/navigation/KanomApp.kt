@@ -21,6 +21,7 @@ import com.nextz.kanomtts.feature.library.ImportViewModel
 import com.nextz.kanomtts.feature.settings.FirstLaunchRecoveryStatus
 import com.nextz.kanomtts.feature.settings.FirstLaunchRecoveryViewModel
 import com.nextz.kanomtts.feature.library.LibraryScreen
+import com.nextz.kanomtts.feature.library.ReadingStatisticsScreen
 import com.nextz.kanomtts.feature.replacement.ReplacementEditorScreen
 import com.nextz.kanomtts.playback.ui.MiniPlayer
 import com.nextz.kanomtts.reader.ReaderScreen
@@ -53,7 +54,7 @@ fun KanomApp(
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
-    val showBottomBar = currentRoute?.startsWith("reader/") != true
+    val showBottomBar = currentRoute?.startsWith("reader/") != true && currentRoute != "reading_statistics"
     val onNowPlaying = currentRoute == KanomDestination.NOW_PLAYING.route
 
     Scaffold(
@@ -107,7 +108,11 @@ fun KanomApp(
                     modifier = Modifier,
                     contentPadding = padding,
                     importViewModel = importVm,
+                    onOpenStatistics = { navController.navigate("reading_statistics") },
                 )
+            }
+            composable("reading_statistics") {
+                ReadingStatisticsScreen(onBack = { navController.popBackStack() }, contentPadding = padding)
             }
             composable(KanomDestination.NOW_PLAYING.route) { NowPlayingScreen(Modifier, padding) }
             composable(KanomDestination.SETTINGS.route) {
