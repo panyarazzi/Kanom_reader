@@ -16,6 +16,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      APK_NUMBER: ${{ github.ref_name == 'feature/apk63-reader-progress-numeric-settings' && '64' || github.run_number }}
     timeout-minutes: 45
     steps:
       - name: Check out source
@@ -42,15 +44,13 @@ jobs:
         run: ./gradlew :app:testDebugUnitTest :app:assembleDebug --no-daemon --stacktrace
 
       - name: Rename APK using workflow APK number
-        env:
-          APK_NUMBER: ${{ github.run_number }}
         run: |
           cp app/build/outputs/apk/debug/app-debug.apk "app/build/outputs/apk/debug/Kanom-Reader-apk${APK_NUMBER}.apk"
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: Kanom-Reader-apk${{ github.run_number }}
-          path: app/build/outputs/apk/debug/Kanom-Reader-apk${{ github.run_number }}.apk
+          name: Kanom-Reader-apk${{ env.APK_NUMBER }}
+          path: app/build/outputs/apk/debug/Kanom-Reader-apk${{ env.APK_NUMBER }}.apk
           if-no-files-found: error
           retention-days: 7
