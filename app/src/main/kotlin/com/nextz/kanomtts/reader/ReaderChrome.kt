@@ -63,6 +63,8 @@ fun ReaderChrome(
     /** Current page / total pages and chapter title, based on Readium's pagination callback. */
     progressText: String? = null,
     progressFontSizeSp: Int = 24,
+    topProgressEnabled: Boolean = true,
+    footerProgressEnabled: Boolean = true,
     /** Footer tap opens ToC; double-tap opens reader settings while progress is visible. */
     onFooterTap: () -> Unit = {},
     onFooterDoubleTap: () -> Unit = {},
@@ -72,7 +74,7 @@ fun ReaderChrome(
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         // Persistent progress labels stay visible even when the toolbar auto-hides.
-        if (!progressText.isNullOrBlank()) {
+        if (!progressText.isNullOrBlank() && topProgressEnabled) {
             ProgressLabel(
                 text = progressText,
                 fontSizeSp = progressFontSizeSp,
@@ -80,7 +82,7 @@ fun ReaderChrome(
                     .align(Alignment.TopCenter)
                     .padding(top = 64.dp),
             )
-            ProgressLabel(
+            if (footerProgressEnabled) ProgressLabel(
                 text = progressText,
                 fontSizeSp = progressFontSizeSp,
                 maxLines = 2,
@@ -90,7 +92,7 @@ fun ReaderChrome(
             )
             // The footer is an intentional touch target: single tap opens the ToC,
             // double tap opens reader settings. It exists only while Footer Progress is visible.
-            Box(
+            if (footerProgressEnabled) Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
