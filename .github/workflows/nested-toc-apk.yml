@@ -17,7 +17,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      APK_NUMBER: ${{ github.ref_name == 'feature/apk63-reader-progress-numeric-settings' && '64' || github.run_number }}
+      APK_NUMBER: ${{ github.run_number }}
     timeout-minutes: 45
     steps:
       - name: Check out source
