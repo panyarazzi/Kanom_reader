@@ -156,6 +156,8 @@ private fun ReaderChromeLayer(
         onTocOpen = { tocOpen = true },
         onSettingsOpen = { settingsOpen = true },
         onBookmarksOpen = { bookmarksOpen = true },
+        onFooterTap = { tocOpen = true },
+        onFooterDoubleTap = { settingsOpen = true },
         ttsPlaying = ttsPlaying,
         onToggleTts = viewModel::toggleTts,
         // Wire debug probe only in DEBUG builds; null in release so the icon is never shown.
