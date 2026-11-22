@@ -16,6 +16,5 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
                 "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
                 "bookId TEXT NOT NULL, startedAt INTEGER NOT NULL, durationMs INTEGER NOT NULL)"
         )
-        db.execSQL("CREATE INDEX IF NOT EXISTS index_reading_sessions_startedAt ON reading_sessions(startedAt)")
     }
 }
