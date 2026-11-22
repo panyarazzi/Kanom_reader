@@ -78,7 +78,7 @@ fun BrandHeader(
                 .size(56.dp)
                 .shadow(3.dp, CircleShape)
                 .clip(CircleShape)
-                .border(2.dp, KanomTheme.colors.highlightContainer, CircleShape),
+                .border(2.dp, Color(0xFFDDBB39), CircleShape),
         )
         Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
             Text(
