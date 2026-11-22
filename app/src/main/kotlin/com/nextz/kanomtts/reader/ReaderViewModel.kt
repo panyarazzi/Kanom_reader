@@ -838,6 +838,8 @@ class ReaderViewModel @Inject constructor(
     fun onProgressFontSize(sp: Int) = viewModelScope.launch { prefs.setProgressFontSizeSp(sp.coerceIn(8, 80)) }
     fun onTopProgressEnabled(v: Boolean) = viewModelScope.launch { prefs.setTopProgressEnabled(v) }
     fun onFooterProgressEnabled(v: Boolean) = viewModelScope.launch { prefs.setFooterProgressEnabled(v) }
+    fun onTopProgressLayout(left: String, center: String, right: String) = viewModelScope.launch { prefs.setTopProgressLayout(left, center, right) }
+    fun onFooterProgressLayout(left: String, center: String, right: String) = viewModelScope.launch { prefs.setFooterProgressLayout(left, center, right) }
     fun onLineHeight(v: Float) = viewModelScope.launch { prefs.setLineHeight(v.coerceIn(0.7f, 2.5f)) }
     fun onParagraphIndent(v: Float) = viewModelScope.launch { prefs.setParagraphIndentEm(v.coerceIn(0f, 3.5f)) }
     fun onParagraphSpacing(v: Float) = viewModelScope.launch { prefs.setParagraphSpacingEm(v.coerceIn(0f, 2f)) }
