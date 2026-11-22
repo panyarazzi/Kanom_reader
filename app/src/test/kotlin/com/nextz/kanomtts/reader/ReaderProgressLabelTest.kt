@@ -8,6 +8,35 @@ import org.readium.r2.shared.util.Url
 import org.junit.Test
 
 class ReaderProgressLabelTest {
+    @Test fun buildsIndependentProgressFieldsWithoutWholeBookPageCounts() {
+        val content = buildProgressContent(
+            pageNumber = 7,
+            totalPages = 18,
+            chapterTitle = "บทที่ 2",
+            bookTitle = "หนังสือทดสอบ",
+            totalProgression = 0.6527,
+            time = "12:30",
+            batteryPercent = 76,
+            charging = true,
+        )
+        assertEquals("7/18", content.chapterPage)
+        assertEquals("65.27%", content.bookPercent)
+        assertEquals("หนังสือทดสอบ", content.bookTitle)
+        assertEquals("76% ⚡", progressSlotValue("CHARGING", content))
+        assertEquals("12:30 76%", progressSlotValue("TIME_BATTERY", content))
+    }
+
+    @Test fun centersProgressAndSuppressesDuplicateValues() {
+        val content = buildProgressContent(7, 18, "บทที่ 2", "หนังสือทดสอบ", 0.6527, "12:30", 76, false)
+        val slots = progressSlotValues(
+            ProgressLayout("BOOK_PERCENT", "BOOK_PERCENT", "TIME"),
+            content,
+        )
+        assertEquals("65.27%", slots.left)
+        assertNull(slots.center)
+        assertEquals("12:30", slots.right)
+    }
+
     @Test fun formatsPageAndChapterTitle() {
         assertEquals("1/24 บทที่ 2", formatChapterProgress(1, 24, "บทที่ 2"))
     }
