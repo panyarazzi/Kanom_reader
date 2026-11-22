@@ -6,6 +6,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -57,6 +61,9 @@ fun ReaderChrome(
     onToggleTts: () -> Unit = {},
     /** Current page / total pages and chapter title, based on Readium's pagination callback. */
     progressText: String? = null,
+    /** Footer tap opens ToC; double-tap opens reader settings while progress is visible. */
+    onFooterTap: () -> Unit = {},
+    onFooterDoubleTap: () -> Unit = {},
     modifier: Modifier = Modifier,
     /** DEBUG-ONLY probe toggle. Pass null (default) in release / previews. */
     onToggleProbe: (() -> Unit)? = null,
@@ -75,6 +82,20 @@ fun ReaderChrome(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 8.dp),
+            )
+            // The footer is an intentional touch target: single tap opens the ToC,
+            // double tap opens reader settings. It exists only while Footer Progress is visible.
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(44.dp)
+                    .pointerInput(onFooterTap, onFooterDoubleTap) {
+                        detectTapGestures(
+                            onTap = { onFooterTap() },
+                            onDoubleTap = { onFooterDoubleTap() },
+                        )
+                    },
             )
         }
 
