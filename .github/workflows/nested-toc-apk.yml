@@ -6,7 +6,7 @@ on:
       - feature/reader-improvements-apk2
       - feature/portable-data-folder-apk1
       - feature/ux-ui-completion-no-highlight
-      - feature/apk62-status-preview-branding
+      - feature/apk62-status-preview-branding # APK 62
   workflow_dispatch:
 
 permissions:
