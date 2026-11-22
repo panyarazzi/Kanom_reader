@@ -60,7 +60,7 @@ class ReaderProgressLabelTest {
 
     @Test fun resolvesNestedTocTitleByResourceHref() {
         val child = Link(
-            href = Url.fromLegacyHref("OPS/Text/chapter 02.xhtml")!!,
+            href = Url.fromLegacyHref("OPS/Text/chapter%2002.xhtml")!!,
             title = "บทที่ 2 น้ำยาปรับสภาพยีน",
         )
         val parent = Link(
