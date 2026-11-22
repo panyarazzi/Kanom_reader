@@ -13,6 +13,12 @@ data class KanomPreferences(
     val progressFontSizeSp: Int = 24,
     val topProgressEnabled: Boolean = true,
     val footerProgressEnabled: Boolean = true,
+    val topProgressLeft: String = "CHAPTER_PAGE",
+    val topProgressCenter: String = "CHAPTER_TITLE",
+    val topProgressRight: String = "TIME_BATTERY",
+    val footerProgressLeft: String = "BOOK_PERCENT",
+    val footerProgressCenter: String = "CHAPTER_TITLE",
+    val footerProgressRight: String = "TIME_BATTERY",
     val lineHeight: Float = 1.6f,
     /** First-line paragraph indent in em units. */
     val paragraphIndentEm: Float = 1.0f,
