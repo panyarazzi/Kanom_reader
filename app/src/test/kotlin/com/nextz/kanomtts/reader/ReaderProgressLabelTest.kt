@@ -9,6 +9,15 @@ class ReaderProgressLabelTest {
         assertEquals("1/24 บทที่ 2", formatChapterProgress(1, 24, "บทที่ 2"))
     }
 
+    @Test fun formatsWholeBookProgressWithTwoDecimalPlaces() {
+        assertEquals("1/24 65.27% บทที่ 2", formatChapterProgress(1, 24, "บทที่ 2", 0.6527))
+        assertEquals("24/24 100.00%", formatChapterProgress(24, 24, " ", 1.0))
+    }
+
+    @Test fun ignoresInvalidWholeBookProgress() {
+        assertEquals("1/24", formatChapterProgress(1, 24, null, Double.NaN))
+    }
+
     @Test fun formatsPageWithoutChapterTitle() {
         assertEquals("24/24", formatChapterProgress(24, 24, "  "))
     }
