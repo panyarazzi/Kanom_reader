@@ -152,6 +152,7 @@ private fun ReaderChromeLayer(
         title = state.book.title,
         chromeVisible = state.chromeVisible,
         progressText = progressText,
+        progressFontSizeSp = state.prefs.progressFontSizeSp,
         onBack = onBack,
         onTocOpen = { tocOpen = true },
         onSettingsOpen = { settingsOpen = true },
