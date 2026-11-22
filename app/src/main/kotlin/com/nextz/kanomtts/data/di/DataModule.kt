@@ -9,6 +9,7 @@ import com.nextz.kanomtts.data.db.BookDao
 import com.nextz.kanomtts.data.db.BookmarkDao
 import com.nextz.kanomtts.data.db.KanomDatabase
 import com.nextz.kanomtts.data.db.ProgressDao
+import com.nextz.kanomtts.data.db.ReadingSessionDao
 import com.nextz.kanomtts.data.db.ReplacementRuleDao
 import com.nextz.kanomtts.data.db.VoiceConfigDao
 import dagger.Module
@@ -28,7 +29,7 @@ object DataModule {
     @Singleton
     fun provideDatabase(@ApplicationContext ctx: Context): KanomDatabase =
         Room.databaseBuilder(ctx, KanomDatabase::class.java, "kanom.db")
-            .addMigrations(com.nextz.kanomtts.data.db.MIGRATION_1_2)
+            .addMigrations(com.nextz.kanomtts.data.db.MIGRATION_1_2, com.nextz.kanomtts.data.db.MIGRATION_2_3)
             .build()
 
     @Provides fun provideBookDao(db: KanomDatabase): BookDao = db.bookDao()
@@ -36,6 +37,7 @@ object DataModule {
     @Provides fun provideBookmarkDao(db: KanomDatabase): BookmarkDao = db.bookmarkDao()
     @Provides fun provideReplacementRuleDao(db: KanomDatabase): ReplacementRuleDao = db.replacementRuleDao()
     @Provides fun provideVoiceConfigDao(db: KanomDatabase): VoiceConfigDao = db.voiceConfigDao()
+    @Provides fun provideReadingSessionDao(db: KanomDatabase): ReadingSessionDao = db.readingSessionDao()
 
     @Provides
     @Singleton
