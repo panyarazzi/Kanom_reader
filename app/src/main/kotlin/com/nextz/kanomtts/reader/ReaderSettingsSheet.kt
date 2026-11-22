@@ -119,7 +119,7 @@ internal fun ReaderSettingsSheetContent(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 32.dp)
-                .graphicsLayer { alpha = if (previewing) 0f else 1f },
+                // Keep the controls visible during live preview so the changing numeric value remains readable.
         ) {
             // ── Theme ──────────────────────────────────────────────────────────
             SectionLabel("ธีม")
@@ -171,7 +171,7 @@ internal fun ReaderSettingsSheetContent(
                 onValueChange = { previewing = true; onLineHeight(it) },
                 onValueChangeFinished = { previewing = false },
                 valueRange = 0.7f..2.5f,
-                steps = 35,
+                steps = 17, // 0.1 increments
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -179,7 +179,7 @@ internal fun ReaderSettingsSheetContent(
 
             SectionLabel("ย่อหน้าบรรทัดแรก: ${"%.1f".format(prefs.paragraphIndentEm)} em")
             Slider(value = prefs.paragraphIndentEm, onValueChange = { previewing = true; onParagraphIndent(it) },
-                onValueChangeFinished = { previewing = false }, valueRange = 0f..3f, steps = 29, modifier = Modifier.fillMaxWidth())
+                onValueChangeFinished = { previewing = false }, valueRange = 0f..3.5f, steps = 34, // 0.1 increments modifier = Modifier.fillMaxWidth())
 
             Spacer(Modifier.height(8.dp))
 
