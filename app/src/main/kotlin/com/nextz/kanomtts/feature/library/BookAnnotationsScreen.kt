@@ -157,9 +157,9 @@ fun BookAnnotationsScreen(
                     Text("Tag มาตรฐาน", style = MaterialTheme.typography.labelMedium)
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                         standardBookTags.forEach { tag ->
-                            val selected = tagsText.split(',', ';', '\\n').any { it.trim().equals(tag, true) }
+                            val selected = tagsText.split(',', ';', '\n').any { it.trim().equals(tag, true) }
                             FilterChip(selected = selected, onClick = {
-                                val current = tagsText.split(',', ';', '\\n').map { it.trim() }.filter { it.isNotEmpty() }
+                                val current = tagsText.split(',', ';', '\n').map { it.trim() }.filter { it.isNotEmpty() }
                                 val next = if (selected) current.filterNot { it.equals(tag, true) } else current + tag
                                 tagsText = next.distinctBy { it.lowercase() }.joinToString(", ")
                             }, label = { Text(tag) })
@@ -169,9 +169,9 @@ fun BookAnnotationsScreen(
                         Text("Tag ที่บันทึกไว้", style = MaterialTheme.typography.labelMedium)
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                             state.savedTags.forEach { tag ->
-                                val selected = tagsText.split(',', ';', '\\n').any { it.trim().equals(tag, true) }
+                                val selected = tagsText.split(',', ';', '\n').any { it.trim().equals(tag, true) }
                                 FilterChip(selected = selected, onClick = {
-                                    val current = tagsText.split(',', ';', '\\n').map { it.trim() }.filter { it.isNotEmpty() }
+                                    val current = tagsText.split(',', ';', '\n').map { it.trim() }.filter { it.isNotEmpty() }
                                     val next = if (selected) current.filterNot { it.equals(tag, true) } else current + tag
                                     tagsText = next.distinctBy { it.lowercase() }.joinToString(", ")
                                 }, label = { Text(tag) })
@@ -179,7 +179,7 @@ fun BookAnnotationsScreen(
                         }
                     }
                     TextButton(onClick = {
-                        tagsText.split(',', ';', '\\n').map { it.trim() }.filter { it.isNotEmpty() }
+                        tagsText.split(',', ';', '\n').map { it.trim() }.filter { it.isNotEmpty() }
                             .forEach(viewModel::saveReusableTag)
                     }) { Text("บันทึก Tag ในช่องนี้ไว้ใช้ซ้ำ") }
                     OutlinedTextField(
