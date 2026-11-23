@@ -24,13 +24,20 @@ class ReaderNavInputListener(
     private val viewportHeightPx: () -> Float,
     private val centerMenuFraction: Float = 0.34f,
     tapAnywhereToNext: Boolean = false,
+    previousZonePercent: Int = 50,
 ) : InputListener {
     @Volatile
     private var tapAnywhereToNextEnabled: Boolean = tapAnywhereToNext
+    @Volatile
+    private var previousZonePercentEnabled: Int = previousZonePercent.coerceIn(0, 100)
 
     /** Update the active listener immediately when the user changes the reader setting. */
     fun setTapAnywhereToNext(enabled: Boolean) {
         tapAnywhereToNextEnabled = enabled
+    }
+
+    fun setPreviousZonePercent(percent: Int) {
+        previousZonePercentEnabled = percent.coerceIn(0, 100)
     }
 
     override fun onTap(event: TapEvent): Boolean {
@@ -41,6 +48,7 @@ class ReaderNavInputListener(
             height = viewportHeightPx(),
             tapAnywhereToNext = tapAnywhereToNextEnabled,
             centerMenuFraction = centerMenuFraction,
+            previousZonePercent = previousZonePercentEnabled,
         )) {
             ReaderTapAction.TOGGLE_CHROME -> onToggleChrome()
             ReaderTapAction.PREVIOUS_PAGE -> onPrevPage()
@@ -74,8 +82,7 @@ internal enum class ReaderTapAction { TOGGLE_CHROME, PREVIOUS_PAGE, NEXT_PAGE }
 
 /**
  * When tap-anywhere is enabled, every unhandled tap advances, including the center.
- * Original Zones reserves the center for chrome and splits the remaining screen by its
- * current horizontal midpoint: left is Previous and right is Next. The split is screen-relative
+ * Original Zones reserves the center for chrome and splits the non-center tap area using the configured Previous/Next ratio. The split is screen-relative
  * and therefore follows the active orientation without rewriting the saved preference.
  */
 internal fun resolveReaderTapAction(
@@ -85,10 +92,11 @@ internal fun resolveReaderTapAction(
     height: Float,
     tapAnywhereToNext: Boolean,
     centerMenuFraction: Float = 0.34f,
+    previousZonePercent: Int = 50,
 ): ReaderTapAction =
     when {
         tapAnywhereToNext -> ReaderTapAction.NEXT_PAGE
         isCenterMenuTap(x, y, width, height, centerMenuFraction) -> ReaderTapAction.TOGGLE_CHROME
-        width > 0f && x < width / 2f -> ReaderTapAction.PREVIOUS_PAGE
+        width > 0f && x < width * previousZonePercent.coerceIn(0, 100) / 100f -> ReaderTapAction.PREVIOUS_PAGE
         else -> ReaderTapAction.NEXT_PAGE
     }

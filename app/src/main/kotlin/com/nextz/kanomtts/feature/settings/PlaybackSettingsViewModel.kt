@@ -10,6 +10,7 @@ import com.nextz.kanomtts.data.prefs.ReaderPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -39,6 +40,11 @@ class PlaybackSettingsViewModel @Inject constructor(
     fun setBoldText(v: Boolean) = viewModelScope.launch { prefs.setBoldText(v) }
     fun setReverseVolumeKeys(v: Boolean) = viewModelScope.launch { prefs.setReverseVolumeKeys(v) }
     fun setTapAnywhereToNext(v: Boolean) = viewModelScope.launch { prefs.setTapAnywhereToNext(v) }
+    fun adjustPreviousTouchZone(delta: Int) = viewModelScope.launch {
+        val current = prefs.preferences.first().previousTouchZonePercent
+        prefs.setPreviousTouchZonePercent((current + delta).coerceIn(0, 100))
+    }
+    fun adjustNextTouchZone(delta: Int) = adjustPreviousTouchZone(-delta)
     fun setUsePublisherStyles(v: Boolean) = viewModelScope.launch { prefs.setUsePublisherStyles(v) }
     fun setForceFont(v: Boolean) = viewModelScope.launch { prefs.setForceFont(v) }
     fun setStripColors(v: Boolean) = viewModelScope.launch { prefs.setStripColors(v) }
