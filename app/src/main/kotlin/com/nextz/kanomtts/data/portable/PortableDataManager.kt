@@ -445,9 +445,13 @@ class PortableDataManager @Inject constructor(
                 currentCoroutineContext().ensureActive()
                 restorePreferences(preferencesArray)
             }
-        } catch (failure: Throwable) {
-            withContext(NonCancellable) {
-                restorePreferences(previousPreferences)
+        } catch (failure: Exception) {
+            try {
+                withContext(NonCancellable) {
+                    restorePreferences(previousPreferences)
+                }
+            } catch (rollbackFailure: Exception) {
+                failure.addSuppressed(rollbackFailure)
             }
             throw failure
         }

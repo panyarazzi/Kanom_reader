@@ -150,13 +150,14 @@ class PortableDataViewModel @Inject constructor(
                     message = "ตรวจพบ EPUB ที่จับคู่ได้แน่นอน ${plan.uniqueMatches.size} เล่ม, ต้องเลือกเอง ${plan.ambiguousMatches.size} เล่ม, ไม่พบ ${plan.notFound.size} เล่ม",
                 )
             }.onFailure {
+                val cancelled = it is CancellationException
                 _uiState.value = _uiState.value.copy(
                     busy = false,
-                    restoreStage = RestoreReconciliationStage.CHOOSE_FOLDER,
+                    restoreStage = if (cancelled) RestoreReconciliationStage.NONE else RestoreReconciliationStage.CHOOSE_FOLDER,
                     restorePlan = null,
-                    message = if (it is CancellationException) "ยกเลิกการค้นหาโฟลเดอร์แล้ว" else "ค้นหาโฟลเดอร์ไม่สำเร็จ: ${it.message}",
+                    message = if (cancelled) "ยกเลิกการค้นหาโฟลเดอร์แล้ว" else "ค้นหาโฟลเดอร์ไม่สำเร็จ: ${it.message}",
                 )
-                if (it is CancellationException) activeRestoreJob = null
+                if (cancelled) activeRestoreJob = null
             }
         }
     }
