@@ -70,9 +70,6 @@ fun LibraryScreen(
     importViewModel: ImportViewModel,
     onOpenStatistics: () -> Unit = {},
     onOpenAnnotations: (String) -> Unit = {},
-    onSetReadingStatus: (String, LibraryShelf) -> Unit = { _, _ -> },
-    onUpdateBookMetadata: (String, String, String?) -> Unit = { _, _, _ -> },
-    onChangeBookCover: (String) -> Unit = {},
     onOpenNowPlaying: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -235,6 +232,9 @@ fun LibraryContent(
     statistics: ReadingStatisticsUiState? = null,
     onOpenStatistics: () -> Unit = {},
     onOpenAnnotations: (String) -> Unit = {},
+    onSetReadingStatus: (String, LibraryShelf) -> Unit = { _, _ -> },
+    onUpdateBookMetadata: (String, String, String?) -> Unit = { _, _, _ -> },
+    onChangeBookCover: (String) -> Unit = {},
     onOpenNowPlaying: () -> Unit = {},
     playbackState: MiniPlayerUiState? = null,
     onPlaybackToggle: () -> Unit = {},
