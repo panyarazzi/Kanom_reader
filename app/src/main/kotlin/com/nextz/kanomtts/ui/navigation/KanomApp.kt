@@ -111,6 +111,7 @@ fun KanomApp(
                     contentPadding = padding,
                     importViewModel = importVm,
                     onOpenStatistics = { navController.navigate("reading_statistics") },
+                    onOpenAnnotations = { navController.navigate("book_annotations") },
                     onOpenNowPlaying = { navController.navigate(KanomDestination.NOW_PLAYING.route) { launchSingleTop = true } },
                 )
             }
