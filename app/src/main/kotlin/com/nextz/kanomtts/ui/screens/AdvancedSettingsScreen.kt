@@ -65,7 +65,8 @@ fun AdvancedSettingsScreen(
                 .verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("การแสดง Progress", style = MaterialTheme.typography.titleMedium)
+            Text("Progress bar", style = MaterialTheme.typography.titleMedium)
+            Text("กำหนดตำแหน่งและข้อมูลที่แสดงระหว่างอ่าน ทั้งแถบบนและแถบล่างใช้ขนาดตัวอักษรร่วมกัน", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             ToggleRow("แสดง Progress ด้านบน", prefs.topProgressEnabled, viewModel::setTopProgressEnabled)
             ToggleRow("แสดง Progress ด้านล่าง", prefs.footerProgressEnabled, viewModel::setFooterProgressEnabled)
             ValueSlider("ขนาดตัวอักษร Progress: ${prefs.progressFontSizeSp} sp",
@@ -94,7 +95,8 @@ fun AdvancedSettingsScreen(
             }
 
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
-            Text("รูปแบบตัวอักษรและย่อหน้า", style = MaterialTheme.typography.titleMedium)
+            Text("Font / Typography และระยะย่อหน้า", style = MaterialTheme.typography.titleMedium)
+            Text("ปรับระยะบรรทัด การเยื้องบรรทัดแรก และช่องว่างระหว่างย่อหน้าแยกจากขนาดตัวอักษรหลัก", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             ValueSlider("ระยะห่างบรรทัด: ${"%.2f".format(prefs.lineHeight)}",
                 prefs.lineHeight, 0.7f..2.5f, 17) { viewModel.setLineHeight(it) }
             ValueSlider("ย่อหน้าบรรทัดแรก: ${"%.2f".format(prefs.paragraphIndentEm)} em",
@@ -103,7 +105,8 @@ fun AdvancedSettingsScreen(
                 prefs.paragraphSpacingEm, 0f..2f, 19) { viewModel.setParagraphSpacingEm(it) }
 
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
-            Text("ระยะขอบ", style = MaterialTheme.typography.titleMedium)
+            Text("ระยะขอบหน้าอ่าน", style = MaterialTheme.typography.titleMedium)
+            Text("ระยะขอบด้านบนและด้านล่างปรับได้สูงสุด 80 dp เพื่อรองรับหน้าจอ E Ink และพื้นที่ Progress", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             ValueSlider("ด้านข้าง: ${prefs.marginDp} dp", prefs.marginDp.toFloat(), 0f..64f, 63) {
                 viewModel.setMarginDp(it.toInt())
             }
@@ -115,7 +118,8 @@ fun AdvancedSettingsScreen(
             }
 
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
-            Text("การอ่านและการนำทาง", style = MaterialTheme.typography.titleMedium)
+            Text("Reading & Navigation", style = MaterialTheme.typography.titleMedium)
+            Text(if (prefs.tapAnywhereToNext) "เปิดอยู่: แตะพื้นที่ใดก็ไปหน้าถัดไป ยกเว้นพื้นที่กลางจอที่ยังเปิดเมนูอ่าน" else "ปิดอยู่: แตะซ้ายเพื่อย้อนหน้า แตะกลางเพื่อเปิดเมนู และแตะขวาเพื่อไปหน้าถัดไป", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             ToggleRow("แตะพื้นที่อ่านเพื่อไปหน้าถัดไป (เว้นกลางจอ)", prefs.tapAnywhereToNext, viewModel::setTapAnywhereToNext)
             ToggleRow("สลับปุ่ม Volume", prefs.reverseVolumeKeys, viewModel::setReverseVolumeKeys)
             ToggleRow("ใช้สไตล์ผู้จัดพิมพ์", prefs.usePublisherStyles, viewModel::setUsePublisherStyles)
@@ -126,6 +130,7 @@ fun AdvancedSettingsScreen(
             ToggleRow("แทนที่ข้อความในหน้าอ่าน", prefs.visualReplacement, viewModel::setVisualReplacement)
 
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            Text("จัดการกฎแทนที่ข้อความแบบส่วนกลางหรือแยกตามหนังสือ รวมถึงนำเข้าและส่งออกกฎได้", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(
                 Modifier.fillMaxWidth().clickable(onClick = onOpenReplacements).padding(vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
