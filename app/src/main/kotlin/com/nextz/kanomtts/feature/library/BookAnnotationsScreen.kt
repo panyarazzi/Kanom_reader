@@ -49,15 +49,16 @@ fun BookAnnotationsScreen(
     var tagsText by remember { mutableStateOf("") }
     var noteText by remember { mutableStateOf("") }
     var csvContent by remember { mutableStateOf("") }
+    var exportError by remember { mutableStateOf<String?>(null) }
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/csv"),
     ) { uri ->
         if (uri != null) {
-            runCatching {
+            exportError = runCatching {
                 context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use {
                     it.write(csvContent)
                 } ?: error("ไม่สามารถสร้างไฟล์ CSV ได้")
-            }
+            }.exceptionOrNull()?.let { "ส่งออก CSV ไม่สำเร็จ: ${it.message ?: "เกิดข้อผิดพลาด"}" }
         }
     }
 
@@ -102,6 +103,7 @@ fun BookAnnotationsScreen(
             }
         }
         Text("แสดง ${state.books.size} จาก ${state.allBooks.size} เล่ม", style = MaterialTheme.typography.bodySmall)
+        exportError?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             val grouped = state.books.groupBy { it.sourceFolder?.takeIf(String::isNotBlank) ?: "ไม่ระบุโฟลเดอร์" }
             grouped.forEach { (folder, booksInFolder) ->
