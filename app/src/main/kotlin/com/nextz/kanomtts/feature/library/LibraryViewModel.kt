@@ -143,7 +143,7 @@ class LibraryViewModel @Inject constructor(
             selectedShelf = selectedShelf,
             readingCount = allCards.count { it.percent > 0f && it.percent < 0.999f },
             toReadCount = allCards.count { it.percent <= 0f },
-            seriesCount = allCards.mapNotNull { it.sourceFolder?.takeIf(String::isNotBlank) }.distinct().size,
+            seriesCount = allCards.count { !it.sourceFolder.isNullOrBlank() },
             finishedCount = allCards.count { it.percent >= 0.999f },
             recentlyOpened = recentlyOpened,
             newestBooks = newestBooks,

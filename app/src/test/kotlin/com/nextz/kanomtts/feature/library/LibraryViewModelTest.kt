@@ -271,6 +271,21 @@ class LibraryViewModelTest {
     }
 
     @Test
+    fun `series shelf count represents books grouped into folders`() = runTest {
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        fakeBooks.books.value = listOf(
+            book("one", "One").copy(sourceFolder = "Collection/Set A"),
+            book("two", "Two").copy(sourceFolder = "Collection/Set A"),
+            book("three", "Three"),
+        )
+        runCurrent()
+        assertEquals(2, vm.uiState.value.seriesCount)
+        vm.setShelfFilter(LibraryShelf.SERIES)
+        runCurrent()
+        assertEquals(listOf("one", "two"), vm.uiState.value.books.map { it.id }.sorted())
+    }
+
+    @Test
     fun `recently opened and newest book rows use their respective timestamps`() = runTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         fakeBooks.books.value = listOf(
