@@ -174,9 +174,10 @@ class LibraryViewModel @Inject constructor(
             .sortedByDescending { it.lastOpenedAt }
             .take(8)
         val newestBooks = filteredCards.sortedByDescending { it.addedAt }.take(8)
-        val visibleBooks = if (selectedFolder == null && selectedShelf == null && selectedTag == null && query.isBlank()) {
+        val visibleBooks = if (selectedFolder == null && selectedShelf == null && selectedTag == null && query.isBlank() && groupMode == LibraryGroupMode.FOLDER) {
             // Folder-imported books are reached through their real folder container.
-            // Only books added outside a folder (future Classic mode) appear at root.
+            // In Folder mode, only books outside imported folders appear at root. Other grouping modes
+            // intentionally operate over the full library so Series/Author groups span folders.
             filteredCards.filter { it.sourceFolder.isNullOrBlank() }
         } else {
             // Search, tag, and shelf selections intentionally span folders and show matching books together.
