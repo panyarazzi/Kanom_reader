@@ -312,6 +312,26 @@ fun LibraryContent(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
+            if (state.groupMode != LibraryGroupMode.FOLDER) {
+                item(key = "library-organization-toolbar") {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        ViewModeToggle(mode = state.viewMode, onSelect = onViewMode)
+                        Spacer(Modifier.weight(1f))
+                        TextButton(onClick = { showOrganizationControls = !showOrganizationControls }) {
+                            Text(if (showOrganizationControls) "ปิดตัวกรอง" else "จัดกลุ่ม/เรียง")
+                        }
+                    }
+                    if (showOrganizationControls) {
+                        OrganizationControlsPanel(
+                            state, onGroupMode, onSortMode, onSortDescending,
+                            onSecondarySortMode, onShowFilename,
+                            groupMenuExpanded, { groupMenuExpanded = it },
+                            sortMenuExpanded, { sortMenuExpanded = it },
+                            secondarySortMenuExpanded, { secondarySortMenuExpanded = it },
+                        )
+                    }
+                }
+            }
             if (state.continueCards.isNotEmpty() || state.continueCard != null) {
                 item(key = "library-continue-reading") {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -424,74 +444,13 @@ fun LibraryContent(
                         }
                     }
                     if (showOrganizationControls) {
-                        Card(Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
-                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                    Text("Group by", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
-                                    Box {
-                                        TextButton(onClick = { groupMenuExpanded = true }) { Text(state.groupMode.label) }
-                                        DropdownMenu(expanded = groupMenuExpanded, onDismissRequest = { groupMenuExpanded = false }) {
-                                            LibraryGroupMode.entries.forEach { mode ->
-                                                DropdownMenuItem(text = { Text(mode.label) }, onClick = {
-                                                    onGroupMode(mode); groupMenuExpanded = false
-                                                })
-                                            }
-                                        }
-                                    }
-                                }
-                                if (state.groupMode == LibraryGroupMode.SERIES) {
-                                    Text("จัดกลุ่มจาก Series Metadata ที่ฝังอยู่ใน EPUB เท่านั้น",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                    Text("Sort by", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
-                                    Box {
-                                        TextButton(onClick = { sortMenuExpanded = true }) {
-                                            Text("${state.sortMode.label} · ${if (state.sortDescending) state.sortMode.descendingLabel else state.sortMode.ascendingLabel}")
-                                        }
-                                        DropdownMenu(expanded = sortMenuExpanded, onDismissRequest = { sortMenuExpanded = false }) {
-                                            LibrarySortMode.entries.forEach { mode ->
-                                                DropdownMenuItem(text = { Text(mode.label) }, onClick = {
-                                                    onSortMode(mode); sortMenuExpanded = false
-                                                })
-                                            }
-                                        }
-                                    }
-                                }
-                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                    Text("Then by", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
-                                    Box {
-                                        TextButton(onClick = { secondarySortMenuExpanded = true }) { Text(state.secondarySortMode.label) }
-                                        DropdownMenu(expanded = secondarySortMenuExpanded, onDismissRequest = { secondarySortMenuExpanded = false }) {
-                                            LibrarySecondarySortMode.entries.filterNot { mode ->
-                                                when (state.sortMode) {
-                                                    LibrarySortMode.TITLE_ASC -> mode.name.startsWith("TITLE_")
-                                                    LibrarySortMode.AUTHOR_ASC -> mode.name.startsWith("AUTHOR_")
-                                                    LibrarySortMode.FILENAME_ASC -> mode.name.startsWith("FILENAME_")
-                                                    LibrarySortMode.ADDED_AT_ASC -> mode.name.startsWith("ADDED_")
-                                                    LibrarySortMode.LAST_OPENED_AT_ASC -> mode.name.startsWith("OPENED_")
-                                                    LibrarySortMode.PROGRESS_ASC -> false
-                                                }
-                                            }.forEach { mode ->
-                                                DropdownMenuItem(text = { Text(mode.label) }, onClick = {
-                                                    onSecondarySortMode(mode); secondarySortMenuExpanded = false
-                                                })
-                                            }
-                                        }
-                                    }
-                                }
-                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                    Text("ทิศทาง", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
-                                    TextButton(onClick = { onSortDescending(!state.sortDescending) }) {
-                                        Text(if (state.sortDescending) state.sortMode.descendingLabel else state.sortMode.ascendingLabel)
-                                    }
-                                    TextButton(onClick = { onShowFilename(!state.showFilename) }) {
-                                        Text(if (state.showFilename) "ชื่อไฟล์" else "ชื่อหนังสือ")
-                                    }
-                                }
-                            }
-                        }
+                        OrganizationControlsPanel(
+                            state, onGroupMode, onSortMode, onSortDescending,
+                            onSecondarySortMode, onShowFilename,
+                            groupMenuExpanded, { groupMenuExpanded = it },
+                            sortMenuExpanded, { sortMenuExpanded = it },
+                            secondarySortMenuExpanded, { secondarySortMenuExpanded = it },
+                        )
                     }
                     if (state.selectedFolder != null) {
                         Text(
@@ -645,6 +604,91 @@ fun LibraryContent(
             title = { Text("ลบ ${state.selectedIds.size} เล่ม?") },
             text = { Text("การลบนี้ย้อนกลับไม่ได้") },
         )
+    }
+}
+
+@Composable
+private fun OrganizationControlsPanel(
+    state: LibraryUiState,
+    onGroupMode: (LibraryGroupMode) -> Unit,
+    onSortMode: (LibrarySortMode) -> Unit,
+    onSortDescending: (Boolean) -> Unit,
+    onSecondarySortMode: (LibrarySecondarySortMode) -> Unit,
+    onShowFilename: (Boolean) -> Unit,
+    groupMenuExpanded: Boolean,
+    setGroupMenuExpanded: (Boolean) -> Unit,
+    sortMenuExpanded: Boolean,
+    setSortMenuExpanded: (Boolean) -> Unit,
+    secondarySortMenuExpanded: Boolean,
+    setSecondarySortMenuExpanded: (Boolean) -> Unit,
+) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Group by", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+                Box {
+                    TextButton(onClick = { setGroupMenuExpanded(true) }) { Text(state.groupMode.label) }
+                    DropdownMenu(expanded = groupMenuExpanded, onDismissRequest = { setGroupMenuExpanded(false) }) {
+                        LibraryGroupMode.entries.forEach { mode ->
+                            DropdownMenuItem(text = { Text(mode.label) }, onClick = {
+                                onGroupMode(mode); setGroupMenuExpanded(false)
+                            })
+                        }
+                    }
+                }
+            }
+            if (state.groupMode == LibraryGroupMode.SERIES) {
+                Text("จัดกลุ่มจาก Series Metadata ที่ฝังอยู่ใน EPUB เท่านั้น",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Sort by", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+                Box {
+                    TextButton(onClick = { setSortMenuExpanded(true) }) {
+                        Text("${state.sortMode.label} · ${if (state.sortDescending) state.sortMode.descendingLabel else state.sortMode.ascendingLabel}")
+                    }
+                    DropdownMenu(expanded = sortMenuExpanded, onDismissRequest = { setSortMenuExpanded(false) }) {
+                        LibrarySortMode.entries.forEach { mode ->
+                            DropdownMenuItem(text = { Text(mode.label) }, onClick = {
+                                onSortMode(mode); setSortMenuExpanded(false)
+                            })
+                        }
+                    }
+                }
+            }
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Then by", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+                Box {
+                    TextButton(onClick = { setSecondarySortMenuExpanded(true) }) { Text(state.secondarySortMode.label) }
+                    DropdownMenu(expanded = secondarySortMenuExpanded, onDismissRequest = { setSecondarySortMenuExpanded(false) }) {
+                        LibrarySecondarySortMode.entries.filterNot { mode ->
+                            when (state.sortMode) {
+                                LibrarySortMode.TITLE_ASC -> mode.name.startsWith("TITLE_")
+                                LibrarySortMode.AUTHOR_ASC -> mode.name.startsWith("AUTHOR_")
+                                LibrarySortMode.FILENAME_ASC -> mode.name.startsWith("FILENAME_")
+                                LibrarySortMode.ADDED_AT_ASC -> mode.name.startsWith("ADDED_")
+                                LibrarySortMode.LAST_OPENED_AT_ASC -> mode.name.startsWith("OPENED_")
+                                LibrarySortMode.PROGRESS_ASC -> false
+                            }
+                        }.forEach { mode ->
+                            DropdownMenuItem(text = { Text(mode.label) }, onClick = {
+                                onSecondarySortMode(mode); setSecondarySortMenuExpanded(false)
+                            })
+                        }
+                    }
+                }
+            }
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("ทิศทาง", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+                TextButton(onClick = { onSortDescending(!state.sortDescending) }) {
+                    Text(if (state.sortDescending) state.sortMode.descendingLabel else state.sortMode.ascendingLabel)
+                }
+                TextButton(onClick = { onShowFilename(!state.showFilename) }) {
+                    Text(if (state.showFilename) "ชื่อไฟล์" else "ชื่อหนังสือ")
+                }
+            }
+        }
     }
 }
 
