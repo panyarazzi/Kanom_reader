@@ -128,10 +128,12 @@ class ImportViewModel @Inject constructor(
                         unreadableCount++
                         null
                     }
-                    if (displayName?.endsWith(".epub", ignoreCase = true) != true) {
-                        if (displayName == null) unreadableCount++
+                    if (displayName == null) {
+                        scanFailed = true
+                        unreadableCount++
                         continue
                     }
+                    if (!displayName.endsWith(".epub", ignoreCase = true)) continue
                     epubCount++
                     val result = try {
                         val size = runCatching { child.length() }.getOrDefault(0L)
