@@ -301,12 +301,12 @@ class LibraryViewModelTest {
     }
 
     @Test
-    fun `series shelf count represents books grouped into folders`() = runTest {
+    fun `series shelf uses only explicit EPUB series metadata and not folders`() = runTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         fakeBooks.books.value = listOf(
-            book("one", "One").copy(sourceFolder = "Collection/Set A"),
-            book("two", "Two").copy(sourceFolder = "Collection/Set A"),
-            book("three", "Three"),
+            book("one", "One").copy(sourceFolder = "Collection/Set A", seriesName = "The Saga", seriesPosition = 1.0),
+            book("two", "Two").copy(sourceFolder = "Collection/Set A", seriesName = "The Saga", seriesPosition = 2.0),
+            book("three", "Three").copy(sourceFolder = "Other/Group"),
         )
         runCurrent()
         assertEquals(2, vm.uiState.value.seriesCount)
