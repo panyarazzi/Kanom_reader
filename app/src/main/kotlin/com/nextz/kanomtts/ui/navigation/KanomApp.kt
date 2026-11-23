@@ -56,7 +56,7 @@ fun KanomApp(
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
-    val showBottomBar = currentRoute?.startsWith("reader/") != true && currentRoute !in setOf("reading_statistics", "advanced_settings", "book_annotations", "backup_restore")
+    val showBottomBar = currentRoute?.startsWith("reader/") != true && currentRoute?.startsWith("book_annotations") != true && currentRoute !in setOf("reading_statistics", "advanced_settings", "backup_restore")
     val onNowPlaying = currentRoute == KanomDestination.NOW_PLAYING.route
 
     Scaffold(
