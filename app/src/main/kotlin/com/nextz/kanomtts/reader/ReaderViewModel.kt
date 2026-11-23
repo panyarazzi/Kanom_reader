@@ -501,7 +501,8 @@ class ReaderViewModel @Inject constructor(
         decorations.applyBookmarks(currentBookmarks)
 
         // Page navigation via Readium input. The adapter handles keyboard keys only; the custom
-        // listener toggles chrome in the central zone and advances on every other unhandled tap.
+        // listener applies Original Zones (left Previous, center menu, right Next) or the live
+        // Anywhere to Next preference. Hardware/keyboard navigation remains on the adapter.
         val thresholdPx = 48f * context.resources.displayMetrics.density
         val interactionListener = ReaderInteractionInputListener(onInteraction = { scheduleChromeAutoHide(); markReadingActivity() })
         val edgeAdapter = DirectionalNavigationAdapter(
