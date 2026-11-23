@@ -79,6 +79,13 @@ data class PortableBackupSummary(
     val backupFile: String,
 )
 
+internal fun parseSavedTagLibrary(json: JSONObject): List<BookTagLibraryEntity> {
+    val savedTagArray = json.optJSONArray("savedTags")
+    return (0 until (savedTagArray?.length() ?: 0)).map { index ->
+        BookTagLibraryEntity(savedTagArray!!.getJSONObject(index).getString("tag").trim())
+    }.filter { it.tag.isNotEmpty() }.distinctBy { it.tag.lowercase() }
+}
+
 @Singleton
 class PortableDataManager @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -433,10 +440,7 @@ class PortableDataManager @Inject constructor(
             VoiceConfigEntity(o.getString("lang"), o.getString("providerId"), o.optNullableString("voiceId"),
                 o.getDouble("speed").toFloat(), o.getDouble("pitch").toFloat())
         }
-        val savedTagArray = json.optJSONArray("savedTags")
-        val savedTags = (0 until (savedTagArray?.length() ?: 0)).map { i ->
-            BookTagLibraryEntity(savedTagArray!!.getJSONObject(i).getString("tag").trim())
-        }.filter { it.tag.isNotEmpty() }.distinctBy { it.tag.lowercase() }
+        val savedTags = parseSavedTagLibrary(json)
         val tagArray = json.optJSONArray("bookTags")
         val tags = (0 until (tagArray?.length() ?: 0)).map { i ->
             val o = tagArray!!.getJSONObject(i)
