@@ -146,7 +146,7 @@ fun ContinueHero(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = "ฟังต่อ · ${formatProgressPercent(card.percent.toDouble()) ?: "—"}",
+                    text = "อ่านต่อ · ${formatProgressPercent(card.percent.toDouble()) ?: "—"}",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White.copy(alpha = 0.8f),
                 )
@@ -179,7 +179,7 @@ fun ContinueHero(
             ) {
                 Icon(
                     imageVector = Icons.Filled.PlayArrow,
-                    contentDescription = "ฟังต่อ",
+                    contentDescription = "อ่านต่อ",
                     tint = Color.White,
                     modifier = Modifier.size(28.dp),
                 )
