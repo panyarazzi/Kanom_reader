@@ -285,7 +285,7 @@ fun LibraryContent(
                     contentAlignment = Alignment.TopCenter,
                 ) {
                     Text(
-                        text = if (state.query.isBlank()) "ยังไม่มีหนังสือ — แตะ + เพื่อเพิ่ม" else "ไม่พบหนังสือที่ค้นหา",
+                        text = if (state.query.isBlank()) "ยังไม่มีหนังสือ — แตะนำเข้าหนังสือจากโฟลเดอร์เพื่อเพิ่ม" else "ไม่พบหนังสือที่ค้นหา",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
