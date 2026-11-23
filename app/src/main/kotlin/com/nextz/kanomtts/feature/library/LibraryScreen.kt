@@ -205,7 +205,7 @@ fun LibraryContent(
     onImportFolder: () -> Unit = {},
     statistics: ReadingStatisticsUiState? = null,
     onOpenStatistics: () -> Unit = {},
-    onOpenAnnotations: () -> Unit = {},
+    onOpenAnnotations: (String) -> Unit = {},
     onOpenNowPlaying: () -> Unit = {},
     playbackState: MiniPlayerUiState? = null,
     onPlaybackToggle: () -> Unit = {},
