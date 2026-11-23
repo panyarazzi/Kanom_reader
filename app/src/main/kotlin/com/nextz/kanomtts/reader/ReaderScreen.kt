@@ -6,6 +6,10 @@ import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -26,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,11 +38,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
@@ -360,11 +367,41 @@ private fun ReaderContent(
     val progressTopSafeSpace = if (hasProgress && state.prefs.topProgressEnabled) measuredTopProgressHeight + 8.dp else 0.dp
     val progressFooterSafeSpace = if (hasProgress && state.prefs.footerProgressEnabled) measuredFooterProgressHeight + 8.dp else 0.dp
 
-    AndroidView(
-        modifier = Modifier.fillMaxSize().padding(
+    var pinchFontSize by remember { mutableStateOf(state.prefs.fontSizeSp) }
+    var showPinchFontSize by remember { mutableStateOf(false) }
+    LaunchedEffect(state.prefs.fontSizeSp) { pinchFontSize = state.prefs.fontSizeSp }
+    LaunchedEffect(showPinchFontSize, pinchFontSize) {
+        if (showPinchFontSize) { delay(1400L); showPinchFontSize = false }
+    }
+    Box(
+        Modifier.fillMaxSize().padding(
             top = state.prefs.topMarginDp.dp + progressTopSafeSpace,
             bottom = state.prefs.bottomMarginDp.dp + progressFooterSafeSpace,
-        ),
+        ).pointerInput(Unit) {
+            var accumulatedScale = 1f
+            var gestureSize = pinchFontSize
+            detectTransformGestures { _, _, zoomChange, _ ->
+                if (zoomChange != 1f) {
+                    showPinchFontSize = true
+                    accumulatedScale *= zoomChange
+                    while (accumulatedScale >= 1.08f && gestureSize < 72) {
+                        gestureSize += 1
+                        accumulatedScale /= 1.08f
+                        pinchFontSize = gestureSize
+                        viewModel.onFontSize(gestureSize)
+                    }
+                    while (accumulatedScale <= 0.925f && gestureSize > 12) {
+                        gestureSize -= 1
+                        accumulatedScale /= 0.925f
+                        pinchFontSize = gestureSize
+                        viewModel.onFontSize(gestureSize)
+                    }
+                }
+            }
+        },
+    ) {
+    AndroidView(
+        modifier = Modifier.fillMaxSize(),
         factory = { ctx -> FragmentContainerView(ctx).apply { id = containerId } },
         update = { container ->
             // View.post queues until the container is attached to the window, so the commit is
@@ -387,4 +424,16 @@ private fun ReaderContent(
             }
         },
     )
+    if (showPinchFontSize) {
+        Text(
+            text = "${pinchFontSize} sp",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = 12.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        )
+    }
+    }
 }
