@@ -99,7 +99,6 @@ fun LibraryScreen(
         importViewModel.events.collect { result ->
             val message = when (result) {
                 is ImportResult.Imported -> "เพิ่มหนังสือแล้ว"
-                is ImportResult.Relinked -> "เชื่อมไฟล์หนังสือเดิมแล้ว — ตำแหน่งอ่านและ Bookmark ยังคงอยู่"
                 is ImportResult.Duplicate -> "มีหนังสือนี้อยู่แล้ว"
                 is ImportResult.Unreadable -> "เปิดไฟล์ไม่ได้"
                 is ImportResult.EmptyFolder -> "ไม่พบไฟล์ EPUB ในโฟลเดอร์ที่เลือก"
