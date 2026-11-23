@@ -98,7 +98,7 @@ class BookAnnotationsViewModel @Inject constructor(
         _saveState.value = AnnotationSaveUiState(saving = true)
         viewModelScope.launch {
             try {
-                val tags = tagsText.split(',', ';', '\\n')
+                val tags = tagsText.split(',', ';', '\n')
                     .map { it.trim() }
                     .filter { it.isNotEmpty() }
                     .distinctBy { it.lowercase() }
