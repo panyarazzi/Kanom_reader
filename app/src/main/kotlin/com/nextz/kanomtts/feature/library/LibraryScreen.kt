@@ -107,6 +107,7 @@ fun LibraryScreen(
                 is ImportResult.Relinked -> "เชื่อมไฟล์หนังสือเดิมแล้ว — ตำแหน่งอ่านและ Bookmark ยังคงอยู่"
                 is ImportResult.Duplicate -> "มีหนังสือนี้อยู่แล้ว"
                 is ImportResult.Unreadable -> "เปิดไฟล์ไม่ได้"
+                is ImportResult.EmptyFolder -> "ไม่พบไฟล์ EPUB ในโฟลเดอร์ที่เลือก"
             }
             snackbarHostState.showSnackbar(message)
         }

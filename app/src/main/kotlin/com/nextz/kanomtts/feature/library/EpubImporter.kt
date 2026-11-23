@@ -8,6 +8,7 @@ sealed interface ImportResult {
     data class Imported(val bookId: String) : ImportResult
     data class Relinked(val bookId: String) : ImportResult
     object Unreadable : ImportResult
+    object EmptyFolder : ImportResult
 }
 class EpubImporter(
     private val extractor: MetadataExtractor,
