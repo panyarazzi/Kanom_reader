@@ -250,7 +250,51 @@ fun LibraryContent(
         }
 
         if (!state.isSelectionMode) {
-            if (state.continueCards.isNotEmpty() || state.continueCard != null) {
+            if (statistics != null) {
+                item(key = "library-reading-statistics-and-listening") {
+                    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
+                        val listeningVisible = playbackState?.visible == true
+                        if (listeningVisible && maxWidth >= 720.dp) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Box(Modifier.weight(2f)) {
+                                    ReadingStatisticsCard(state = statistics, onMore = onOpenStatistics)
+                                }
+                                Box(Modifier.weight(1f)) {
+                                    MiniPlayerBar(
+                                        state = playbackState!!,
+                                        onPlayPause = onPlaybackToggle,
+                                        onNext = onPlaybackNext,
+                                        onPrev = onPlaybackPrevious,
+                                        onSleep = onPlaybackSleep,
+                                        onExpand = onOpenNowPlaying,
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                }
+                            }
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                ReadingStatisticsCard(state = statistics, onMore = onOpenStatistics)
+                                if (listeningVisible) {
+                                    MiniPlayerBar(
+                                        state = playbackState!!,
+                                        onPlayPause = onPlaybackToggle,
+                                        onNext = onPlaybackNext,
+                                        onPrev = onPlaybackPrevious,
+                                        onSleep = onPlaybackSleep,
+                                        onExpand = onOpenNowPlaying,
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+                        if (state.continueCards.isNotEmpty() || state.continueCard != null) {
                 item(key = "library-continue-reading") {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("อ่านต่อ", style = MaterialTheme.typography.titleMedium)
@@ -333,50 +377,6 @@ fun LibraryContent(
                                     onToggle = { onToggleSelection(card.id) },
                                     modifier = Modifier.width(116.dp),
                                 )
-                            }
-                        }
-                    }
-                }
-            }
-            if (statistics != null) {
-                item(key = "library-reading-statistics-and-listening") {
-                    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
-                        val listeningVisible = playbackState?.visible == true
-                        if (listeningVisible && maxWidth >= 720.dp) {
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Box(Modifier.weight(2f)) {
-                                    ReadingStatisticsCard(state = statistics, onMore = onOpenStatistics)
-                                }
-                                Box(Modifier.weight(1f)) {
-                                    MiniPlayerBar(
-                                        state = playbackState!!,
-                                        onPlayPause = onPlaybackToggle,
-                                        onNext = onPlaybackNext,
-                                        onPrev = onPlaybackPrevious,
-                                        onSleep = onPlaybackSleep,
-                                        onExpand = onOpenNowPlaying,
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                }
-                            }
-                        } else {
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                ReadingStatisticsCard(state = statistics, onMore = onOpenStatistics)
-                                if (listeningVisible) {
-                                    MiniPlayerBar(
-                                        state = playbackState!!,
-                                        onPlayPause = onPlaybackToggle,
-                                        onNext = onPlaybackNext,
-                                        onPrev = onPlaybackPrevious,
-                                        onSleep = onPlaybackSleep,
-                                        onExpand = onOpenNowPlaying,
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                }
                             }
                         }
                     }
