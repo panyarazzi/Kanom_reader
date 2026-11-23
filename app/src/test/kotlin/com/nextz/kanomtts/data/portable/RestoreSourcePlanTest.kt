@@ -73,6 +73,28 @@ class RestoreSourcePlanTest {
         assertEquals("source.epub", plan.uniqueMatches.single().second.name)
     }
 
+    @Test fun `legacy match with unknown size is shown for explicit selection not auto matched`() {
+        val original = book("LegacyUnknown", title = "A Good Book", fileName = "source.epub", size = 0L, sha = null)
+        val plan = buildRestoreSourcePlan(
+            listOf(original),
+            listOf(candidate("source.epub", size = 0L)),
+        )
+        assertTrue(plan.uniqueMatches.isEmpty())
+        assertEquals(1, plan.ambiguousMatches.size)
+        assertEquals(1, plan.ambiguousMatches.single().candidates.size)
+        assertTrue(plan.notFound.isEmpty())
+    }
+
+    @Test fun `legacy title evidence with unknown size remains ambiguous`() {
+        val original = book("LegacyTitle", title = "A Good Book", fileName = null, size = 100L, sha = null)
+        val plan = buildRestoreSourcePlan(
+            listOf(original),
+            listOf(candidate("renamed.epub", size = 0L, title = "A Good Book")),
+        )
+        assertTrue(plan.uniqueMatches.isEmpty())
+        assertEquals(1, plan.ambiguousMatches.size)
+    }
+
     @Test fun `same candidate claimed by two books makes both ambiguous`() {
         val first = book("A", sha = "shared")
         val second = book("B", sha = "shared")

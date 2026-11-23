@@ -37,8 +37,8 @@ internal fun relinkMatches(original: BookEntity, candidate: RelinkCandidate, ext
     val titleMatches = extractedTitle.equals(original.title, true) || fileTitle.equals(original.title, true)
     val filenameMatches = !original.sourceFileName.isNullOrBlank() &&
         candidate.name.equals(original.sourceFileName, ignoreCase = true)
-    val sizeMatches = original.fileSize > 0L && candidate.size > 0L &&
-        original.fileSize == candidate.size
+    val sizeKnown = original.fileSize > 0L && candidate.size > 0L
+    val sizeMatches = !sizeKnown || original.fileSize == candidate.size
     return sizeMatches && (filenameMatches || titleMatches)
 }
 

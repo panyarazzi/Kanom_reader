@@ -126,7 +126,7 @@ class PortableDataViewModel @Inject constructor(
                             // any fingerprinted backup book.
                             val hash = if (size <= 0L || size in hashTargetSizes) hash(uri) else null
                             val needsMetadata = legacyBooks.any { book ->
-                                book.fileSize > 0L && size > 0L && book.fileSize == size
+                                book.fileSize <= 0L || size <= 0L || book.fileSize == size
                             }
                             val title = if (needsMetadata) metadata.extract(uri.toString())?.title else null
                             found += RestoreSourceCandidate(
