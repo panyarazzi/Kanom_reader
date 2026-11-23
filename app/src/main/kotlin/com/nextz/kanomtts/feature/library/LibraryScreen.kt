@@ -130,7 +130,9 @@ fun LibraryScreen(
             onTagFilter = viewModel::setTagFilter,
             onFolderFilter = viewModel::setFolderFilter,
             onShelfFilter = viewModel::setShelfFilter,
+            onGroupMode = viewModel::setGroupMode,
             onSortMode = viewModel::setSortMode,
+            onSortDescending = viewModel::setSortDescending,
             onSecondarySortMode = viewModel::setSecondarySortMode,
             onShowFilename = viewModel::setShowFilename,
             onImportFolder = { folderLauncher.launch(null) },
@@ -166,7 +168,9 @@ fun LibraryContent(
     onTagFilter: (String?) -> Unit = {},
     onFolderFilter: (String?) -> Unit = {},
     onShelfFilter: (LibraryShelf?) -> Unit = {},
+    onGroupMode: (LibraryGroupMode) -> Unit = {},
     onSortMode: (LibrarySortMode) -> Unit = {},
+    onSortDescending: (Boolean) -> Unit = {},
     onSecondarySortMode: (LibrarySecondarySortMode) -> Unit = {},
     onShowFilename: (Boolean) -> Unit = {},
     onImportFolder: () -> Unit = {},
@@ -183,6 +187,7 @@ fun LibraryContent(
 ) {
     var showConfirm by remember { mutableStateOf(false) }
     var showOrganizationControls by remember { mutableStateOf(false) }
+    var groupMenuExpanded by remember { mutableStateOf(false) }
     var sortMenuExpanded by remember { mutableStateOf(false) }
     var secondarySortMenuExpanded by remember { mutableStateOf(false) }
     // Close a stale confirm dialog if selection is cleared externally (e.g. system back).
@@ -435,32 +440,38 @@ fun LibraryContent(
                             }
                         }
                         if (showOrganizationControls) {
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 Text("Group by", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
-                                Text("โฟลเดอร์จริง", style = MaterialTheme.typography.bodyMedium)
+                                Box {
+                                    TextButton(onClick = { groupMenuExpanded = true }) { Text(state.groupMode.label) }
+                                    DropdownMenu(expanded = groupMenuExpanded, onDismissRequest = { groupMenuExpanded = false }) {
+                                        LibraryGroupMode.entries.forEach { mode ->
+                                            DropdownMenuItem(text = { Text(mode.label) }, onClick = {
+                                                onGroupMode(mode); groupMenuExpanded = false
+                                            })
+                                        }
+                                    }
+                                }
                             }
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 Text("Sort by", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
                                 Box {
                                     TextButton(onClick = { sortMenuExpanded = true }) {
-                                        Text(if (state.sortMode == LibrarySortMode.TITLE_DESC) "ชื่อหนังสือ Z–A" else "ชื่อหนังสือ A–Z")
+                                        Text("${state.sortMode.label} · ${if (state.sortDescending) state.sortMode.descendingLabel else state.sortMode.ascendingLabel}")
                                     }
                                     DropdownMenu(expanded = sortMenuExpanded, onDismissRequest = { sortMenuExpanded = false }) {
-                                        DropdownMenuItem(
-                                            text = { Text("ชื่อหนังสือ A–Z") },
-                                            onClick = { onSortMode(LibrarySortMode.TITLE_ASC); sortMenuExpanded = false },
-                                        )
-                                        DropdownMenuItem(
-                                            text = { Text("ชื่อหนังสือ Z–A") },
-                                            onClick = { onSortMode(LibrarySortMode.TITLE_DESC); sortMenuExpanded = false },
-                                        )
+                                        LibrarySortMode.entries.forEach { mode ->
+                                            DropdownMenuItem(text = { Text(mode.label) }, onClick = {
+                                                onSortMode(mode); sortMenuExpanded = false
+                                            })
+                                        }
                                     }
+                                }
+                            }
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text("ทิศทาง", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+                                TextButton(onClick = { onSortDescending(!state.sortDescending) }) {
+                                    Text(if (state.sortDescending) state.sortMode.descendingLabel else state.sortMode.ascendingLabel)
                                 }
                             }
                             Row(
@@ -473,12 +484,22 @@ fun LibraryContent(
                                         Text(state.secondarySortMode.label)
                                     }
                                     DropdownMenu(expanded = secondarySortMenuExpanded, onDismissRequest = { secondarySortMenuExpanded = false }) {
-                                        LibrarySecondarySortMode.entries.forEach { mode ->
-                                            DropdownMenuItem(
-                                                text = { Text(mode.label) },
-                                                onClick = { onSecondarySortMode(mode); secondarySortMenuExpanded = false },
-                                            )
-                                        }
+                                        LibrarySecondarySortMode.entries
+                                            .filterNot { mode ->
+                                                when (state.sortMode) {
+                                                    LibrarySortMode.TITLE_ASC -> mode.name.startsWith("TITLE_")
+                                                    LibrarySortMode.AUTHOR_ASC -> mode.name.startsWith("AUTHOR_")
+                                                    LibrarySortMode.FILENAME_ASC -> mode.name.startsWith("FILENAME_")
+                                                    LibrarySortMode.ADDED_AT_ASC -> mode.name.startsWith("ADDED_")
+                                                    LibrarySortMode.LAST_OPENED_AT_ASC -> mode.name.startsWith("OPENED_")
+                                                    LibrarySortMode.PROGRESS_ASC -> false
+                                                }
+                                            }
+                                            .forEach { mode ->
+                                                DropdownMenuItem(text = { Text(mode.label) }, onClick = {
+                                                    onSecondarySortMode(mode); secondarySortMenuExpanded = false
+                                                })
+                                            }
                                     }
                                 }
                             }
