@@ -1,6 +1,13 @@
 package com.nextz.kanomtts.feature.library
 
 enum class LibraryViewMode { GRID, LIST, DETAIL }
+enum class LibraryShelf(val label: String) {
+    READING("กำลังอ่าน"),
+    TO_READ("รออ่าน"),
+    SERIES("ซีรีส์/ชุดหนังสือ"),
+    FINISHED("อ่านจบแล้ว"),
+}
+
 enum class LibrarySortMode(val label: String) {
     TITLE_ASC("ชื่อ A–Z"),
     TITLE_DESC("ชื่อ Z–A"),
@@ -19,6 +26,8 @@ data class BookCard(
     val sourceFolder: String? = null,
     val filename: String = "",
     val displayFilename: Boolean = false,
+    val addedAt: Long = 0L,
+    val lastOpenedAt: Long? = null,
 ) {
     val displayTitle: String get() = if (displayFilename && filename.isNotBlank()) filename else title
 }
@@ -42,6 +51,13 @@ data class LibraryUiState(
     val sortMode: LibrarySortMode = LibrarySortMode.TITLE_ASC,
     val showFilename: Boolean = false,
     val totalBookCount: Int = 0,
+    val selectedShelf: LibraryShelf? = null,
+    val readingCount: Int = 0,
+    val toReadCount: Int = 0,
+    val seriesCount: Int = 0,
+    val finishedCount: Int = 0,
+    val recentlyOpened: List<BookCard> = emptyList(),
+    val newestBooks: List<BookCard> = emptyList(),
 ) {
     val isSelectionMode: Boolean get() = selectedIds.isNotEmpty()
 }

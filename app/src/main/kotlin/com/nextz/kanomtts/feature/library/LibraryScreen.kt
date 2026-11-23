@@ -114,6 +114,7 @@ fun LibraryScreen(
             onDeleteSelected = viewModel::deleteSelected,
             onTagFilter = viewModel::setTagFilter,
             onFolderFilter = viewModel::setFolderFilter,
+            onShelfFilter = viewModel::setShelfFilter,
             onSortMode = viewModel::setSortMode,
             onShowFilename = viewModel::setShowFilename,
             onImportFolder = { folderLauncher.launch(null) },
@@ -142,6 +143,7 @@ fun LibraryContent(
     onDeleteSelected: () -> Unit,
     onTagFilter: (String?) -> Unit = {},
     onFolderFilter: (String?) -> Unit = {},
+    onShelfFilter: (LibraryShelf?) -> Unit = {},
     onSortMode: (LibrarySortMode) -> Unit = {},
     onShowFilename: (Boolean) -> Unit = {},
     onImportFolder: () -> Unit = {},
@@ -276,6 +278,69 @@ fun LibraryContent(
                     ContinueHero(card = continueCard, onClick = { onOpenBook(continueCard.id) })
                 }
             }
+            item(key = "library-shelves") {
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    ShelfCard("กำลังอ่าน", state.readingCount, state.selectedShelf == LibraryShelf.READING) {
+                        onShelfFilter(LibraryShelf.READING)
+                    }
+                    ShelfCard("รออ่าน", state.toReadCount, state.selectedShelf == LibraryShelf.TO_READ) {
+                        onShelfFilter(LibraryShelf.TO_READ)
+                    }
+                    ShelfCard("ซีรีส์/ชุด", state.seriesCount, state.selectedShelf == LibraryShelf.SERIES) {
+                        onShelfFilter(LibraryShelf.SERIES)
+                    }
+                    ShelfCard("อ่านจบแล้ว", state.finishedCount, state.selectedShelf == LibraryShelf.FINISHED) {
+                        onShelfFilter(LibraryShelf.FINISHED)
+                    }
+                }
+            }
+            if (state.recentlyOpened.isNotEmpty()) {
+                item(key = "library-from-your-reading") {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("จากหนังสือที่คุณอ่าน", style = MaterialTheme.typography.titleMedium)
+                        Row(
+                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            state.recentlyOpened.forEach { card ->
+                                BookGridItem(
+                                    card = card,
+                                    isSelectionMode = false,
+                                    isSelected = false,
+                                    onClick = { onOpenBook(card.id) },
+                                    onToggle = { onToggleSelection(card.id) },
+                                    modifier = Modifier.width(116.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            if (state.newestBooks.isNotEmpty()) {
+                item(key = "library-new-on-shelf") {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("ใหม่บนชั้นหนังสือ", style = MaterialTheme.typography.titleMedium)
+                        Row(
+                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            state.newestBooks.forEach { card ->
+                                BookGridItem(
+                                    card = card,
+                                    isSelectionMode = false,
+                                    isSelected = false,
+                                    onClick = { onOpenBook(card.id) },
+                                    onToggle = { onToggleSelection(card.id) },
+                                    modifier = Modifier.width(116.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         if (state.books.isEmpty()) {
@@ -351,6 +416,28 @@ fun LibraryContent(
 }
 
 // ─── Previews ───────────────────────────────────────────────────────────────────
+
+@Composable
+private fun ShelfCard(
+    title: String,
+    count: Int,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.width(116.dp).clickable(onClick = onClick),
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer
+            else MaterialTheme.colorScheme.surfaceVariant,
+        ),
+    ) {
+        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall, maxLines = 1)
+            Text("$count เล่ม", style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
 
 private val sampleBooks = listOf(
     BookCard(

@@ -46,6 +46,7 @@ class LibraryViewModel @Inject constructor(
     private val _selectedFolder = MutableStateFlow<String?>(null)
     private val _sortMode = MutableStateFlow(LibrarySortMode.TITLE_ASC)
     private val _showFilename = MutableStateFlow(false)
+    private val _selectedShelf = MutableStateFlow<LibraryShelf?>(null)
 
     private val booksWithProgress = bookReader.observeLibrary()
         .flatMapLatest { books ->
@@ -71,8 +72,8 @@ class LibraryViewModel @Inject constructor(
     private val basicControls = combine(_viewMode, _query, _selectedIds) { mode, query, ids ->
         Triple(mode, query, ids)
     }
-    private val filterControls = combine(_selectedTag, _selectedFolder, _sortMode, _showFilename) { tag, folder, sort, showFilename ->
-        listOf(tag, folder, sort, showFilename)
+    private val filterControls = combine(_selectedTag, _selectedFolder, _sortMode, _showFilename, _selectedShelf) { tag, folder, sort, showFilename, shelf ->
+        listOf(tag, folder, sort, showFilename, shelf)
     }
     private val libraryControls = combine(basicControls, filterControls) { basic, filters ->
         basic to filters
@@ -84,6 +85,7 @@ class LibraryViewModel @Inject constructor(
         val selectedFolder = controls.second[1] as String?
         val sortMode = controls.second[2] as LibrarySortMode
         val showFilename = controls.second[3] as Boolean
+        val selectedShelf = controls.second[4] as LibraryShelf?
         val allCards = pairs.map { (book, progress, tags) ->
             book.toBookCard(progress).copy(tags = tags, sourceFolder = book.sourceFolder, filename = book.sourceFileName ?: uriFilename(book.uri), displayFilename = showFilename)
         }
@@ -96,6 +98,15 @@ class LibraryViewModel @Inject constructor(
         val filteredCards = queryFiltered
             .filter { card -> selectedTag == null || selectedTag in card.tags }
             .filter { card -> selectedFolder == null || card.sourceFolder == selectedFolder }
+            .filter { card ->
+                when (selectedShelf) {
+                    LibraryShelf.READING -> card.percent > 0f && card.percent < 1f
+                    LibraryShelf.TO_READ -> card.percent <= 0f
+                    LibraryShelf.SERIES -> !card.sourceFolder.isNullOrBlank()
+                    LibraryShelf.FINISHED -> card.percent >= 1f
+                    null -> true
+                }
+            }
             .let { cards ->
                 when (sortMode) {
                     LibrarySortMode.TITLE_ASC -> cards.sortedBy { it.title.lowercase() }
@@ -108,14 +119,14 @@ class LibraryViewModel @Inject constructor(
             .groupBy { it.sourceFolder!! }
             .toSortedMap(String.CASE_INSENSITIVE_ORDER)
             .map { (name, cards) -> LibraryFolderCard(name, cards.size, cards.take(4).map { it.coverPath }) }
-        val continueCard = pairs
-            .filter { (_, progress, _) ->
-                val percent = progress?.percent ?: 0f
-                percent > 0f && percent < 1f
-            }
-            .mapNotNull { (book, _, _) -> book.lastOpenedAt?.let { book } }
+        val continueCard = filteredCards
+            .filter { it.percent > 0f && it.percent < 1f && it.lastOpenedAt != null }
             .maxByOrNull { it.lastOpenedAt!! }
-            ?.let { book -> allCards.find { it.id == book.id } }
+        val recentlyOpened = filteredCards
+            .filter { it.lastOpenedAt != null }
+            .sortedByDescending { it.lastOpenedAt }
+            .take(8)
+        val newestBooks = filteredCards.sortedByDescending { it.addedAt }.take(8)
         LibraryUiState(
             books = filteredCards,
             continueCard = continueCard,
@@ -129,6 +140,13 @@ class LibraryViewModel @Inject constructor(
             sortMode = sortMode,
             showFilename = showFilename,
             totalBookCount = allCards.size,
+            selectedShelf = selectedShelf,
+            readingCount = allCards.count { it.percent > 0f && it.percent < 1f },
+            toReadCount = allCards.count { it.percent <= 0f },
+            seriesCount = allCards.count { !it.sourceFolder.isNullOrBlank() },
+            finishedCount = allCards.count { it.percent >= 1f },
+            recentlyOpened = recentlyOpened,
+            newestBooks = newestBooks,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -139,9 +157,13 @@ class LibraryViewModel @Inject constructor(
     fun setViewMode(mode: LibraryViewMode) { _viewMode.value = mode }
     fun setQuery(query: String) { _query.value = query }
     fun setTagFilter(tag: String?) { _selectedTag.value = tag }
-    fun setFolderFilter(folder: String?) { _selectedFolder.value = folder }
+    fun setFolderFilter(folder: String?) { _selectedFolder.value = folder; _selectedShelf.value = null }
     fun setSortMode(mode: LibrarySortMode) { _sortMode.value = mode }
     fun setShowFilename(show: Boolean) { _showFilename.value = show }
+    fun setShelfFilter(shelf: LibraryShelf?) {
+        _selectedShelf.value = if (_selectedShelf.value == shelf) null else shelf
+        _selectedFolder.value = null
+    }
 
     fun toggleSelection(bookId: String) {
         _selectedIds.value = _selectedIds.value.let { if (bookId in it) it - bookId else it + bookId }
@@ -168,6 +190,8 @@ class LibraryViewModel @Inject constructor(
             coverPath = coverPath,
             percent = percent,
             isReading = percent > 0f && percent < 1f,
+            addedAt = addedAt,
+            lastOpenedAt = lastOpenedAt,
         )
     }
 
