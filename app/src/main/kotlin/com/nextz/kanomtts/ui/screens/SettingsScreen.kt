@@ -324,10 +324,13 @@ fun SettingsScreen(
             val missing = portable.unresolvedBooks
             AlertDialog(
                 onDismissRequest = portableVm::cancelRestore,
-                title = { Text("หนังสือที่ไม่พบไฟล์ต้นฉบับ") },
+                title = { Text(if (missing.isEmpty()) "ตรวจสอบการจับคู่ไฟล์" else "หนังสือที่ยังไม่ได้เชื่อมไฟล์") },
                 text = {
                     Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
-                        Text("หนังสือเหล่านี้จะกู้คืนข้อมูลและตำแหน่งอ่านไว้ แต่ยังเปิดอ่านไม่ได้จนกว่าจะ Relink ภายหลัง")
+                        Text(
+                            if (missing.isEmpty()) "จับคู่ไฟล์ต้นฉบับครบทุกเล่มแล้ว"
+                            else "หนังสือเหล่านี้จะกู้คืนข้อมูลและตำแหน่งอ่านไว้ แต่ยังเปิดอ่านไม่ได้จนกว่าจะ Relink ภายหลัง"
+                        )
                         missing.forEach { book ->
                             Text("• ${book.title}", modifier = Modifier.padding(top = 6.dp))
                         }
