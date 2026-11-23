@@ -22,9 +22,10 @@ class ReaderNavInputListener(
     private val viewportWidthPx: () -> Float,
     private val viewportHeightPx: () -> Float,
     private val centerMenuFraction: Float = 0.34f,
+    private val tapAnywhereToNext: () -> Boolean = { false },
 ) : InputListener {
     override fun onTap(event: TapEvent): Boolean {
-        if (isCenterMenuTap(event.point.x, event.point.y, viewportWidthPx(), viewportHeightPx(), centerMenuFraction)) {
+        if (!tapAnywhereToNext() && isCenterMenuTap(event.point.x, event.point.y, viewportWidthPx(), viewportHeightPx(), centerMenuFraction)) {
             onToggleChrome()
         } else {
             onNextPage()
