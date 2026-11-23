@@ -214,7 +214,7 @@ fun SelectionBar(
             modifier = Modifier.weight(1f),
         )
         IconButton(onClick = onDelete) {
-            Icon(Icons.Filled.Delete, contentDescription = "ลบ")
+            Icon(Icons.Filled.Delete, contentDescription = "นำออกจากรายการ")
         }
     }
 }
