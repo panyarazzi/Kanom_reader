@@ -59,41 +59,44 @@ import com.nextz.kanomtts.ui.theme.KanomTheme
 
 // ─── Brand Header ───────────────────────────────────────────────────────────────
 
-/** Kanom green-and-gold brand lockup based on the approved book emblem. */
+/**
+ * Original KanomTTS brand lockup: mascot badge, two-tone wordmark and Thai tagline.
+ */
 @Composable
 fun BrandHeader(
     modifier: Modifier = Modifier,
 ) {
-    val wordmarkColor = Color(0xFF087A36)
+    val wordmark = buildAnnotatedString {
+        withStyle(SpanStyle(color = KanomTheme.colors.highlight)) { append("Kanom") }
+        withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append("TTS") }
+    }
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Image(
-            painter = painterResource(R.drawable.kanom_logo),
-            contentDescription = null, // decorative; the wordmark conveys the app name
-            contentScale = ContentScale.Crop,
+            painter = painterResource(R.drawable.ic_launcher_foreground),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
             modifier = Modifier
                 .size(56.dp)
                 .shadow(3.dp, CircleShape)
                 .clip(CircleShape)
-                .border(2.dp, Color(0xFFDDBB39), CircleShape),
+                .border(2.dp, KanomTheme.colors.highlightContainer, CircleShape),
         )
         Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
             Text(
-                text = "Kanom",
+                text = wordmark,
                 style = MaterialTheme.typography.headlineMedium,
-                color = wordmarkColor,
             )
             Text(
-                text = "อ่านได้... อร่อยด้วยความรู้",
+                text = "หนังสือเสียงแสนหวาน",
                 style = MaterialTheme.typography.bodySmall,
-                color = wordmarkColor,
+                color = KanomTheme.colors.muted,
             )
         }
     }
-}
 
 // ─── Continue Hero ─────────────────────────────────────────────────────────────
 
