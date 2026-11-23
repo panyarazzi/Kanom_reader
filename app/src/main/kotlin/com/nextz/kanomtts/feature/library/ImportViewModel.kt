@@ -55,6 +55,7 @@ class ImportViewModel @Inject constructor(
             }
 
             var epubCount = 0
+            var scanFailed = false
             suspend fun scan(folder: DocumentFile, relativePath: String) {
                 currentCoroutineContext().ensureActive()
                 val children = try {
@@ -62,6 +63,7 @@ class ImportViewModel @Inject constructor(
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (_: Exception) {
+                    scanFailed = true
                     _events.send(ImportResult.Unreadable)
                     return
                 }
@@ -94,7 +96,7 @@ class ImportViewModel @Inject constructor(
             }
 
             scan(root, "")
-            if (epubCount == 0) _events.send(ImportResult.EmptyFolder)
+            if (epubCount == 0 && !scanFailed) _events.send(ImportResult.EmptyFolder)
         }
     }
 
