@@ -43,6 +43,8 @@ import com.nextz.kanomtts.feature.settings.PlaybackSettingsViewModel
 fun AdvancedSettingsScreen(
     onBack: () -> Unit,
     onOpenReplacements: () -> Unit,
+    onOpenBackupRestore: () -> Unit = {},
+    onOpenAnnotations: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(),
     viewModel: PlaybackSettingsViewModel = hiltViewModel(),
 ) {
@@ -138,6 +140,26 @@ fun AdvancedSettingsScreen(
                 Text("จัดการกฎแทนที่ข้อความ", modifier = Modifier.weight(1f))
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
             }
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            Text("ข้อมูลหนังสือและการสำรอง", style = MaterialTheme.typography.titleMedium)
+            Text("จัดการ Tags / Notes และส่งออก CSV จากคลังหนังสือ รวมถึงสำรองและกู้คืนข้อมูลโดยไม่คัดลอกไฟล์ EPUB", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(
+                Modifier.fillMaxWidth().clickable(onClick = onOpenAnnotations).padding(vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Tags / Notes และส่งออก CSV", modifier = Modifier.weight(1f))
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+            }
+            Row(
+                Modifier.fillMaxWidth().clickable(onClick = onOpenBackupRestore).padding(vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Backup / Restore", modifier = Modifier.weight(1f))
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+            }
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            Text("สารบัญและค้นหาหัวข้อ", style = MaterialTheme.typography.titleMedium)
+            Text("เปิดสารบัญจากแถบ Progress ในหน้าอ่าน แล้วค้นหาหัวข้อได้ทุกระดับของสารบัญ", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(20.dp))
         }
     }
