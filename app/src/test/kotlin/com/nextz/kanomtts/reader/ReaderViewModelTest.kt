@@ -75,8 +75,13 @@ class ReaderViewModelTest {
             ttsController = ttsController,
             readingSessionDao = object : ReadingSessionDao {
                 override suspend fun insert(session: ReadingSessionEntity) = Unit
-                override fun observeAll(): Flow<List<ReadingSessionEntity>> = flowOf(emptyList())
+                override suspend fun insertAll(sessions: List<ReadingSessionEntity>) = Unit
+                override suspend fun getAllForBackup(): List<ReadingSessionEntity> = emptyList()
+                override suspend fun deleteAll() = Unit
+                override suspend fun deleteForBook(bookId: String) = Unit
                 override suspend fun deleteBefore(cutoff: Long) = Unit
+                override fun observeAll(): Flow<List<ReadingSessionEntity>> = flowOf(emptyList())
+                override fun observeTotalSince(fromEpochMs: Long): Flow<Long?> = flowOf(0L)
             },
         )
 
