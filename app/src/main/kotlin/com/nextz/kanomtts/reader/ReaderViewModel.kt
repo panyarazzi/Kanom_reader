@@ -469,6 +469,7 @@ class ReaderViewModel @Inject constructor(
             prefs = initialPrefs,
             bookmarks = initialBookmarks,
             currentLocator = initialLocator,
+            chapterProgressLocator = initialLocator,
         )
     }
 
@@ -641,7 +642,7 @@ class ReaderViewModel @Inject constructor(
         markReadingActivity()
         locatorChanges.tryEmit(loc)
         _uiState.update { state ->
-            if (state is ReaderUiState.Ready) state.copy(currentLocator = loc, chapterPageNumber = (pageIndex + 1).coerceIn(1, totalPages), chapterPageCount = totalPages) else state
+            if (state is ReaderUiState.Ready) state.copy(currentLocator = loc, chapterPageNumber = (pageIndex + 1).coerceIn(1, totalPages), chapterPageCount = totalPages, chapterProgressLocator = loc) else state
         }
     }
 

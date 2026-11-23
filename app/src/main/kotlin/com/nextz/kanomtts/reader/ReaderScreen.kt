@@ -237,16 +237,18 @@ private fun ReaderChromeLayer(
     var probeOn by rememberSaveable { mutableStateOf(false) }
 
     val ttsPlaying by viewModel.ttsPlaying.collectAsState()
+    // Keep chapter title and progression paired with the same Readium pagination event as page counts.
+    val progressLocator = state.chapterProgressLocator ?: state.currentLocator
     val progressContent = buildProgressContent(
         pageNumber = state.chapterPageNumber,
         totalPages = state.chapterPageCount,
         chapterTitle = resolveChapterTitle(
-            locatorHref = state.currentLocator?.href?.toString(),
-            locatorTitle = state.currentLocator?.title,
+            locatorHref = progressLocator?.href?.toString(),
+            locatorTitle = progressLocator?.title,
             toc = state.toc,
         ),
         bookTitle = state.book.title,
-        totalProgression = state.currentLocator?.locations?.totalProgression,
+        totalProgression = progressLocator?.locations?.totalProgression,
         time = null,
         batteryPercent = null,
         charging = false,

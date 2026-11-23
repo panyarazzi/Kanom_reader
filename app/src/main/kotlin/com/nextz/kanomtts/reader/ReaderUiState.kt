@@ -26,5 +26,7 @@ sealed interface ReaderUiState {
         val chapterPageNumber: Int? = null,
         /** Total rendered pages in the current chapter/resource, supplied by Readium. */
         val chapterPageCount: Int? = null,
+        /** Locator delivered with the same pagination callback as chapterPageNumber/count. */
+        val chapterProgressLocator: Locator? = null,
     ) : ReaderUiState
 }
