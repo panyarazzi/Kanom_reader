@@ -29,12 +29,14 @@ class ReadiumMetadataExtractor @Inject constructor(
             val title = metadata.title?.takeIf { it.isNotBlank() } ?: fallbackEpubTitle(uri)
             val author = metadata.authors.firstOrNull()?.name
             val lang = metadata.languages.firstOrNull()
+            // Use only the explicit EPUB belongs-to-series relation.
+            val series = metadata.belongsToSeries.firstOrNull()
             val coverBytes = publication.cover()?.let { bitmap ->
                 ByteArrayOutputStream().also { out ->
                     bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
                 }.toByteArray()
             }
-            BookMetadata(title = title, author = author, lang = lang, coverBytes = coverBytes)
+            BookMetadata(title = title, author = author, lang = lang, coverBytes = coverBytes, seriesName = series?.name?.takeIf { it.isNotBlank() }, seriesPosition = series?.position)
         }
     }
 }
