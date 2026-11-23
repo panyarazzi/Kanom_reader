@@ -262,6 +262,7 @@ class ReaderViewModel @Inject constructor(
                 thaiWordBreak = p.thaiWordBreak
                 reverseVolumeKeys = p.reverseVolumeKeys
                 tapAnywhereToNext = p.tapAnywhereToNext
+                navListener?.setTapAnywhereToNext(p.tapAnywhereToNext)
                 navigator?.submitPreferences(EpubPreferencesMapper.map(p))
                 _uiState.update { s -> if (s is ReaderUiState.Ready) s.copy(prefs = p) else s }
                 applyPublisherLineHeight()
@@ -307,6 +308,7 @@ class ReaderViewModel @Inject constructor(
 
         // Read prefs first so thaiWordBreak toggle is available before opening the display publication.
         val initialPrefs = prefs.preferences.first()
+        tapAnywhereToNext = initialPrefs.tapAnywhereToNext
 
         // Snapshot visual replacement rules at open time (apply-on-next-open).
         // Only fetch when the pref is on; empty list = no injection (today's behaviour).
@@ -512,7 +514,7 @@ class ReaderViewModel @Inject constructor(
             swipeThresholdPx = thresholdPx,
             viewportWidthPx = { nav.view?.width?.toFloat() ?: 0f },
             viewportHeightPx = { nav.view?.height?.toFloat() ?: 0f },
-            tapAnywhereToNext = { tapAnywhereToNext },
+            tapAnywhereToNext = tapAnywhereToNext,
         )
         nav.addInputListener(interactionListener) // FIRST → observes taps/drags without consuming them
         nav.addInputListener(edgeAdapter)   // SECOND → keyboard navigation only
@@ -932,7 +934,12 @@ class ReaderViewModel @Inject constructor(
     fun onBottomMargin(dp: Int) = viewModelScope.launch { prefs.setBottomMarginDp(dp) }
     fun onBoldText(enabled: Boolean) = viewModelScope.launch { prefs.setBoldText(enabled) }
     fun onReverseVolumeKeys(enabled: Boolean) = viewModelScope.launch { prefs.setReverseVolumeKeys(enabled) }
-    fun onTapAnywhereToNext(enabled: Boolean) = viewModelScope.launch { prefs.setTapAnywhereToNext(enabled) }
+    fun onTapAnywhereToNext(enabled: Boolean) {
+        // Update the active Readium input listener synchronously; persistence follows.
+        tapAnywhereToNext = enabled
+        navListener?.setTapAnywhereToNext(enabled)
+        viewModelScope.launch { prefs.setTapAnywhereToNext(enabled) }
+    }
     // Task 6 escape hatches
     fun onUsePublisherStyles(v: Boolean) = viewModelScope.launch { prefs.setUsePublisherStyles(v) }
     fun onForceFont(v: Boolean) = viewModelScope.launch { prefs.setForceFont(v) }

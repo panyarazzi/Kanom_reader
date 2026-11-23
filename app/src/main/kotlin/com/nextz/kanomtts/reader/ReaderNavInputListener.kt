@@ -22,13 +22,27 @@ class ReaderNavInputListener(
     private val viewportWidthPx: () -> Float,
     private val viewportHeightPx: () -> Float,
     private val centerMenuFraction: Float = 0.34f,
-    private val tapAnywhereToNext: () -> Boolean = { false },
+    tapAnywhereToNext: Boolean = false,
 ) : InputListener {
+    @Volatile
+    private var tapAnywhereToNextEnabled: Boolean = tapAnywhereToNext
+
+    /** Update the active listener immediately when the user changes the reader setting. */
+    fun setTapAnywhereToNext(enabled: Boolean) {
+        tapAnywhereToNextEnabled = enabled
+    }
+
     override fun onTap(event: TapEvent): Boolean {
-        if (!tapAnywhereToNext() && isCenterMenuTap(event.point.x, event.point.y, viewportWidthPx(), viewportHeightPx(), centerMenuFraction)) {
-            onToggleChrome()
-        } else {
-            onNextPage()
+        when (resolveReaderTapAction(
+            x = event.point.x,
+            y = event.point.y,
+            width = viewportWidthPx(),
+            height = viewportHeightPx(),
+            tapAnywhereToNext = tapAnywhereToNextEnabled,
+            centerMenuFraction = centerMenuFraction,
+        )) {
+            ReaderTapAction.TOGGLE_CHROME -> onToggleChrome()
+            ReaderTapAction.NEXT_PAGE -> onNextPage()
         }
         return true
     }
@@ -52,3 +66,24 @@ internal fun isCenterMenuTap(x: Float, y: Float, width: Float, height: Float, fr
     return x in (width / 2f - halfWidth)..(width / 2f + halfWidth) &&
         y in (height / 2f - halfHeight)..(height / 2f + halfHeight)
 }
+
+/** Reader action for an unhandled tap after EPUB links/selections have been given priority. */
+internal enum class ReaderTapAction { TOGGLE_CHROME, NEXT_PAGE }
+
+/**
+ * When tap-anywhere is enabled, every unhandled tap advances, including the center.
+ * When disabled, only the center menu zone toggles chrome; taps outside it advance.
+ */
+internal fun resolveReaderTapAction(
+    x: Float,
+    y: Float,
+    width: Float,
+    height: Float,
+    tapAnywhereToNext: Boolean,
+    centerMenuFraction: Float = 0.34f,
+): ReaderTapAction =
+    if (!tapAnywhereToNext && isCenterMenuTap(x, y, width, height, centerMenuFraction)) {
+        ReaderTapAction.TOGGLE_CHROME
+    } else {
+        ReaderTapAction.NEXT_PAGE
+    }
