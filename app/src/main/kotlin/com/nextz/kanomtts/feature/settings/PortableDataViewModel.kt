@@ -124,7 +124,7 @@ class PortableDataViewModel @Inject constructor(
                             // A matching SHA-256 necessarily has the same byte length. Avoid
                             // reading every EPUB in a large library when its size cannot match
                             // any fingerprinted backup book.
-                            val hash = if (size in hashTargetSizes) hash(uri) else null
+                            val hash = if (size <= 0L || size in hashTargetSizes) hash(uri) else null
                             val needsMetadata = legacyBooks.any { book ->
                                 book.fileSize > 0L && size > 0L && book.fileSize == size
                             }
