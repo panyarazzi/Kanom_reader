@@ -194,6 +194,23 @@ fun LibraryContent(
     LaunchedEffect(state.isSelectionMode) { if (!state.isSelectionMode) showConfirm = false }
     val screenWidthDp = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp
     val gridColumnCount = ((screenWidthDp - 32 + 12) / 152).coerceAtLeast(1)
+    val groupedBookSections: List<Pair<String, List<BookCard>>> = when (state.groupMode) {
+        LibraryGroupMode.NONE, LibraryGroupMode.FOLDER -> listOf("" to state.books)
+        LibraryGroupMode.AUTHOR -> state.books.groupBy { it.author?.takeIf(String::isNotBlank) ?: "ไม่ทราบผู้แต่ง" }
+            .toSortedMap(String.CASE_INSENSITIVE_ORDER).toList()
+        LibraryGroupMode.SERIES -> state.books
+            .groupBy { card -> card.tags.firstOrNull { it.startsWith("series:", ignoreCase = true) }?.substringAfter(':')?.trim()?.takeIf(String::isNotBlank) ?: "ยังไม่ระบุซีรีส์" }
+            .toSortedMap(String.CASE_INSENSITIVE_ORDER).toList()
+        LibraryGroupMode.READING_STATUS -> state.books.groupBy { card ->
+            when { card.percent >= 0.999f -> "อ่านจบแล้ว"; card.percent > 0f -> "กำลังอ่าน"; else -> "รออ่าน" }
+        }.toList().sortedBy { listOf("กำลังอ่าน", "รออ่าน", "อ่านจบแล้ว").indexOf(it.first) }
+        LibraryGroupMode.TAG -> {
+            val tagged = state.books.flatMap { card ->
+                if (card.tags.isEmpty()) listOf("ไม่มีแท็ก" to card) else card.tags.map { it to card }
+            }
+            tagged.groupBy({ it.first }, { it.second }).toSortedMap(String.CASE_INSENSITIVE_ORDER).toList()
+        }
+    }
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -558,43 +575,47 @@ fun LibraryContent(
                 }
             }
         } else {
-            when (state.viewMode) {
-                LibraryViewMode.GRID -> {
-                    items(
-                        items = state.books.chunked(gridColumnCount),
-                        key = { row -> "grid-${row.first().id}" },
-                    ) { row ->
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            row.forEach { card ->
-                                Box(Modifier.weight(1f)) {
-                                    BookGridItem(
-                                        card = card,
-                                        isSelectionMode = state.isSelectionMode,
-                                        isSelected = card.id in state.selectedIds,
-                                        onClick = { onOpenBook(card.id) },
-                                        onToggle = { onToggleSelection(card.id) },
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
+            groupedBookSections.forEachIndexed { groupIndex, (groupTitle, groupBooks) ->
+                if (groupTitle.isNotBlank()) {
+                    item(key = "library-group-header-$groupIndex") {
+                        Text(groupTitle, style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 2.dp))
+                    }
+                }
+                when (state.viewMode) {
+                    LibraryViewMode.GRID -> {
+                        items(
+                            items = groupBooks.chunked(gridColumnCount),
+                            key = { row -> "grid-$groupIndex-${row.first().id}" },
+                        ) { row ->
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                row.forEach { card ->
+                                    Box(Modifier.weight(1f)) {
+                                        BookGridItem(
+                                            card = card,
+                                            isSelectionMode = state.isSelectionMode,
+                                            isSelected = card.id in state.selectedIds,
+                                            onClick = { onOpenBook(card.id) },
+                                            onToggle = { onToggleSelection(card.id) },
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                    }
                                 }
-                            }
-                            repeat((gridColumnCount - row.size).coerceAtLeast(0)) {
-                                Spacer(Modifier.weight(1f))
+                                repeat((gridColumnCount - row.size).coerceAtLeast(0)) { Spacer(Modifier.weight(1f)) }
                             }
                         }
                     }
-                }
-                LibraryViewMode.LIST, LibraryViewMode.DETAIL -> {
-                    items(state.books, key = { it.id }) { card ->
-                        BookListItem(
-                            card = card,
-                            isSelectionMode = state.isSelectionMode,
-                            isSelected = card.id in state.selectedIds,
-                            onClick = { onOpenBook(card.id) },
-                            onToggle = { onToggleSelection(card.id) },
-                        )
+                    LibraryViewMode.LIST, LibraryViewMode.DETAIL -> {
+                        items(groupBooks, key = { it.id }) { card ->
+                            BookListItem(
+                                card = card,
+                                isSelectionMode = state.isSelectionMode,
+                                isSelected = card.id in state.selectedIds,
+                                onClick = { onOpenBook(card.id) },
+                                onToggle = { onToggleSelection(card.id) },
+                            )
+                        }
                     }
                 }
             }
