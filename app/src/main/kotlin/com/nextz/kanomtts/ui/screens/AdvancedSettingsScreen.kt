@@ -99,6 +99,7 @@ fun AdvancedSettingsScreen(
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
             Text("Font / Typography และระยะย่อหน้า", style = MaterialTheme.typography.titleMedium)
             Text("ปรับระยะบรรทัด การเยื้องบรรทัดแรก และช่องว่างระหว่างย่อหน้าแยกจากขนาดตัวอักษรหลัก", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("ขนาดฟอนต์หลักปรับได้จากหน้าตั้งค่า หรือใช้นิ้วสองนิ้วถ่าง–หุบระหว่างอ่าน โดยแสดงค่า sp เดียวกัน", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             ValueSlider("ระยะห่างบรรทัด: ${"%.2f".format(prefs.lineHeight)}",
                 prefs.lineHeight, 0.7f..2.5f, 17) { viewModel.setLineHeight(it) }
             ValueSlider("ย่อหน้าบรรทัดแรก: ${"%.2f".format(prefs.paragraphIndentEm)} em",
