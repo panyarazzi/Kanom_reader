@@ -49,7 +49,25 @@ fun MiniPlayer(
     modifier: Modifier = Modifier,
     viewModel: PlaybackViewModel = hiltViewModel(),
 ) {
+    MiniPlayerInline(
+        onExpand = onExpand,
+        modifier = modifier,
+        viewModel = viewModel,
+    )
+}
+
+/**
+ * Inline player slot for Library. It disappears completely when playback is idle,
+ * so the Statistics/Listening layout never reserves empty space.
+ */
+@Composable
+fun MiniPlayerInline(
+    onExpand: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: PlaybackViewModel = hiltViewModel(),
+) {
     val state by viewModel.uiState.collectAsState()
+    if (!state.visible) return
     MiniPlayerBar(
         state = state,
         onPlayPause = viewModel::playPause,
