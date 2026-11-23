@@ -307,6 +307,7 @@ fun SettingsScreen(
                         Text(item?.book?.title.orEmpty(), style = MaterialTheme.typography.titleMedium)
                         item?.candidates?.forEach { candidate ->
                             val alreadyAssigned = portableVm.isCandidateAlreadyAssigned(candidate)
+                            val sizeLabel = candidate.size.takeIf { it > 0L }?.let { "$it bytes" } ?: "ไม่ทราบขนาด"
                             OutlinedButton(
                                 onClick = { portableVm.chooseAmbiguousCandidate(candidate) },
                                 enabled = !alreadyAssigned,
@@ -315,7 +316,7 @@ fun SettingsScreen(
                                 Column {
                                     Text(
                                         if (alreadyAssigned) "${candidate.name} · จับคู่แล้ว"
-                                        else "${candidate.name} · ${if (candidate.size > 0L) "${candidate.size} bytes" else "ไม่ทราบขนาด"}",
+                                        else "${candidate.name} · $sizeLabel",
                                     )
                                     Text(candidate.sourceFolder.orEmpty(), style = MaterialTheme.typography.bodySmall)
                                 }

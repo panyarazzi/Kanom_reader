@@ -166,12 +166,13 @@ fun ReaderScreen(
             text = {
                 Column {
                     relinkState.candidates.forEach { candidate ->
+                        val sizeLabel = candidate.size.takeIf { it > 0L }?.let { "$it bytes" } ?: "ไม่ทราบขนาด"
                         TextButton(
                             onClick = { relinkViewModel.confirm(candidate) { viewModel.retryLoad() } },
                             enabled = !relinkState.busy,
                         ) {
                             Column {
-                                Text("${candidate.name} · ${if (candidate.size > 0L) "${candidate.size} bytes" else "ไม่ทราบขนาด"}")
+                                Text("${candidate.name} · $sizeLabel")
                                 Text(candidate.sourceFolder.orEmpty(), style = MaterialTheme.typography.bodySmall)
                             }
                         }
