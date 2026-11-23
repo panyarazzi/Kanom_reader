@@ -223,100 +223,26 @@ class PortableDataManager @Inject constructor(
         check(latestBackup.isFile) { "ไม่พบไฟล์สำรอง Kanom" }
         val json = readBackupJson()
         val bookArray = json.getJSONArray("books")
-        (0 until bookArray.length()).map { index ->
-            val item = bookArray.getJSONObject(index)
-            BookEntity(
-                id = item.getString("id"),
-                uri = item.getString("uri"),
-                title = item.getString("title"),
-                author = item.optNullableString("author"),
-                lang = item.optNullableString("lang"),
-                coverPath = null,
-                fileSize = item.getLong("fileSize"),
-                addedAt = item.getLong("addedAt"),
-                lastOpenedAt = item.optNullableLong("lastOpenedAt"),
-                sha256 = item.optNullableString("sha256"),
-                sourceFolder = item.optNullableString("sourceFolder"),
-                sourceFileName = item.optNullableString("sourceFileName"),
-            )
+        val backupBookObjects = (0 until bookArray.length()).map { bookArray.getJSONObject(it) }
+        val bookObjectsById = backupBookObjects.associateBy { it.getString("id") }
+        require(bookObjectsById.size == backupBookObjects.size) {
+            "ไฟล์สำรองมี Book ID ซ้ำกัน"
         }
-    }
-
-    private fun readBackupJson(): JSONObject {
-        val metadata = ZipFile(latestBackup).use { zip ->
-            val entries = zip.entries()
-            var metadataEntry: ZipEntry? = null
-            while (entries.hasMoreElements()) {
-                val candidate = entries.nextElement()
-                if (!candidate.isDirectory && candidate.name == "data.json") {
-                    require(metadataEntry == null) { "ไฟล์สำรองมี data.json ซ้ำ" }
-                    metadataEntry = candidate
-                }
-            }
-            val entry = metadataEntry ?: error("ไฟล์สำรองไม่มี data.json")
-            require(entry.size >= 0L && entry.size <= MAX_ENTRY_BYTES) {
-                "ไฟล์ข้อมูลสำรองมีขนาดใหญ่เกินกำหนดหรือไม่ทราบขนาด"
-            }
-            zip.getInputStream(entry).use { input ->
-                val bytes = input.readBytes()
-                require(bytes.size.toLong() == entry.size) { "ข้อมูล data.json ใน ZIP ไม่สมบูรณ์" }
-                bytes
-            }
-        }
-        val json = JSONObject(String(metadata, Charsets.UTF_8))
-        require(json.optInt("formatVersion", -1) == FORMAT_VERSION) { "เวอร์ชันไฟล์สำรองนี้ไม่รองรับ" }
-        return json
-    }
-
-    suspend fun restoreLatestBackup(
-        sourceMappings: Map<String, RestoreSourceCandidate> = emptyMap(),
-    ): PortableBackupSummary = withContext(Dispatchers.IO) {
-        requireStorageAccess()
-        currentCoroutineContext().ensureActive()
-        check(latestBackup.isFile) { "ไม่พบไฟล์สำรอง Kanom" }
-        val entries = mutableMapOf<String, ByteArray>()
-        // Use the ZIP central directory to enumerate entries, then open streams only for
-        // the explicit metadata/cover allowlist. Legacy EPUB entries are never opened,
-        // decompressed, copied, or extracted during restore.
-        ZipFile(latestBackup).use { zip ->
-            val zipEntries = zip.entries()
-            var totalRestoredBytes = 0L
-            while (zipEntries.hasMoreElements()) {
-                currentCoroutineContext().ensureActive()
-                val entry = zipEntries.nextElement()
-                if (entry.isDirectory || !isRestorablePortableEntry(entry.name)) continue
-                require(entry.size >= 0L && entry.size <= MAX_ENTRY_BYTES) {
-                    "ไฟล์ในชุดสำรองมีขนาดใหญ่เกินกำหนดหรือไม่ทราบขนาด"
-                }
-                require(entry.name !in entries) { "ไฟล์สำรองมีรายการซ้ำ: ${entry.name}" }
-                totalRestoredBytes += entry.size
-                require(totalRestoredBytes <= MAX_TOTAL_RESTORE_BYTES) {
-                    "ข้อมูลที่ต้องกู้คืนมีขนาดรวมเกินกำหนด"
-                }
-                val bytes = zip.getInputStream(entry).use { it.readBytes() }
-                require(bytes.size.toLong() == entry.size) { "ข้อมูลใน ZIP ไม่สมบูรณ์: ${entry.name}" }
-                entries[entry.name] = bytes
-            }
-        }
-        val json = JSONObject(String(entries["data.json"] ?: error("ไฟล์สำรองไม่มี data.json"), Charsets.UTF_8))
-        require(json.optInt("formatVersion", -1) == FORMAT_VERSION) { "เวอร์ชันไฟล์สำรองนี้ไม่รองรับ" }
-
-        val bookArray = json.getJSONArray("books")
-        val backupBookIds = (0 until bookArray.length())
-            .map { bookArray.getJSONObject(it).getString("id") }
-            .toSet()
+        val backupBookIds = bookObjectsById.keys
         require(sourceMappings.keys.all { it in backupBookIds }) {
             "มีการจับคู่ไฟล์กับ Book ID ที่ไม่มีอยู่ในชุดสำรอง"
         }
         require(sourceMappings.values.map { it.uri }.distinct().size == sourceMappings.size) {
             "ไม่สามารถใช้ไฟล์ EPUB ต้นฉบับเดียวกันกับหนังสือหลายเล่มได้"
         }
+        val verifiedSourceHashes = mutableMapOf<String, String>()
         // Revalidate every selected source immediately before staging the restored rows.
-        // This catches changed/replaced files between folder scan and final confirmation.
+        // Count actual bytes too: legacy backups without SHA-256 need exact size evidence.
         sourceMappings.forEach { (bookId, source) ->
             currentCoroutineContext().ensureActive()
-            val bookIndex = (0 until bookArray.length()).first { bookArray.getJSONObject(it).getString("id") == bookId }
-            val savedHash = bookArray.getJSONObject(bookIndex).optNullableString("sha256")
+            val savedBook = bookObjectsById.getValue(bookId)
+            val savedHash = savedBook.optNullableString("sha256")
+            var actualSize = 0L
             val actualHash = context.contentResolver.openInputStream(Uri.parse(source.uri))?.use { input ->
                 val digest = MessageDigest.getInstance("SHA-256")
                 val buffer = ByteArray(64 * 1024)
@@ -324,16 +250,26 @@ class PortableDataManager @Inject constructor(
                     currentCoroutineContext().ensureActive()
                     val count = input.read(buffer)
                     if (count < 0) break
-                    if (count > 0) digest.update(buffer, 0, count)
+                    if (count > 0) {
+                        actualSize += count
+                        digest.update(buffer, 0, count)
+                    }
                 }
                 digest.digest().joinToString("") { "%02x".format(it) }
-            } ?: error("ไม่สามารถอ่านไฟล์ต้นฉบับที่เลือกได้: ${source.name}")
+            } ?: error("ไม่สามารถอ่านไฟล์ต้นฉบับที่เลือกได้: \${source.name}")
             require(source.sha256.isNullOrBlank() || actualHash.equals(source.sha256, ignoreCase = true)) {
-                "ไฟล์ต้นฉบับเปลี่ยนแปลงหลังจากสแกน: ${source.name}"
+                "ไฟล์ต้นฉบับเปลี่ยนแปลงหลังจากสแกน: \${source.name}"
             }
             require(savedHash.isNullOrBlank() || actualHash.equals(savedHash, ignoreCase = true)) {
-                "SHA-256 ของไฟล์ไม่ตรงกับหนังสือ ${bookArray.getJSONObject(bookIndex).getString("title")}"
+                "SHA-256 ของไฟล์ไม่ตรงกับหนังสือ \${savedBook.getString("title")}"
             }
+            if (savedHash.isNullOrBlank()) {
+                val savedSize = savedBook.optLong("fileSize", -1L)
+                require(savedSize <= 0L || actualSize == savedSize) {
+                    "ขนาดไฟล์ต้นฉบับไม่ตรงกับหนังสือ \${savedBook.getString("title")}"
+                }
+            }
+            verifiedSourceHashes[bookId] = actualHash
         }
         currentCoroutineContext().ensureActive()
         val books = (0 until bookArray.length()).map { i ->
@@ -361,7 +297,7 @@ class PortableDataManager @Inject constructor(
                 author = o.optNullableString("author"), lang = o.optNullableString("lang"),
                 coverPath = coverPath, fileSize = o.getLong("fileSize"),
                 addedAt = o.getLong("addedAt"), lastOpenedAt = o.optNullableLong("lastOpenedAt"),
-                sha256 = source?.sha256 ?: o.optNullableString("sha256"),
+                sha256 = verifiedSourceHashes[id] ?: o.optNullableString("sha256"),
                 sourceFolder = source?.sourceFolder ?: o.optNullableString("sourceFolder"),
                 sourceFileName = source?.name ?: o.optNullableString("sourceFileName"),
             )
