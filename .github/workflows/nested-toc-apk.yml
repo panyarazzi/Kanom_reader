@@ -1,14 +1,8 @@
 name: Kanom Reader APK
 
 on:
-  push:
-    branches:
-      - feature/reader-improvements-apk2
-      - feature/portable-data-folder-apk1
-      - feature/ux-ui-completion-no-highlight
-      - feature/apk62-status-preview-branding # APK 62
-      - feature/apk63-reader-progress-numeric-settings # APK 64
-      - feature/apk65-reading-statistics # APK 65
+  # Intentionally manual only while the release scope is being completed.
+  # Do not re-enable push builds until all agreed requirements are complete.
   workflow_dispatch:
 
 permissions:
@@ -23,24 +17,19 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
-
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
           packages: platform-tools
-
       - name: Accept Android SDK licenses
         run: yes | sdkmanager --licenses
-
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-
       - name: Run unit tests and build debug APK
         shell: bash
         run: |
@@ -50,10 +39,7 @@ jobs:
             echo "Gradle attempt $attempt/3"
             ./gradlew :app:testDebugUnitTest :app:assembleDebug --no-daemon --stacktrace 2>&1 | tee "$LOG_FILE"
             status=${PIPESTATUS[0]}
-            if [ "$status" -eq 0 ]; then
-              exit 0
-            fi
-
+            if [ "$status" -eq 0 ]; then exit 0; fi
             if grep -Eq 'HTTP response code: 429|status code.?429|HTTP 429|429 from server|MavenArtifactFetcher|java\.io\.IOException' "$LOG_FILE" && [ "$attempt" -lt 3 ]; then
               echo "Transient Maven/Robolectric artifact download failure; retrying after 30 seconds."
               sleep 30
@@ -62,11 +48,8 @@ jobs:
             fi
           done
           exit 1
-
       - name: Rename APK using workflow APK number
-        run: |
-          cp app/build/outputs/apk/debug/app-debug.apk "app/build/outputs/apk/debug/Kanom-Reader-apk${APK_NUMBER}.apk"
-
+        run: cp app/build/outputs/apk/debug/app-debug.apk "app/build/outputs/apk/debug/Kanom-Reader-apk${APK_NUMBER}.apk"
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
