@@ -162,8 +162,16 @@ class LibraryViewModel @Inject constructor(
             .sortedByDescending { it.lastOpenedAt }
             .take(8)
         val newestBooks = filteredCards.sortedByDescending { it.addedAt }.take(8)
+        val visibleBooks = if (selectedFolder == null) {
+            filteredCards.filter { card ->
+                val folder = card.sourceFolder
+                folder.isNullOrBlank() || '/' !in folder
+            }
+        } else {
+            filteredCards
+        }
         LibraryUiState(
-            books = filteredCards,
+            books = visibleBooks,
             continueCard = continueCard,
             continueCards = continueCards,
             viewMode = viewMode,
