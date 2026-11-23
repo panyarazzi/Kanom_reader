@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.nextz.kanomtts.data.db.BookNoteDao
 import com.nextz.kanomtts.data.db.BookNoteEntity
 import com.nextz.kanomtts.data.db.BookTagDao
+import com.nextz.kanomtts.data.db.BookTagLibraryDao
+import com.nextz.kanomtts.data.db.BookTagLibraryEntity
 import com.nextz.kanomtts.data.db.BookTagEntity
 import com.nextz.kanomtts.data.db.KanomDatabase
 import com.nextz.kanomtts.data.repository.BookReader
@@ -33,6 +35,7 @@ data class BookAnnotationsUiState(
     val books: List<BookAnnotationRow> = emptyList(),
     val allBooks: List<BookAnnotationRow> = emptyList(),
     val availableTags: List<String> = emptyList(),
+    val savedTags: List<String> = emptyList(),
     val query: String = "",
     val selectedTag: String? = null,
     val notesOnly: Boolean = false,
@@ -47,6 +50,7 @@ data class AnnotationSaveUiState(
 class BookAnnotationsViewModel @Inject constructor(
     books: BookReader,
     private val database: KanomDatabase,
+    private val tagLibraryDao: BookTagLibraryDao,
 ) : ViewModel() {
     private val tagDao: BookTagDao get() = database.bookTagDao()
     private val noteDao: BookNoteDao get() = database.bookNoteDao()
@@ -60,7 +64,8 @@ class BookAnnotationsViewModel @Inject constructor(
         books.observeLibrary(),
         tagDao.observeAll(),
         noteDao.observeAll(),
-    ) { allBooks, allTags, allNotes ->
+        tagLibraryDao.observeAll(),
+    ) { allBooks, allTags, allNotes, savedTags ->
         val tagsByBook = allTags.groupBy { it.bookId }
             .mapValues { (_, values) -> values.map { it.tag }.sorted() }
         val notesByBook = allNotes.associate { it.bookId to it.note }
@@ -73,12 +78,13 @@ class BookAnnotationsViewModel @Inject constructor(
     }
 
     val uiState: StateFlow<BookAnnotationsUiState> = combine(
-        allRows, query, selectedTag, notesOnly,
-    ) { rows, search, tag, onlyNotes ->
+        allRows, query, selectedTag, notesOnly, tagLibraryDao.observeAll(),
+    ) { rows, search, tag, onlyNotes, savedTags ->
         BookAnnotationsUiState(
             books = filterBookAnnotationRows(rows, search, tag, onlyNotes),
             allBooks = rows,
             availableTags = rows.flatMap { it.tags }.distinctBy { it.lowercase() }.sortedBy { it.lowercase() },
+            savedTags = savedTags.map { it.tag },
             query = search,
             selectedTag = tag,
             notesOnly = onlyNotes,
@@ -88,6 +94,15 @@ class BookAnnotationsViewModel @Inject constructor(
     fun setQuery(value: String) { query.value = value }
     fun setTagFilter(value: String?) { selectedTag.value = if (selectedTag.value == value) null else value }
     fun setNotesOnly(value: Boolean) { notesOnly.value = value }
+
+    fun saveReusableTag(value: String) {
+        val tag = value.trim().takeIf { it.isNotEmpty() } ?: return
+        viewModelScope.launch { tagLibraryDao.insert(BookTagLibraryEntity(tag)) }
+    }
+
+    fun deleteReusableTag(value: String) {
+        viewModelScope.launch { tagLibraryDao.delete(value) }
+    }
 
     fun clearSaveError() {
         _saveState.value = AnnotationSaveUiState()
