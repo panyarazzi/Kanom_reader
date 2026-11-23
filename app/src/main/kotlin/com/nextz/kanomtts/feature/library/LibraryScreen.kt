@@ -439,6 +439,96 @@ fun LibraryContent(
         }
 
         if (!state.isSelectionMode) {
+            if (state.availableTags.isNotEmpty()) {
+                item(key = "library-tags") {
+                    Row(
+                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        FilterChip(
+                            selected = state.selectedTag == null,
+                            onClick = { onTagFilter(null) },
+                            label = { Text("ทั้งหมด") },
+                        )
+                        state.availableTags.forEach { tag ->
+                            FilterChip(
+                                selected = state.selectedTag == tag,
+                                onClick = { onTagFilter(if (state.selectedTag == tag) null else tag) },
+                                label = { Text(tag) },
+                            )
+                        }
+                    }
+                }
+            }
+
+        }
+
+        if (state.books.isEmpty() && state.folders.isEmpty()) {
+            item(key = "library-empty") {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                    contentAlignment = Alignment.TopCenter,
+                ) {
+                    Text(
+                        text = when {
+                            state.totalBookCount == 0 -> "ยังไม่มีหนังสือ — แตะนำเข้าหนังสือจากโฟลเดอร์เพื่อเพิ่ม"
+                            state.query.isNotBlank() -> "ไม่พบหนังสือที่ค้นหา"
+                            else -> "ไม่พบหนังสือตามตัวกรองที่เลือก"
+                        },
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        } else {
+            groupedBookSections.forEachIndexed { groupIndex, (groupTitle, groupBooks) ->
+                if (groupTitle.isNotBlank()) {
+                    item(key = "library-group-header-$groupIndex") {
+                        Text(groupTitle, style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 2.dp))
+                    }
+                }
+                when (state.viewMode) {
+                    LibraryViewMode.GRID -> {
+                        items(
+                            items = groupBooks.chunked(gridColumnCount),
+                            key = { row -> "grid-$groupIndex-${row.first().id}" },
+                        ) { row ->
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                row.forEach { card ->
+                                    Box(Modifier.weight(1f)) {
+                                        BookGridItem(
+                                            card = card,
+                                            isSelectionMode = state.isSelectionMode,
+                                            isSelected = card.id in state.selectedIds,
+                                            onClick = { onOpenBook(card.id) },
+                                            onToggle = { onToggleSelection(card.id) },
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                    }
+                                }
+                                repeat((gridColumnCount - row.size).coerceAtLeast(0)) { Spacer(Modifier.weight(1f)) }
+                            }
+                        }
+                    }
+                    LibraryViewMode.LIST, LibraryViewMode.DETAIL -> {
+                        items(groupBooks, key = { "list-$groupIndex-${it.id}" }) { card ->
+                            BookListItem(
+                                card = card,
+                                isSelectionMode = state.isSelectionMode,
+                                isSelected = card.id in state.selectedIds,
+                                onClick = { onOpenBook(card.id) },
+                                onToggle = { onToggleSelection(card.id) },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        }
+
+        if (!state.isSelectionMode) {
             item(key = "library-organization-controls") {
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
@@ -538,92 +628,6 @@ fun LibraryContent(
                                     Text(if (state.showFilename) "ชื่อไฟล์ต้นฉบับ" else "ชื่อหนังสือ")
                                 }
                             }
-                        }
-                    }
-                }
-            }
-            if (state.availableTags.isNotEmpty()) {
-                item(key = "library-tags") {
-                    Row(
-                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        FilterChip(
-                            selected = state.selectedTag == null,
-                            onClick = { onTagFilter(null) },
-                            label = { Text("ทั้งหมด") },
-                        )
-                        state.availableTags.forEach { tag ->
-                            FilterChip(
-                                selected = state.selectedTag == tag,
-                                onClick = { onTagFilter(if (state.selectedTag == tag) null else tag) },
-                                label = { Text(tag) },
-                            )
-                        }
-                    }
-                }
-            }
-
-        }
-
-        if (state.books.isEmpty() && state.folders.isEmpty()) {
-            item(key = "library-empty") {
-                Box(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
-                    contentAlignment = Alignment.TopCenter,
-                ) {
-                    Text(
-                        text = when {
-                            state.totalBookCount == 0 -> "ยังไม่มีหนังสือ — แตะนำเข้าหนังสือจากโฟลเดอร์เพื่อเพิ่ม"
-                            state.query.isNotBlank() -> "ไม่พบหนังสือที่ค้นหา"
-                            else -> "ไม่พบหนังสือตามตัวกรองที่เลือก"
-                        },
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        } else {
-            groupedBookSections.forEachIndexed { groupIndex, (groupTitle, groupBooks) ->
-                if (groupTitle.isNotBlank()) {
-                    item(key = "library-group-header-$groupIndex") {
-                        Text(groupTitle, style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 8.dp, bottom = 2.dp))
-                    }
-                }
-                when (state.viewMode) {
-                    LibraryViewMode.GRID -> {
-                        items(
-                            items = groupBooks.chunked(gridColumnCount),
-                            key = { row -> "grid-$groupIndex-${row.first().id}" },
-                        ) { row ->
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                row.forEach { card ->
-                                    Box(Modifier.weight(1f)) {
-                                        BookGridItem(
-                                            card = card,
-                                            isSelectionMode = state.isSelectionMode,
-                                            isSelected = card.id in state.selectedIds,
-                                            onClick = { onOpenBook(card.id) },
-                                            onToggle = { onToggleSelection(card.id) },
-                                            modifier = Modifier.fillMaxWidth(),
-                                        )
-                                    }
-                                }
-                                repeat((gridColumnCount - row.size).coerceAtLeast(0)) { Spacer(Modifier.weight(1f)) }
-                            }
-                        }
-                    }
-                    LibraryViewMode.LIST, LibraryViewMode.DETAIL -> {
-                        items(groupBooks, key = { "list-$groupIndex-${it.id}" }) { card ->
-                            BookListItem(
-                                card = card,
-                                isSelectionMode = state.isSelectionMode,
-                                isSelected = card.id in state.selectedIds,
-                                onClick = { onOpenBook(card.id) },
-                                onToggle = { onToggleSelection(card.id) },
-                            )
                         }
                     }
                 }
