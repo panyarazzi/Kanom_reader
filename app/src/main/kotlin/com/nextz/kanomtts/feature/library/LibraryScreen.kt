@@ -607,7 +607,7 @@ fun LibraryContent(
                         }
                     }
                     LibraryViewMode.LIST, LibraryViewMode.DETAIL -> {
-                        items(groupBooks, key = { it.id }) { card ->
+                        items(groupBooks, key = { "list-$groupIndex-${it.id}" }) { card ->
                             BookListItem(
                                 card = card,
                                 isSelectionMode = state.isSelectionMode,
