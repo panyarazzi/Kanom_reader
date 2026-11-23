@@ -19,4 +19,19 @@ class BookAnnotationsDaoTest : RoomTestBase() {
         assertEquals(emptyList<BookTagEntity>(), db.bookTagDao().getAllForBackup())
         assertEquals(emptyList<BookNoteEntity>(), db.bookNoteDao().getAllForBackup())
     }
+    @Test fun `removing a reusable tag never removes book assignments and duplicates ignore case`() = runTest {
+        db.bookDao().upsert(book())
+        db.bookTagDao().upsert(BookTagEntity("b1", "แนะนำ"))
+        val library = db.bookTagLibraryDao()
+        library.insertIfMissing("สำนวนดี")
+        library.insertIfMissing("สำนวนดี")
+        library.insertIfMissing("สำนวนดี".uppercase())
+
+        assertEquals(1, library.getAllForBackup().size)
+        library.delete("สำนวนดี")
+
+        assertEquals(emptyList<BookTagLibraryEntity>(), library.getAllForBackup())
+        assertEquals(listOf("แนะนำ"), db.bookTagDao().observeForBook("b1").first().map { it.tag })
+    }
+
 }
