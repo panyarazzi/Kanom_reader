@@ -353,6 +353,7 @@ fun LibraryContent(
                                     onClick = { onOpenBook(card.id) },
                                     onToggle = { onToggleSelection(card.id) },
                                     onLongPress = { if (state.isSelectionMode) onToggleSelection(card.id) else contextBook = card },
+                                    onLongPress = { if (state.isSelectionMode) onToggleSelection(card.id) else contextBook = card },
                                     modifier = Modifier.width(104.dp),
                                 )
                             }
@@ -397,6 +398,7 @@ fun LibraryContent(
                                     isSelected = false,
                                     onClick = { onOpenBook(card.id) },
                                     onToggle = { onToggleSelection(card.id) },
+                                    onLongPress = { if (state.isSelectionMode) onToggleSelection(card.id) else contextBook = card },
                                     modifier = Modifier.width(116.dp),
                                 )
                             }
@@ -419,6 +421,7 @@ fun LibraryContent(
                                     isSelected = false,
                                     onClick = { onOpenBook(card.id) },
                                     onToggle = { onToggleSelection(card.id) },
+                                    onLongPress = { if (state.isSelectionMode) onToggleSelection(card.id) else contextBook = card },
                                     modifier = Modifier.width(116.dp),
                                 )
                             }
@@ -572,6 +575,7 @@ fun LibraryContent(
                                             isSelected = card.id in state.selectedIds,
                                             onClick = { onOpenBook(card.id) },
                                             onToggle = { onToggleSelection(card.id) },
+                                    onLongPress = { if (state.isSelectionMode) onToggleSelection(card.id) else contextBook = card },
                                             modifier = Modifier.fillMaxWidth(),
                                         )
                                     }
@@ -588,6 +592,7 @@ fun LibraryContent(
                                 isSelected = card.id in state.selectedIds,
                                 onClick = { onOpenBook(card.id) },
                                 onToggle = { onToggleSelection(card.id) },
+                                    onLongPress = { if (state.isSelectionMode) onToggleSelection(card.id) else contextBook = card },
                             )
                         }
                     }
