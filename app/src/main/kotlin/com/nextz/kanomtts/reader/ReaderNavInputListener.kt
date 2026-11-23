@@ -42,6 +42,7 @@ class ReaderNavInputListener(
             centerMenuFraction = centerMenuFraction,
         )) {
             ReaderTapAction.TOGGLE_CHROME -> onToggleChrome()
+            ReaderTapAction.PREVIOUS_PAGE -> onPrevPage()
             ReaderTapAction.NEXT_PAGE -> onNextPage()
         }
         return true
@@ -68,7 +69,7 @@ internal fun isCenterMenuTap(x: Float, y: Float, width: Float, height: Float, fr
 }
 
 /** Reader action for an unhandled tap after EPUB links/selections have been given priority. */
-internal enum class ReaderTapAction { TOGGLE_CHROME, NEXT_PAGE }
+internal enum class ReaderTapAction { TOGGLE_CHROME, PREVIOUS_PAGE, NEXT_PAGE }
 
 /**
  * When tap-anywhere is enabled, every unhandled tap advances, including the center.
@@ -82,8 +83,9 @@ internal fun resolveReaderTapAction(
     tapAnywhereToNext: Boolean,
     centerMenuFraction: Float = 0.34f,
 ): ReaderTapAction =
-    if (!tapAnywhereToNext && isCenterMenuTap(x, y, width, height, centerMenuFraction)) {
-        ReaderTapAction.TOGGLE_CHROME
-    } else {
-        ReaderTapAction.NEXT_PAGE
+    when {
+        tapAnywhereToNext -> ReaderTapAction.NEXT_PAGE
+        isCenterMenuTap(x, y, width, height, centerMenuFraction) -> ReaderTapAction.TOGGLE_CHROME
+        width > 0f && x < width / 2f -> ReaderTapAction.PREVIOUS_PAGE
+        else -> ReaderTapAction.NEXT_PAGE
     }
