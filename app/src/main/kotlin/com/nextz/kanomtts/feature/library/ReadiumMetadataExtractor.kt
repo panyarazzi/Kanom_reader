@@ -13,6 +13,12 @@ import javax.inject.Inject
  * [PublicationProvider] (Plan 06 — replaces this class's former per-call DefaultHttpClient/
  * AssetRetriever construction). Reads title/author/lang + PNG cover bytes; null on open failure.
  */
+internal fun fallbackEpubTitle(uri: String): String {
+    val filename = uri.substringBefore('?').substringAfterLast('/')
+    val title = if (filename.endsWith(".epub", ignoreCase = true)) filename.dropLast(5) else filename
+    return title.ifBlank { "Unknown" }
+}
+
 class ReadiumMetadataExtractor @Inject constructor(
     private val publications: PublicationProvider,
 ) : MetadataExtractor {
@@ -20,8 +26,7 @@ class ReadiumMetadataExtractor @Inject constructor(
     override suspend fun extract(uri: String): BookMetadata? = withContext(Dispatchers.IO) {
         publications.withPublication(uri) { publication ->
             val metadata = publication.metadata
-            val title = metadata.title
-                ?: uri.substringAfterLast('/').removeSuffix(".epub").ifBlank { "Unknown" }
+            val title = metadata.title?.takeIf { it.isNotBlank() } ?: fallbackEpubTitle(uri)
             val author = metadata.authors.firstOrNull()?.name
             val lang = metadata.languages.firstOrNull()
             val coverBytes = publication.cover()?.let { bitmap ->
