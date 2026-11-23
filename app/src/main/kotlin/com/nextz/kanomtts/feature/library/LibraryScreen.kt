@@ -595,13 +595,13 @@ fun LibraryContent(
         AlertDialog(
             onDismissRequest = { showConfirm = false },
             confirmButton = {
-                TextButton(onClick = { onDeleteSelected(); showConfirm = false }) { Text("ลบ") }
+                TextButton(onClick = { onDeleteSelected(); showConfirm = false }) { Text("นำออก") }
             },
             dismissButton = {
                 TextButton(onClick = { showConfirm = false }) { Text("ยกเลิก") }
             },
-            title = { Text("ลบ ${state.selectedIds.size} เล่ม?") },
-            text = { Text("การลบนี้ย้อนกลับไม่ได้") },
+            title = { Text("นำหนังสือ ${state.selectedIds.size} เล่มออกจากรายการใช่หรือไม่?") },
+            text = { Text("การดำเนินการนี้จะนำข้อมูลหนังสือออกจาก Library เท่านั้น ไม่ได้ลบไฟล์ EPUB ต้นฉบับที่จัดเก็บอยู่ในเครื่อง") },
         )
     }
 }
