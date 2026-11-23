@@ -56,7 +56,7 @@ fun KanomApp(
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
-    val showBottomBar = currentRoute?.startsWith("reader/") != true && currentRoute !in setOf("reading_statistics", "advanced_settings", "book_annotations")
+    val showBottomBar = currentRoute?.startsWith("reader/") != true && currentRoute !in setOf("reading_statistics", "advanced_settings", "book_annotations", "backup_restore")
     val onNowPlaying = currentRoute == KanomDestination.NOW_PLAYING.route
 
     Scaffold(
@@ -136,10 +136,20 @@ fun KanomApp(
                     onOpenAdvanced = { navController.navigate("advanced_settings") },
                 )
             }
+            composable("backup_restore") {
+                SettingsScreen(
+                    modifier = Modifier,
+                    contentPadding = padding,
+                    backupOnly = true,
+                    onBack = { navController.popBackStack() },
+                )
+            }
             composable("advanced_settings") {
                 AdvancedSettingsScreen(
                     onBack = { navController.popBackStack() },
                     onOpenReplacements = { navController.navigate("replacements") },
+                    onOpenBackupRestore = { navController.navigate("backup_restore") },
+                    onOpenAnnotations = { navController.navigate("book_annotations") },
                     contentPadding = padding,
                 )
             }
