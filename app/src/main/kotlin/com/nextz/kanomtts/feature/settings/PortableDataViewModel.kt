@@ -98,7 +98,7 @@ class PortableDataViewModel @Inject constructor(
 
     /** Recursively scan the selected SAF tree and build a conservative review plan. */
     fun scanRestoreFolder(treeUri: Uri) {
-        if (_uiState.value.busy || previewBooks.isEmpty()) return
+        if (_uiState.value.busy || _uiState.value.restoreStage != RestoreReconciliationStage.CHOOSE_FOLDER) return
         activeRestoreJob = viewModelScope.launch(Dispatchers.IO) {
             _uiState.value = _uiState.value.copy(busy = true, message = "กำลังค้นหา EPUB ในโฟลเดอร์และโฟลเดอร์ย่อย…")
             val result = runCatching {
@@ -159,6 +159,7 @@ class PortableDataViewModel @Inject constructor(
 
     /** Confirm the entire unique-match batch before any ambiguous choice is requested. */
     fun confirmUniqueMatches() {
+        if (_uiState.value.busy || _uiState.value.restoreStage != RestoreReconciliationStage.REVIEW_UNIQUE) return
         val plan = _uiState.value.restorePlan ?: return
         plan.uniqueMatches.forEach { (book, candidate) -> selectedSources[book.id] = candidate }
         _uiState.value = _uiState.value.copy(
@@ -173,8 +174,10 @@ class PortableDataViewModel @Inject constructor(
         selectedSources.values.any { it.uri == candidate.uri }
 
     fun chooseAmbiguousCandidate(candidate: RestoreSourceCandidate) {
+        if (_uiState.value.busy || _uiState.value.restoreStage != RestoreReconciliationStage.AMBIGUOUS) return
         val plan = _uiState.value.restorePlan ?: return
         val item = plan.ambiguousMatches.getOrNull(_uiState.value.ambiguousIndex) ?: return
+        if (item.candidates.none { it.uri == candidate.uri }) return
         if (isCandidateAlreadyAssigned(candidate)) {
             _uiState.value = _uiState.value.copy(
                 message = "ไฟล์นี้ถูกจับคู่กับหนังสือเล่มอื่นแล้ว กรุณาเลือกไฟล์อื่นหรือข้ามรายการนี้",
@@ -186,6 +189,7 @@ class PortableDataViewModel @Inject constructor(
     }
 
     fun skipAmbiguousBook() {
+        if (_uiState.value.busy || _uiState.value.restoreStage != RestoreReconciliationStage.AMBIGUOUS) return
         val plan = _uiState.value.restorePlan ?: return
         advanceAmbiguous(plan)
     }
@@ -201,7 +205,7 @@ class PortableDataViewModel @Inject constructor(
 
     /** Not-found books are intentionally left unresolved; then apply the staged restore. */
     fun finishRestore() {
-        if (_uiState.value.busy) return
+        if (_uiState.value.busy || _uiState.value.restoreStage != RestoreReconciliationStage.NOT_FOUND) return
         activeRestoreJob = viewModelScope.launch(Dispatchers.IO) {
             _uiState.value = _uiState.value.copy(busy = true, message = "กำลังกู้คืนข้อมูล…")
             val result = runCatching { manager.restoreLatestBackup(selectedSources.toMap()) }
