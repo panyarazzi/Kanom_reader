@@ -21,7 +21,6 @@ class RelinkMatchingTest {
         assertTrue(relinkMatches(legacy, RelinkCandidate("content://new/a", "other.epub", 2048L, null, null), "Same Title"))
         assertTrue(relinkMatches(legacy, RelinkCandidate("content://new/a", "Same Title.epub", 2048L, null, null), null))
         assertFalse(relinkMatches(legacy, RelinkCandidate("content://new/a", "Same Title.epub", 4096L, null, null), null))
-        assertFalse(relinkMatches(legacy, RelinkCandidate("content://new/a", "Same Title.epub", 0L, null, null), null))
         assertFalse(relinkMatches(legacy, RelinkCandidate("content://new/a", "unrelated.epub", 2048L, null, null), null))
         assertTrue(relinkMatches(legacy, RelinkCandidate("content://new/a", "Same Title.epub", 0L, null, null), null))
     }
