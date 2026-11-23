@@ -121,10 +121,13 @@ fun ReaderScreen(
                 Text(s.message, style = MaterialTheme.typography.titleMedium)
                 Text("หากย้ายไฟล์ EPUB ไปแล้ว สามารถเลือกไฟล์เดิมหรือค้นหาในโฟลเดอร์เพื่อเชื่อมกลับได้",
                     style = MaterialTheme.typography.bodySmall)
-                Button(onClick = { relinkFilePicker.launch(arrayOf("application/epub+zip", "application/octet-stream")) }) {
+                Button(
+                    onClick = { relinkFilePicker.launch(arrayOf("application/epub+zip", "application/octet-stream")) },
+                    enabled = !relinkState.busy,
+                ) {
                     Text("เลือกไฟล์ EPUB")
                 }
-                OutlinedButton(onClick = { relinkFolderPicker.launch(null) }) {
+                OutlinedButton(onClick = { relinkFolderPicker.launch(null) }, enabled = !relinkState.busy) {
                     Text("ค้นหาในโฟลเดอร์")
                 }
                 if (relinkState.busy) CircularProgressIndicator()
@@ -163,9 +166,10 @@ fun ReaderScreen(
             text = {
                 Column {
                     relinkState.candidates.forEach { candidate ->
-                        TextButton(onClick = {
-                            relinkViewModel.confirm(candidate) { viewModel.retryLoad() }
-                        }) {
+                        TextButton(
+                            onClick = { relinkViewModel.confirm(candidate) { viewModel.retryLoad() } },
+                            enabled = !relinkState.busy,
+                        ) {
                             Text("${candidate.name} · ${candidate.size} bytes")
                         }
                     }

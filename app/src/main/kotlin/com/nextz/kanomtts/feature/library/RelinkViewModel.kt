@@ -98,6 +98,7 @@ class RelinkViewModel @Inject constructor(
     }
 
     private fun search(bookId: String, scan: suspend () -> List<RelinkCandidate>) {
+        if (_uiState.value.busy) return
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.value = RelinkUiState(busy = true, bookId = bookId)
             try {
@@ -134,6 +135,7 @@ class RelinkViewModel @Inject constructor(
     fun clearResults() { _uiState.value = RelinkUiState() }
 
     fun confirm(candidate: RelinkCandidate, onSuccess: () -> Unit) {
+        if (_uiState.value.busy) return
         val bookId = _uiState.value.bookId ?: return
         if (_uiState.value.candidates.none { it.uri == candidate.uri }) return
         viewModelScope.launch(Dispatchers.IO) {
