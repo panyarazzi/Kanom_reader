@@ -225,6 +225,8 @@ class ReaderViewModel @Inject constructor(
 
     /** Mirrors KanomPreferences.reverseVolumeKeys; OFF keeps Up=Next and Down=Previous. */
     private var reverseVolumeKeys: Boolean = false
+    /** Live tap mode; false preserves the original centered menu activation zone. */
+    private var tapAnywhereToNext: Boolean = false
 
     /** Buffer up to 1 pending locator; oldest dropped so tryEmit always keeps the latest value. */
     private val locatorChanges = MutableSharedFlow<Locator>(
@@ -259,6 +261,7 @@ class ReaderViewModel @Inject constructor(
                 autoScroll = p.autoScroll
                 thaiWordBreak = p.thaiWordBreak
                 reverseVolumeKeys = p.reverseVolumeKeys
+                tapAnywhereToNext = p.tapAnywhereToNext
                 navigator?.submitPreferences(EpubPreferencesMapper.map(p))
                 _uiState.update { s -> if (s is ReaderUiState.Ready) s.copy(prefs = p) else s }
                 applyPublisherLineHeight()
@@ -504,6 +507,7 @@ class ReaderViewModel @Inject constructor(
             swipeThresholdPx = thresholdPx,
             viewportWidthPx = { nav.view?.width?.toFloat() ?: 0f },
             viewportHeightPx = { nav.view?.height?.toFloat() ?: 0f },
+            tapAnywhereToNext = { tapAnywhereToNext },
         )
         nav.addInputListener(interactionListener) // FIRST → observes taps/drags without consuming them
         nav.addInputListener(edgeAdapter)   // SECOND → keyboard navigation only
@@ -568,9 +572,12 @@ class ReaderViewModel @Inject constructor(
         }
         if (!supported) return false
 
-        if (event.action == android.view.KeyEvent.ACTION_UP) return true
-        if (event.action != android.view.KeyEvent.ACTION_DOWN) return true
-        if (event.repeatCount > 0) return true
+        // Do not consume key-up or repeat events: G7S may use the long-press sequence
+        // for a device action (for example, front-light toggle). Only the initial down
+        // is a page-turn command, so holding a key cannot repeat page turns.
+        if (event.action == android.view.KeyEvent.ACTION_UP) return false
+        if (event.action != android.view.KeyEvent.ACTION_DOWN) return false
+        if (event.repeatCount > 0 || event.isLongPress) return false
 
         return when (keyCode) {
             android.view.KeyEvent.KEYCODE_DPAD_LEFT,
@@ -920,6 +927,7 @@ class ReaderViewModel @Inject constructor(
     fun onBottomMargin(dp: Int) = viewModelScope.launch { prefs.setBottomMarginDp(dp) }
     fun onBoldText(enabled: Boolean) = viewModelScope.launch { prefs.setBoldText(enabled) }
     fun onReverseVolumeKeys(enabled: Boolean) = viewModelScope.launch { prefs.setReverseVolumeKeys(enabled) }
+    fun onTapAnywhereToNext(enabled: Boolean) = viewModelScope.launch { prefs.setTapAnywhereToNext(enabled) }
     // Task 6 escape hatches
     fun onUsePublisherStyles(v: Boolean) = viewModelScope.launch { prefs.setUsePublisherStyles(v) }
     fun onForceFont(v: Boolean) = viewModelScope.launch { prefs.setForceFont(v) }
