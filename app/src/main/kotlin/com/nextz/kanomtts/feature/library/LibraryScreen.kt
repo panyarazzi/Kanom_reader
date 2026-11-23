@@ -199,6 +199,7 @@ fun LibraryContent(
             }
         }
 
+        if (!state.isSelectionMode) {
             state.continueCard?.let { continueCard ->
                 item(key = "library-continue-reading") {
                     ContinueHero(card = continueCard, onClick = { onOpenBook(continueCard.id) })
@@ -300,6 +301,8 @@ fun LibraryContent(
                     }
                 }
             }
+        }
+
         }
 
         if (!state.isSelectionMode) {
