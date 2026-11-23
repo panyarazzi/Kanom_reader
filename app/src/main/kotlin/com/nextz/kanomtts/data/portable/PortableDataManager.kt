@@ -157,6 +157,7 @@ class PortableDataManager @Inject constructor(
                         putNullable("sha256", book.sha256)
                         put("addedAt", book.addedAt); putNullable("lastOpenedAt", book.lastOpenedAt)
                         putNullable("sourceFolder", book.sourceFolder); putNullable("sourceFileName", book.sourceFileName)
+                        putNullable("seriesName", book.seriesName); putNullable("seriesPosition", book.seriesPosition)
                     })
                 }
             })
@@ -256,6 +257,8 @@ class PortableDataManager @Inject constructor(
                 sha256 = item.optNullableString("sha256"),
                 sourceFolder = item.optNullableString("sourceFolder"),
                 sourceFileName = item.optNullableString("sourceFileName"),
+                seriesName = item.optNullableString("seriesName"),
+                seriesPosition = item.optNullableDouble("seriesPosition"),
             )
         }
     }
@@ -394,6 +397,8 @@ class PortableDataManager @Inject constructor(
                 sha256 = verifiedSourceHashes[id] ?: o.optNullableString("sha256"),
                 sourceFolder = source?.sourceFolder ?: o.optNullableString("sourceFolder"),
                 sourceFileName = source?.name ?: o.optNullableString("sourceFileName"),
+                seriesName = o.optNullableString("seriesName"),
+                seriesPosition = o.optNullableDouble("seriesPosition"),
             )
         }
         val progressArray = json.getJSONArray("progress")
@@ -535,6 +540,9 @@ class PortableDataManager @Inject constructor(
 
     private fun JSONObject.optNullableLong(key: String): Long? =
         if (isNull(key)) null else optLong(key)
+
+    private fun JSONObject.optNullableDouble(key: String): Double? =
+        if (isNull(key) || !has(key)) null else optDouble(key)
 
     private fun safeName(value: String): String = value.filter { it.isLetterOrDigit() || it == '-' || it == '_' }.take(100)
 
