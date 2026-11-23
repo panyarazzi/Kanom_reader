@@ -239,6 +239,82 @@ class PortableDataManager @Inject constructor(
         check(latestBackup.isFile) { "ไม่พบไฟล์สำรอง Kanom" }
         val json = readBackupJson()
         val bookArray = json.getJSONArray("books")
+        (0 until bookArray.length()).map { index ->
+            val item = bookArray.getJSONObject(index)
+            BookEntity(
+                id = item.getString("id"),
+                uri = item.getString("uri"),
+                title = item.getString("title"),
+                author = item.optNullableString("author"),
+                lang = item.optNullableString("lang"),
+                coverPath = null,
+                fileSize = item.getLong("fileSize"),
+                addedAt = item.getLong("addedAt"),
+                lastOpenedAt = item.optNullableLong("lastOpenedAt"),
+                sha256 = item.optNullableString("sha256"),
+                sourceFolder = item.optNullableString("sourceFolder"),
+                sourceFileName = item.optNullableString("sourceFileName"),
+            )
+        }
+    }
+
+    private fun readBackupJson(): JSONObject {
+        val metadata = ZipFile(latestBackup).use { zip ->
+            val entries = zip.entries()
+            var metadataEntry: ZipEntry? = null
+            while (entries.hasMoreElements()) {
+                val candidate = entries.nextElement()
+                if (!candidate.isDirectory && candidate.name == "data.json") {
+                    require(metadataEntry == null) { "ไฟล์สำรองมี data.json ซ้ำ" }
+                    metadataEntry = candidate
+                }
+            }
+            val entry = metadataEntry ?: error("ไฟล์สำรองไม่มี data.json")
+            require(entry.size >= 0L && entry.size <= MAX_ENTRY_BYTES) {
+                "ไฟล์ข้อมูลสำรองมีขนาดใหญ่เกินกำหนดหรือไม่ทราบขนาด"
+            }
+            zip.getInputStream(entry).use { input ->
+                val bytes = input.readBytes()
+                require(bytes.size.toLong() == entry.size) { "ข้อมูล data.json ใน ZIP ไม่สมบูรณ์" }
+                bytes
+            }
+        }
+        val json = JSONObject(String(metadata, Charsets.UTF_8))
+        require(json.optInt("formatVersion", -1) == FORMAT_VERSION) { "เวอร์ชันไฟล์สำรองนี้ไม่รองรับ" }
+        return json
+    }
+
+    suspend fun restoreLatestBackup(
+        sourceMappings: Map<String, RestoreSourceCandidate> = emptyMap(),
+    ): PortableBackupSummary = withContext(Dispatchers.IO) {
+        requireStorageAccess()
+        currentCoroutineContext().ensureActive()
+        check(latestBackup.isFile) { "ไม่พบไฟล์สำรอง Kanom" }
+        val entries = mutableMapOf<String, ByteArray>()
+        // Read only metadata and covers. Legacy EPUB payloads in older backups are never opened.
+        ZipFile(latestBackup).use { zip ->
+            val zipEntries = zip.entries()
+            var totalRestoredBytes = 0L
+            while (zipEntries.hasMoreElements()) {
+                currentCoroutineContext().ensureActive()
+                val entry = zipEntries.nextElement()
+                if (entry.isDirectory || !isRestorablePortableEntry(entry.name)) continue
+                require(entry.size >= 0L && entry.size <= MAX_ENTRY_BYTES) {
+                    "ไฟล์ในชุดสำรองมีขนาดใหญ่เกินกำหนดหรือไม่ทราบขนาด"
+                }
+                require(entry.name !in entries) { "ไฟล์สำรองมีรายการซ้ำ: ${entry.name}" }
+                totalRestoredBytes += entry.size
+                require(totalRestoredBytes <= MAX_TOTAL_RESTORE_BYTES) {
+                    "ข้อมูลที่ต้องกู้คืนมีขนาดรวมเกินกำหนด"
+                }
+                val bytes = zip.getInputStream(entry).use { it.readBytes() }
+                require(bytes.size.toLong() == entry.size) { "ข้อมูลใน ZIP ไม่สมบูรณ์: ${entry.name}" }
+                entries[entry.name] = bytes
+            }
+        }
+        val json = JSONObject(String(entries["data.json"] ?: error("ไฟล์สำรองไม่มี data.json"), Charsets.UTF_8))
+        require(json.optInt("formatVersion", -1) == FORMAT_VERSION) { "เวอร์ชันไฟล์สำรองนี้ไม่รองรับ" }
+        val bookArray = json.getJSONArray("books")
         val backupBookObjects = (0 until bookArray.length()).map { bookArray.getJSONObject(it) }
         val bookObjectsById = backupBookObjects.associateBy { it.getString("id") }
         require(bookObjectsById.size == backupBookObjects.size) {
