@@ -23,12 +23,12 @@ class BookAnnotationsDaoTest : RoomTestBase() {
         db.bookDao().upsert(book())
         db.bookTagDao().upsert(BookTagEntity("b1", "แนะนำ"))
         val library = db.bookTagLibraryDao()
+        library.insertIfMissing("Review")
         library.insertIfMissing("สำนวนดี")
-        library.insertIfMissing("สำนวนดี")
-        library.insertIfMissing("สำนวนดี".uppercase())
+        library.insertIfMissing("review")
 
         assertEquals(1, library.getAllForBackup().size)
-        library.delete("สำนวนดี")
+        library.delete("Review")
 
         assertEquals(emptyList<BookTagLibraryEntity>(), library.getAllForBackup())
         assertEquals(listOf("แนะนำ"), db.bookTagDao().observeForBook("b1").first().map { it.tag })
