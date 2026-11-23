@@ -21,6 +21,7 @@ import androidx.room.withTransaction
 import com.nextz.kanomtts.data.db.BookEntity
 import com.nextz.kanomtts.data.db.BookmarkEntity
 import com.nextz.kanomtts.data.db.BookTagEntity
+import com.nextz.kanomtts.data.db.BookTagLibraryEntity
 import com.nextz.kanomtts.data.db.BookNoteEntity
 import com.nextz.kanomtts.data.db.KanomDatabase
 import com.nextz.kanomtts.data.db.ProgressEntity
@@ -95,6 +96,7 @@ class PortableDataManager @Inject constructor(
         val rules: List<ReplacementRuleEntity>,
         val voices: List<VoiceConfigEntity>,
         val tags: List<BookTagEntity>,
+        val savedTags: List<BookTagLibraryEntity>,
         val notes: List<BookNoteEntity>,
         val sessions: List<ReadingSessionEntity>,
     )
@@ -129,6 +131,7 @@ class PortableDataManager @Inject constructor(
                 rules = database.replacementRuleDao().getAllForBackup(),
                 voices = database.voiceConfigDao().getAllForBackup(),
                 tags = database.bookTagDao().getAllForBackup(),
+                savedTags = database.bookTagLibraryDao().getAllForBackup(),
                 notes = database.bookNoteDao().getAllForBackup(),
                 sessions = database.readingSessionDao().getAllForBackup().filter { it.bookId in bookIds },
             )
@@ -139,6 +142,7 @@ class PortableDataManager @Inject constructor(
         val rules = snapshot.rules
         val voices = snapshot.voices
         val tags = snapshot.tags
+        val savedTags = snapshot.savedTags
         val notes = snapshot.notes
         val sessions = snapshot.sessions
         val prefs = dataStore.data.first()
@@ -191,6 +195,9 @@ class PortableDataManager @Inject constructor(
             })
             put("bookTags", JSONArray().apply {
                 tags.forEach { tag -> put(JSONObject().put("bookId", tag.bookId).put("tag", tag.tag)) }
+            })
+            put("savedTags", JSONArray().apply {
+                savedTags.forEach { tag -> put(JSONObject().put("tag", tag.tag)) }
             })
             put("bookNotes", JSONArray().apply {
                 notes.forEach { note -> put(JSONObject().put("bookId", note.bookId)
@@ -426,6 +433,10 @@ class PortableDataManager @Inject constructor(
             VoiceConfigEntity(o.getString("lang"), o.getString("providerId"), o.optNullableString("voiceId"),
                 o.getDouble("speed").toFloat(), o.getDouble("pitch").toFloat())
         }
+        val savedTagArray = json.optJSONArray("savedTags")
+        val savedTags = (0 until (savedTagArray?.length() ?: 0)).map { i ->
+            BookTagLibraryEntity(savedTagArray!!.getJSONObject(i).getString("tag").trim())
+        }.filter { it.tag.isNotEmpty() }.distinctBy { it.tag.lowercase() }
         val tagArray = json.optJSONArray("bookTags")
         val tags = (0 until (tagArray?.length() ?: 0)).map { i ->
             val o = tagArray!!.getJSONObject(i)
@@ -460,6 +471,7 @@ class PortableDataManager @Inject constructor(
             database.withTransaction {
                 currentCoroutineContext().ensureActive()
                 database.bookTagDao().deleteAll()
+                database.bookTagLibraryDao().deleteAll()
                 database.bookNoteDao().deleteAll()
                 database.readingSessionDao().deleteAll()
                 database.bookmarkDao().deleteAll()
@@ -473,6 +485,7 @@ class PortableDataManager @Inject constructor(
                 database.replacementRuleDao().insertAll(rules)
                 database.voiceConfigDao().insertAll(voices)
                 database.bookTagDao().insertAll(tags)
+                database.bookTagLibraryDao().insertAll(savedTags)
                 database.bookNoteDao().insertAll(notes)
                 database.readingSessionDao().insertAll(sessions)
                 // Apply preferences as the final operation in the DB transaction. If the
