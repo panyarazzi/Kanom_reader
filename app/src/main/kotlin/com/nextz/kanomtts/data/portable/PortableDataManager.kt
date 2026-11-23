@@ -29,6 +29,8 @@ import com.nextz.kanomtts.data.db.ReadingSessionEntity
 import com.nextz.kanomtts.data.db.VoiceConfigEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -254,6 +256,7 @@ class PortableDataManager @Inject constructor(
         sourceMappings: Map<String, RestoreSourceCandidate> = emptyMap(),
     ): PortableBackupSummary = withContext(Dispatchers.IO) {
         requireStorageAccess()
+        currentCoroutineContext().ensureActive()
         check(latestBackup.isFile) { "ไม่พบไฟล์สำรอง Kanom" }
         val entries = mutableMapOf<String, ByteArray>()
         // Use the ZIP central directory to enumerate entries, then open streams only for
@@ -263,6 +266,7 @@ class PortableDataManager @Inject constructor(
             val zipEntries = zip.entries()
             var totalRestoredBytes = 0L
             while (zipEntries.hasMoreElements()) {
+                currentCoroutineContext().ensureActive()
                 val entry = zipEntries.nextElement()
                 if (entry.isDirectory || !isRestorablePortableEntry(entry.name)) continue
                 require(entry.size >= 0L && entry.size <= MAX_ENTRY_BYTES) {
@@ -294,12 +298,14 @@ class PortableDataManager @Inject constructor(
         // Revalidate every selected source immediately before staging the restored rows.
         // This catches changed/replaced files between folder scan and final confirmation.
         sourceMappings.forEach { (bookId, source) ->
+            currentCoroutineContext().ensureActive()
             val bookIndex = (0 until bookArray.length()).first { bookArray.getJSONObject(it).getString("id") == bookId }
             val savedHash = bookArray.getJSONObject(bookIndex).optNullableString("sha256")
             val actualHash = context.contentResolver.openInputStream(Uri.parse(source.uri))?.use { input ->
                 val digest = MessageDigest.getInstance("SHA-256")
                 val buffer = ByteArray(64 * 1024)
                 while (true) {
+                    currentCoroutineContext().ensureActive()
                     val count = input.read(buffer)
                     if (count < 0) break
                     if (count > 0) digest.update(buffer, 0, count)
@@ -313,6 +319,7 @@ class PortableDataManager @Inject constructor(
                 "SHA-256 ของไฟล์ไม่ตรงกับหนังสือ ${bookArray.getJSONObject(bookIndex).getString("title")}"
             }
         }
+        currentCoroutineContext().ensureActive()
         val books = (0 until bookArray.length()).map { i ->
             val o = bookArray.getJSONObject(i)
             val id = o.getString("id")
@@ -393,7 +400,12 @@ class PortableDataManager @Inject constructor(
             "ข้อมูลกฎแทนที่อ้างถึงหนังสือที่ไม่มีในชุดสำรอง"
         }
 
+        val preferencesArray = json.getJSONArray("preferences")
+        currentCoroutineContext().ensureActive()
         database.withTransaction {
+            // Cancellation at any point before this transaction completes rolls back the
+            // existing library and reading state instead of leaving a partially restored DB.
+            currentCoroutineContext().ensureActive()
             database.bookTagDao().deleteAll()
             database.bookNoteDao().deleteAll()
             database.readingSessionDao().deleteAll()
@@ -410,8 +422,12 @@ class PortableDataManager @Inject constructor(
             database.bookTagDao().insertAll(tags)
             database.bookNoteDao().insertAll(notes)
             database.readingSessionDao().insertAll(sessions)
+            // Apply preferences before the Room transaction commits. A DataStore failure
+            // therefore aborts the DB restore rather than leaving DB and settings split.
+            currentCoroutineContext().ensureActive()
+            restorePreferences(preferencesArray)
+            currentCoroutineContext().ensureActive()
         }
-        restorePreferences(json.getJSONArray("preferences"))
         PortableBackupSummary(books.size, progress.size, bookmarks.size, rules.size, voices.size, tags.size, notes.size, sessions.size, latestBackup.absolutePath)
     }
 
