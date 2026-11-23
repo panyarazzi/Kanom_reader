@@ -313,7 +313,10 @@ fun SettingsScreen(
                                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                             ) {
                                 Column {
-                                    Text(if (alreadyAssigned) "${candidate.name} · จับคู่แล้ว" else candidate.name)
+                                    Text(
+                                        if (alreadyAssigned) "${candidate.name} · จับคู่แล้ว"
+                                        else "${candidate.name} · ${if (candidate.size > 0L) "${candidate.size} bytes" else "ไม่ทราบขนาด"}",
+                                    )
                                     Text(candidate.sourceFolder.orEmpty(), style = MaterialTheme.typography.bodySmall)
                                 }
                             }

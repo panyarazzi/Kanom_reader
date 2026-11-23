@@ -170,7 +170,10 @@ fun ReaderScreen(
                             onClick = { relinkViewModel.confirm(candidate) { viewModel.retryLoad() } },
                             enabled = !relinkState.busy,
                         ) {
-                            Text("${candidate.name} · ${candidate.size} bytes")
+                            Column {
+                                Text("${candidate.name} · ${if (candidate.size > 0L) "${candidate.size} bytes" else "ไม่ทราบขนาด"}")
+                                Text(candidate.sourceFolder.orEmpty(), style = MaterialTheme.typography.bodySmall)
+                            }
                         }
                     }
                 }
