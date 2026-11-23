@@ -33,8 +33,6 @@ data class KanomPreferences(
     val reverseVolumeKeys: Boolean = false,
     /** When enabled, every unhandled tap outside the reserved center-menu zone advances. */
     val tapAnywhereToNext: Boolean = false,
-    /** Previous/Next touch-zone ratio; Next is always the inverse to total 100%. */
-    val previousTouchZonePercent: Int = 50,
     val skipUrls: Boolean = false,
     val highlightOn: Boolean = true,
     val autoScroll: Boolean = true,
@@ -49,5 +47,4 @@ data class KanomPreferences(
     val visualReplacement: Boolean = false,
     val readingUnit: ReadingUnit = ReadingUnit.SENTENCE,
 ) {
-    val nextTouchZonePercent: Int get() = 100 - previousTouchZonePercent
 }

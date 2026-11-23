@@ -37,7 +37,6 @@ class PreferencesRepository @Inject constructor(
         val boldText = booleanPreferencesKey("reader_bold_text")
         val reverseVolumeKeys = booleanPreferencesKey("reverse_volume_keys")
         val tapAnywhereToNext = booleanPreferencesKey("tap_anywhere_to_next")
-        val previousTouchZonePercent = intPreferencesKey("previous_touch_zone_percent")
         val skipUrls = booleanPreferencesKey("skip_urls")
         val highlight = booleanPreferencesKey("highlight_on")
         val autoScroll = booleanPreferencesKey("auto_scroll")
@@ -79,7 +78,6 @@ class PreferencesRepository @Inject constructor(
             boldText = p[Keys.boldText] ?: DEFAULTS.boldText,
             reverseVolumeKeys = p[Keys.reverseVolumeKeys] ?: DEFAULTS.reverseVolumeKeys,
             tapAnywhereToNext = p[Keys.tapAnywhereToNext] ?: DEFAULTS.tapAnywhereToNext,
-            previousTouchZonePercent = (p[Keys.previousTouchZonePercent] ?: DEFAULTS.previousTouchZonePercent).coerceIn(0, 100),
             skipUrls = p[Keys.skipUrls] ?: DEFAULTS.skipUrls,
             highlightOn = p[Keys.highlight] ?: DEFAULTS.highlightOn,
             autoScroll = p[Keys.autoScroll] ?: DEFAULTS.autoScroll,
@@ -112,7 +110,6 @@ class PreferencesRepository @Inject constructor(
     override suspend fun setBoldText(v: Boolean) { store.edit { it[Keys.boldText] = v } }
     override suspend fun setReverseVolumeKeys(v: Boolean) { store.edit { it[Keys.reverseVolumeKeys] = v } }
     override suspend fun setTapAnywhereToNext(v: Boolean) { store.edit { it[Keys.tapAnywhereToNext] = v } }
-    override suspend fun setPreviousTouchZonePercent(v: Int) { store.edit { it[Keys.previousTouchZonePercent] = v.coerceIn(0, 100) } }
     override suspend fun setSkipUrls(v: Boolean) { store.edit { it[Keys.skipUrls] = v } }
     override suspend fun setHighlightOn(v: Boolean) { store.edit { it[Keys.highlight] = v } }
     override suspend fun setAutoScroll(v: Boolean) { store.edit { it[Keys.autoScroll] = v } }
