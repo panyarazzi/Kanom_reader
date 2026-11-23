@@ -5,6 +5,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -71,20 +74,52 @@ fun BookAnnotationsScreen(
                 exportLauncher.launch("Kanom-Book-Reviews.csv")
             }) { Text("ส่งออก CSV") }
         }
+        OutlinedTextField(
+            value = state.query,
+            onValueChange = viewModel::setQuery,
+            label = { Text("ค้นหาชื่อหนังสือ ผู้แต่ง Tag หรือ Note") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+        )
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            FilterChip(
+                selected = state.notesOnly,
+                onClick = { viewModel.setNotesOnly(!state.notesOnly) },
+                label = { Text("มี Notes") },
+            )
+            state.availableTags.forEach { tag ->
+                FilterChip(
+                    selected = state.selectedTag == tag,
+                    onClick = { viewModel.setTagFilter(tag) },
+                    label = { Text(tag) },
+                )
+            }
+        }
+        Text("แสดง ${state.books.size} จาก ${state.allBooks.size} เล่ม", style = MaterialTheme.typography.bodySmall)
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(state.books, key = { it.id }) { book ->
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                        Text(book.title, style = MaterialTheme.typography.titleMedium)
-                        if (!book.author.isNullOrBlank()) Text(book.author, style = MaterialTheme.typography.bodySmall)
-                        if (!book.sourceFileName.isNullOrBlank()) Text("ไฟล์: ${book.sourceFileName}", style = MaterialTheme.typography.bodySmall)
-                        if (book.tags.isNotEmpty()) Text("Tags: ${book.tags.joinToString(" · ")}")
-                        if (book.note.isNotBlank()) Text("Note: ${book.note}")
-                        TextButton(onClick = {
-                            editing = book
-                            tagsText = book.tags.joinToString(", ")
-                            noteText = book.note
-                        }) { Text("แก้ไข Tags / Notes") }
+            val grouped = state.books.groupBy { it.sourceFolder?.takeIf(String::isNotBlank) ?: "ไม่ระบุโฟลเดอร์" }
+            grouped.forEach { (folder, booksInFolder) ->
+                item(key = "folder:$folder") {
+                    Text(folder, style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp))
+                }
+                items(booksInFolder, key = { it.id }) { book ->
+                    Card(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Text(book.title, style = MaterialTheme.typography.titleMedium)
+                            if (!book.author.isNullOrBlank()) Text(book.author, style = MaterialTheme.typography.bodySmall)
+                            if (!book.sourceFileName.isNullOrBlank()) Text("ไฟล์: ${book.sourceFileName}", style = MaterialTheme.typography.bodySmall)
+                            if (book.tags.isNotEmpty()) Text("Tags: ${book.tags.joinToString(" · ")}")
+                            if (book.note.isNotBlank()) Text("Note: ${book.note}")
+                            TextButton(onClick = {
+                                editing = book
+                                tagsText = book.tags.joinToString(", ")
+                                noteText = book.note
+                            }) { Text("แก้ไข Tags / Notes") }
+                        }
                     }
                 }
             }
