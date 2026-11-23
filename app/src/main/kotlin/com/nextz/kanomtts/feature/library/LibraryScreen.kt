@@ -222,9 +222,26 @@ fun LibraryContent(
         }
 
         if (!state.isSelectionMode) {
-            state.continueCard?.let { continueCard ->
+            if (state.continueCards.isNotEmpty() || state.continueCard != null) {
                 item(key = "library-continue-reading") {
-                    ContinueHero(card = continueCard, onClick = { onOpenBook(continueCard.id) })
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("อ่านต่อ", style = MaterialTheme.typography.titleMedium)
+                        Row(
+                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            (state.continueCards.ifEmpty { listOfNotNull(state.continueCard) }).take(4).forEach { card ->
+                                BookGridItem(
+                                    card = card,
+                                    isSelectionMode = false,
+                                    isSelected = false,
+                                    onClick = { onOpenBook(card.id) },
+                                    onToggle = { onToggleSelection(card.id) },
+                                    modifier = Modifier.width(104.dp),
+                                )
+                            }
+                        }
+                    }
                 }
             }
             item(key = "library-shelves") {
