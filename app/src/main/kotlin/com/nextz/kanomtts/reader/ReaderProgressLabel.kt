@@ -115,7 +115,8 @@ internal fun progressSlotValue(slot: String, content: ProgressContent): String? 
     "TIME_BATTERY" -> listOfNotNull(content.time, batteryProgressText(content))
         .joinToString(" • ").ifBlank { null }
     "TIME" -> content.time
-    "BATTERY", "CHARGING" -> batteryProgressText(content)
+    "BATTERY" -> content.battery?.let { "B $it" }
+    "CHARGING" -> if (content.charging) batteryProgressText(content) else null
     else -> null
 }
 

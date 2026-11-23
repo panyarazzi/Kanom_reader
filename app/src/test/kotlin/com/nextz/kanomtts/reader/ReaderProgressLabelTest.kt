@@ -40,6 +40,12 @@ class ReaderProgressLabelTest {
         assertEquals("12:30 • B 76%", progressSlotValue("TIME_BATTERY", content))
     }
 
+    @Test fun chargingSlotIsEmptyWhenNotChargingButBatterySlotRemainsVisible() {
+        val content = buildProgressContent(7, 18, "บทที่ 2", "หนังสือทดสอบ", 0.5, null, 76, false)
+        assertEquals("B 76%", progressSlotValue("BATTERY", content))
+        assertNull(progressSlotValue("CHARGING", content))
+    }
+
     @Test fun centersProgressAndSuppressesDuplicateValues() {
         val content = buildProgressContent(7, 18, "บทที่ 2", "หนังสือทดสอบ", 0.6527, "12:30", 76, false)
         val slots = progressSlotValues(
