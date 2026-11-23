@@ -41,7 +41,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.nextz.kanomtts.playback.ui.MiniPlayerInline
+import com.nextz.kanomtts.playback.ui.MiniPlayerBar
+import com.nextz.kanomtts.playback.ui.MiniPlayerUiState
+import com.nextz.kanomtts.playback.ui.PlaybackViewModel
 import com.nextz.kanomtts.ui.theme.KanomTheme
 
 // ─── VM-bound entry point ───────────────────────────────────────────────────────
@@ -64,6 +66,8 @@ fun LibraryScreen(
     val uiState by viewModel.uiState.collectAsState()
     val statisticsViewModel: ReadingStatisticsViewModel = hiltViewModel()
     val statisticsState by statisticsViewModel.uiState.collectAsState()
+    val playbackViewModel: PlaybackViewModel = hiltViewModel()
+    val playbackState by playbackViewModel.uiState.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -124,6 +128,11 @@ fun LibraryScreen(
             statistics = statisticsState,
             onOpenStatistics = onOpenStatistics,
             onOpenNowPlaying = onOpenNowPlaying,
+            playbackState = playbackState,
+            onPlaybackToggle = playbackViewModel::playPause,
+            onPlaybackNext = playbackViewModel::next,
+            onPlaybackPrevious = playbackViewModel::prev,
+            onPlaybackSleep = { playbackViewModel.setSleep(15) },
             contentPadding = combinedPadding,
             modifier = modifier,
         )
@@ -154,6 +163,11 @@ fun LibraryContent(
     statistics: ReadingStatisticsUiState? = null,
     onOpenStatistics: () -> Unit = {},
     onOpenNowPlaying: () -> Unit = {},
+    playbackState: MiniPlayerUiState? = null,
+    onPlaybackToggle: () -> Unit = {},
+    onPlaybackNext: () -> Unit = {},
+    onPlaybackPrevious: () -> Unit = {},
+    onPlaybackSleep: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(),
     modifier: Modifier = Modifier,
 ) {
@@ -275,7 +289,8 @@ fun LibraryContent(
             if (statistics != null) {
                 item(key = "library-reading-statistics-and-listening") {
                     androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
-                        if (maxWidth >= 600.dp) {
+                        val listeningVisible = playbackState?.visible == true
+                        if (listeningVisible && maxWidth >= 600.dp) {
                             Row(
                                 Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -285,13 +300,31 @@ fun LibraryContent(
                                     ReadingStatisticsCard(state = statistics, onMore = onOpenStatistics)
                                 }
                                 Box(Modifier.weight(1f)) {
-                                    MiniPlayerInline(onExpand = onOpenNowPlaying)
+                                    MiniPlayerBar(
+                                        state = playbackState!!,
+                                        onPlayPause = onPlaybackToggle,
+                                        onNext = onPlaybackNext,
+                                        onPrev = onPlaybackPrevious,
+                                        onSleep = onPlaybackSleep,
+                                        onExpand = onOpenNowPlaying,
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
                                 }
                             }
                         } else {
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 ReadingStatisticsCard(state = statistics, onMore = onOpenStatistics)
-                                MiniPlayerInline(onExpand = onOpenNowPlaying)
+                                if (listeningVisible) {
+                                    MiniPlayerBar(
+                                        state = playbackState!!,
+                                        onPlayPause = onPlaybackToggle,
+                                        onNext = onPlaybackNext,
+                                        onPrev = onPlaybackPrevious,
+                                        onSleep = onPlaybackSleep,
+                                        onExpand = onOpenNowPlaying,
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                }
                             }
                         }
                     }
