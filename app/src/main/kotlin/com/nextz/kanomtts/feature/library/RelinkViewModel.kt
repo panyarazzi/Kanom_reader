@@ -12,7 +12,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.security.MessageDigest
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,11 +30,16 @@ data class RelinkCandidate(
 )
 
 internal fun relinkMatches(original: BookEntity, candidate: RelinkCandidate, extractedTitle: String?): Boolean {
-    if (!original.sha256.isNullOrBlank()) return candidate.sha256 == original.sha256
+    if (!original.sha256.isNullOrBlank()) {
+        return candidate.sha256?.equals(original.sha256, ignoreCase = true) == true
+    }
     val fileTitle = candidate.name.substringBeforeLast('.', candidate.name)
     val titleMatches = extractedTitle.equals(original.title, true) || fileTitle.equals(original.title, true)
-    val sizeMatches = original.fileSize <= 0L || candidate.size <= 0L || original.fileSize == candidate.size
-    return titleMatches && sizeMatches
+    val filenameMatches = !original.sourceFileName.isNullOrBlank() &&
+        candidate.name.equals(original.sourceFileName, ignoreCase = true)
+    val sizeMatches = original.fileSize > 0L && candidate.size > 0L &&
+        original.fileSize == candidate.size
+    return sizeMatches && (filenameMatches || titleMatches)
 }
 
 internal fun relinkCandidateWithFingerprint(
@@ -73,7 +81,9 @@ class RelinkViewModel @Inject constructor(
             ?: error("ไม่สามารถเปิดโฟลเดอร์ที่เลือกได้")
         val found = mutableListOf<RelinkCandidate>()
         suspend fun walk(folder: DocumentFile, relative: String) {
+            currentCoroutineContext().ensureActive()
             folder.listFiles().forEach { child ->
+                currentCoroutineContext().ensureActive()
                 if (child.isDirectory) {
                     val next = listOf(relative, child.name.orEmpty()).filter { it.isNotBlank() }.joinToString("/")
                     walk(child, next)
@@ -90,16 +100,16 @@ class RelinkViewModel @Inject constructor(
     private fun search(bookId: String, scan: suspend () -> List<RelinkCandidate>) {
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.value = RelinkUiState(busy = true, bookId = bookId)
-            val result = runCatching {
+            try {
                 val original = books.get(bookId) ?: error("ไม่พบข้อมูลหนังสือเดิม")
                 val matches = scan().mapNotNull { candidate ->
+                    currentCoroutineContext().ensureActive()
                     if (!original.sha256.isNullOrBlank()) {
-                        // SHA-256 is authoritative; do not reject a candidate based on provider size metadata.
-                        // Keep the verified fingerprint on the returned candidate so confirm() persists it.
+                        // SHA-256 is authoritative; provider size metadata is only advisory.
                         val candidateHash = candidate.sha256 ?: hash(Uri.parse(candidate.uri))
                         relinkCandidateWithFingerprint(original, candidate, candidateHash)
                     } else {
-                        val sizePossible = original.fileSize <= 0L || candidate.size <= 0L ||
+                        val sizePossible = original.fileSize > 0L && candidate.size > 0L &&
                             original.fileSize == candidate.size
                         if (!sizePossible) null else {
                             val extractedTitle = metadata.extract(candidate.uri)?.title
@@ -107,18 +117,17 @@ class RelinkViewModel @Inject constructor(
                         }
                     }
                 }
-                matches
+                _uiState.value = RelinkUiState(
+                    bookId = bookId,
+                    candidates = matches,
+                    message = if (matches.isEmpty()) "ไม่พบไฟล์ที่ตรงกับหนังสือเดิม"
+                        else "พบไฟล์ที่ตรงกัน ${matches.size} รายการ กรุณาเลือกไฟล์ที่ถูกต้อง",
+                )
+            } catch (cancelled: CancellationException) {
+                _uiState.value = RelinkUiState(bookId = bookId, message = "ยกเลิกการค้นหาไฟล์แล้ว")
+            } catch (failure: Exception) {
+                _uiState.value = RelinkUiState(bookId = bookId, message = "ค้นหาไม่สำเร็จ: ${failure.message}")
             }
-            _uiState.value = result.fold(
-                onSuccess = { matches ->
-                    RelinkUiState(
-                        bookId = bookId,
-                        candidates = matches,
-                        message = if (matches.isEmpty()) "ไม่พบไฟล์ที่ตรงกับหนังสือเดิม" else "พบไฟล์ที่ตรงกัน ${matches.size} รายการ กรุณาเลือกไฟล์ที่ถูกต้อง",
-                    )
-                },
-                onFailure = { RelinkUiState(bookId = bookId, message = "ค้นหาไม่สำเร็จ: ${it.message}") },
-            )
         }
     }
 
@@ -126,30 +135,62 @@ class RelinkViewModel @Inject constructor(
 
     fun confirm(candidate: RelinkCandidate, onSuccess: () -> Unit) {
         val bookId = _uiState.value.bookId ?: return
+        if (_uiState.value.candidates.none { it.uri == candidate.uri }) return
         viewModelScope.launch(Dispatchers.IO) {
-            val ok = runCatching {
+            _uiState.value = _uiState.value.copy(busy = true, message = "กำลังตรวจสอบไฟล์ต้นฉบับอีกครั้ง…")
+            try {
                 val original = books.get(bookId) ?: error("ไม่พบข้อมูลหนังสือเดิม")
-                writer.updateSource(bookId, candidate.uri, candidate.sha256, candidate.sourceFolder ?: original.sourceFolder, candidate.name)
-            }.getOrDefault(false)
-            if (ok) {
-                _uiState.value = RelinkUiState(message = "เชื่อมไฟล์ต้นฉบับสำเร็จ โดยคงรหัสหนังสือ ตำแหน่งอ่าน และ Bookmark เดิม")
+                val uri = Uri.parse(candidate.uri)
+                val actualHash = hash(uri)
+                if (!original.sha256.isNullOrBlank()) {
+                    require(actualHash?.equals(original.sha256, ignoreCase = true) == true) {
+                        "SHA-256 ของไฟล์ไม่ตรงกับหนังสือเดิม หรือไม่สามารถอ่านไฟล์ได้"
+                    }
+                } else {
+                    val currentSize = DocumentFile.fromSingleUri(context, uri)?.length() ?: 0L
+                    val refreshedCandidate = candidate.copy(size = currentSize, sha256 = actualHash)
+                    val extractedTitle = metadata.extract(candidate.uri)?.title
+                    require(relinkMatches(original, refreshedCandidate, extractedTitle)) {
+                        "ชื่อหรือขนาดไฟล์ไม่ตรงกับหนังสือเดิม"
+                    }
+                }
+                val ok = writer.updateSource(
+                    bookId,
+                    candidate.uri,
+                    actualHash ?: original.sha256,
+                    candidate.sourceFolder ?: original.sourceFolder,
+                    candidate.name,
+                )
+                check(ok) { "บันทึกตำแหน่งไฟล์ใหม่ไม่สำเร็จ" }
+                _uiState.value = RelinkUiState(
+                    message = "เชื่อมไฟล์ต้นฉบับสำเร็จ โดยคงรหัสหนังสือ ตำแหน่งอ่าน และ Bookmark เดิม",
+                )
                 onSuccess()
-            } else {
-                _uiState.value = _uiState.value.copy(message = "เชื่อมไฟล์ไม่สำเร็จ")
+            } catch (cancelled: CancellationException) {
+                _uiState.value = _uiState.value.copy(busy = false, message = "ยกเลิกการเชื่อมไฟล์แล้ว")
+            } catch (failure: Exception) {
+                _uiState.value = _uiState.value.copy(busy = false, message = "เชื่อมไฟล์ไม่สำเร็จ: ${failure.message}")
             }
         }
     }
 
-    private fun hash(uri: Uri): String? = runCatching {
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            val digest = MessageDigest.getInstance("SHA-256")
-            val buffer = ByteArray(64 * 1024)
-            while (true) {
-                val count = input.read(buffer)
-                if (count < 0) break
-                if (count > 0) digest.update(buffer, 0, count)
+    private suspend fun hash(uri: Uri): String? {
+        return try {
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                val digest = MessageDigest.getInstance("SHA-256")
+                val buffer = ByteArray(64 * 1024)
+                while (true) {
+                    currentCoroutineContext().ensureActive()
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    if (count > 0) digest.update(buffer, 0, count)
+                }
+                digest.digest().joinToString("") { "%02x".format(it) }
             }
-            digest.digest().joinToString("") { "%02x".format(it) }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            null
         }
-    }.getOrNull()
+    }
 }
