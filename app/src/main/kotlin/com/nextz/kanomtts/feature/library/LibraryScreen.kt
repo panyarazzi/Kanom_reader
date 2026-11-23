@@ -73,7 +73,13 @@ fun LibraryScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-    BackHandler(enabled = uiState.isSelectionMode) { viewModel.clearSelection() }
+    BackHandler(enabled = uiState.isSelectionMode || uiState.selectedFolder != null) {
+        if (uiState.isSelectionMode) {
+            viewModel.clearSelection()
+        } else {
+            viewModel.setFolderFilter(uiState.selectedFolder?.substringBeforeLast('/', "")?.ifBlank { null })
+        }
+    }
 
     val folderLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
@@ -513,7 +519,7 @@ fun LibraryContent(
 
         }
 
-        if (state.books.isEmpty()) {
+        if (state.books.isEmpty() && state.folders.isEmpty()) {
             item(key = "library-empty") {
                 Box(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
