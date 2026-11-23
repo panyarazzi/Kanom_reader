@@ -272,17 +272,17 @@ class PortableDataManager @Inject constructor(
                     }
                 }
                 digest.digest().joinToString("") { "%02x".format(it) }
-            } ?: error("ไม่สามารถอ่านไฟล์ต้นฉบับที่เลือกได้: \${source.name}")
+            } ?: error("ไม่สามารถอ่านไฟล์ต้นฉบับที่เลือกได้: ${source.name}")
             require(source.sha256.isNullOrBlank() || actualHash.equals(source.sha256, ignoreCase = true)) {
-                "ไฟล์ต้นฉบับเปลี่ยนแปลงหลังจากสแกน: \${source.name}"
+                "ไฟล์ต้นฉบับเปลี่ยนแปลงหลังจากสแกน: ${source.name}"
             }
             require(savedHash.isNullOrBlank() || actualHash.equals(savedHash, ignoreCase = true)) {
-                "SHA-256 ของไฟล์ไม่ตรงกับหนังสือ \${savedBook.getString("title")}"
+                "SHA-256 ของไฟล์ไม่ตรงกับหนังสือ ${savedBook.getString("title")}"
             }
             if (savedHash.isNullOrBlank()) {
                 val savedSize = savedBook.optLong("fileSize", -1L)
                 require(savedSize <= 0L || actualSize == savedSize) {
-                    "ขนาดไฟล์ต้นฉบับไม่ตรงกับหนังสือ \${savedBook.getString("title")}"
+                    "ขนาดไฟล์ต้นฉบับไม่ตรงกับหนังสือ ${savedBook.getString("title")}"
                 }
             }
             verifiedSourceHashes[bookId] = actualHash
