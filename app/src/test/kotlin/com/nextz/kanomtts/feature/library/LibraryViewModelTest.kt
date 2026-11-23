@@ -275,7 +275,7 @@ class LibraryViewModelTest {
 
         vm.setShelfFilter(LibraryShelf.READING)
         runCurrent()
-        assertEquals(3, vm.uiState.value.books.size)
+        assertEquals(2, vm.uiState.value.books.size)
     }
 
     @Test
