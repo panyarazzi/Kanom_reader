@@ -312,6 +312,7 @@ class ReaderViewModel @Inject constructor(
         // Read prefs first so thaiWordBreak toggle is available before opening the display publication.
         val initialPrefs = prefs.preferences.first()
         tapAnywhereToNext = initialPrefs.tapAnywhereToNext
+        previousTouchZonePercent = initialPrefs.previousTouchZonePercent
 
         // Snapshot visual replacement rules at open time (apply-on-next-open).
         // Only fetch when the pref is on; empty list = no injection (today's behaviour).
