@@ -57,6 +57,16 @@ android {
         unitTests {
             // Required by Robolectric to load Android resources (e.g. SQLite, manifests).
             isIncludeAndroidResources = true
+            // Robolectric fetches android-all at test runtime through its own HttpURLConnection
+            // client, independently of Gradle repositories. Route that fetch through the
+            // Google-hosted Maven Central mirror to avoid failures from repo1.maven.org.
+            all {
+                it.systemProperty(
+                    "robolectric.dependency.repo.url",
+                    "https://maven-central.storage-download.googleapis.com/maven2/"
+                )
+                it.systemProperty("robolectric.dependency.repo.id", "google-maven-central-mirror")
+            }
         }
     }
 
