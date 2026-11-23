@@ -3,6 +3,8 @@ package com.nextz.kanomtts.feature.library
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nextz.kanomtts.data.db.BookEntity
+import com.nextz.kanomtts.data.db.BookDao
+import com.nextz.kanomtts.data.db.ProgressDao
 import com.nextz.kanomtts.data.db.BookTagDao
 import com.nextz.kanomtts.data.db.BookTagEntity
 import com.nextz.kanomtts.data.db.ProgressEntity
@@ -21,6 +23,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
 
 fun playingBookIsSelected(state: PlaybackState, selected: Set<String>): Boolean = when (state) {
@@ -34,6 +37,8 @@ fun playingBookIsSelected(state: PlaybackState, selected: Set<String>): Boolean 
 class LibraryViewModel @Inject constructor(
     bookReader: BookReader,
     progressReader: ProgressReader,
+    private val bookDao: BookDao,
+    private val progressDao: ProgressDao,
     private val bookDeleter: BookDeleter,
     private val playbackStopper: PlaybackStopper,
     private val bookTagDao: BookTagDao? = null,
@@ -268,6 +273,46 @@ class LibraryViewModel @Inject constructor(
     }
 
     fun clearSelection() { _selectedIds.value = emptySet() }
+
+    fun setReadingStatus(bookId: String, shelf: LibraryShelf) {
+        if (shelf == LibraryShelf.SERIES) return
+        viewModelScope.launch {
+            val current = progressDao.get(bookId)
+            val percent = when (shelf) {
+                LibraryShelf.READING -> current?.percent?.takeIf { it > 0f && it < 1f } ?: 0.001f
+                LibraryShelf.TO_READ -> 0f
+                LibraryShelf.FINISHED -> 1f
+                LibraryShelf.SERIES -> return@launch
+            }
+            progressDao.upsert(
+                ProgressEntity(
+                    bookId = bookId,
+                    locator = current?.locator,
+                    ttsLocator = current?.ttsLocator,
+                    percent = percent,
+                    updatedAt = System.currentTimeMillis(),
+                ),
+            )
+        }
+    }
+
+    fun updateBookMetadata(bookId: String, title: String, author: String?) {
+        val cleanTitle = title.trim()
+        if (cleanTitle.isEmpty()) return
+        viewModelScope.launch {
+            bookDao.updateMetadata(bookId, cleanTitle, author?.trim()?.takeIf { it.isNotEmpty() })
+        }
+    }
+
+    fun updateBookCover(bookId: String, coverPath: String) {
+        viewModelScope.launch {
+            val oldPath = bookDao.getById(bookId)?.coverPath
+            bookDao.updateCoverPath(bookId, coverPath)
+            if (!oldPath.isNullOrBlank() && oldPath != coverPath) {
+                runCatching { File(oldPath).delete() }
+            }
+        }
+    }
 
     fun deleteSelected() {
         val ids = _selectedIds.value
