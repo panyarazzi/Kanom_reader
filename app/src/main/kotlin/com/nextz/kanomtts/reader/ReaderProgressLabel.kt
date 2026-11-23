@@ -44,7 +44,11 @@ internal fun resolveChapterTitle(
             .getOrNull()
             ?.takeIf { it.isNotBlank() }
             ?: withoutFragment
-        return URLDecoder.decode(path.replace("+", "%2B"), "UTF-8").trimStart('/')
+        // EPUB hrefs originate in publisher files and may contain malformed percent escapes.
+        // A bad escape must not crash the reader's progress overlay.
+        val decoded = runCatching { URLDecoder.decode(path.replace("+", "%2B"), "UTF-8") }
+            .getOrDefault(path)
+        return decoded.trimStart('/')
     }
 
     val target = locatorHref?.takeIf { it.isNotBlank() }?.let(::canonicalHref)

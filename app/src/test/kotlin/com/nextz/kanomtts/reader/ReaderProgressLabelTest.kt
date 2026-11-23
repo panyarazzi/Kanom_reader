@@ -158,6 +158,22 @@ class ReaderProgressLabelTest {
         assertEquals("ตอนที่ 34", title)
     }
 
+    @Test fun malformedHrefEscapeDoesNotCrashProgressTitleResolution() {
+        assertEquals(
+            "บททดสอบ",
+            resolveChapterTitle(
+                "OPS/Text/chapter%ZZ.xhtml",
+                null,
+                listOf(
+                    Link(
+                        href = Href(Url("OPS/Text/chapter%ZZ.xhtml")!!),
+                        title = "บททดสอบ",
+                    ),
+                ),
+            ),
+        )
+    }
+
     @Test fun rejectsGenericOrFabricatedLocatorTitles() {
         assertNull(resolveChapterTitle("OPS/a.xhtml", "เล่มที่ 2", emptyList()))
         assertNull(resolveChapterTitle("OPS/a.xhtml", "chapter", emptyList()))
