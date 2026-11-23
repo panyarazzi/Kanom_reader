@@ -56,6 +56,8 @@ fun BookAnnotationsScreen(
         if (uri != null) {
             exportError = runCatching {
                 context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use {
+                    // UTF-8 BOM helps spreadsheet apps recognize Thai text correctly.
+                    it.write("\uFEFF")
                     it.write(csvContent)
                 } ?: error("ไม่สามารถสร้างไฟล์ CSV ได้")
             }.exceptionOrNull()?.let { "ส่งออก CSV ไม่สำเร็จ: ${it.message ?: "เกิดข้อผิดพลาด"}" }
