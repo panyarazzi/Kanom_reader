@@ -111,7 +111,7 @@ fun KanomApp(
                     contentPadding = padding,
                     importViewModel = importVm,
                     onOpenStatistics = { navController.navigate("reading_statistics") },
-                    onOpenAnnotations = { navController.navigate("book_annotations") },
+                    onOpenAnnotations = { id -> navController.navigate("book_annotations/$id") },
                     onOpenNowPlaying = { navController.navigate(KanomDestination.NOW_PLAYING.route) { launchSingleTop = true } },
                 )
             }
@@ -120,6 +120,13 @@ fun KanomApp(
                     onBack = { navController.popBackStack() },
                     onOpenAnnotations = { navController.navigate("book_annotations") },
                     contentPadding = padding,
+                )
+            }
+            composable("book_annotations/{bookId}") { entry ->
+                BookAnnotationsScreen(
+                    onBack = { navController.popBackStack() },
+                    contentPadding = padding,
+                    initialBookId = entry.arguments?.getString("bookId"),
                 )
             }
             composable("book_annotations") {
