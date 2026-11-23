@@ -238,7 +238,17 @@ class LibraryViewModel @Inject constructor(
         }
     }
     fun setSortDescending(descending: Boolean) { _sortDescending.value = descending }
-    fun setSecondarySortMode(mode: LibrarySecondarySortMode) { _secondarySortMode.value = mode }
+    fun setSecondarySortMode(mode: LibrarySecondarySortMode) {
+        val conflicts = when (_sortMode.value) {
+            LibrarySortMode.TITLE_ASC -> mode.name.startsWith("TITLE_")
+            LibrarySortMode.AUTHOR_ASC -> mode.name.startsWith("AUTHOR_")
+            LibrarySortMode.FILENAME_ASC -> mode.name.startsWith("FILENAME_")
+            LibrarySortMode.ADDED_AT_ASC -> mode.name.startsWith("ADDED_")
+            LibrarySortMode.LAST_OPENED_AT_ASC -> mode.name.startsWith("OPENED_")
+            LibrarySortMode.PROGRESS_ASC -> false
+        }
+        if (!conflicts) _secondarySortMode.value = mode
+    }
     fun setShowFilename(show: Boolean) { _showFilename.value = show }
     fun setShelfFilter(shelf: LibraryShelf?) {
         _selectedShelf.value = if (_selectedShelf.value == shelf) null else shelf
