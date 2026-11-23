@@ -81,9 +81,9 @@ internal fun isCenterMenuTap(x: Float, y: Float, width: Float, height: Float, fr
 internal enum class ReaderTapAction { TOGGLE_CHROME, PREVIOUS_PAGE, NEXT_PAGE }
 
 /**
- * When tap-anywhere is enabled, every unhandled tap advances, including the center.
- * Original Zones reserves the center for chrome and splits the non-center tap area using the configured Previous/Next ratio. The split is screen-relative
- * and therefore follows the active orientation without rewriting the saved preference.
+ * The center menu zone is always reserved. With tap-anywhere enabled, every other
+ * unhandled tap advances. Otherwise the non-center area is split by the configured
+ * Previous/Next ratio, relative to the current screen width.
  */
 internal fun resolveReaderTapAction(
     x: Float,
@@ -95,8 +95,8 @@ internal fun resolveReaderTapAction(
     previousZonePercent: Int = 50,
 ): ReaderTapAction =
     when {
-        tapAnywhereToNext -> ReaderTapAction.NEXT_PAGE
         isCenterMenuTap(x, y, width, height, centerMenuFraction) -> ReaderTapAction.TOGGLE_CHROME
+        tapAnywhereToNext -> ReaderTapAction.NEXT_PAGE
         width > 0f && x < width * previousZonePercent.coerceIn(0, 100) / 100f -> ReaderTapAction.PREVIOUS_PAGE
         else -> ReaderTapAction.NEXT_PAGE
     }

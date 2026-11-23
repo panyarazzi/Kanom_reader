@@ -27,13 +27,17 @@ class ReaderTapZoneTest {
         )
     }
 
-    @Test fun anywhereToNextAdvancesFromLeftCenterAndRight() {
-        listOf(50f, 500f, 950f).forEach { x ->
+    @Test fun anywhereToNextAdvancesEverywhereExceptTheCenterMenu() {
+        listOf(50f, 950f).forEach { x ->
             assertEquals(
                 ReaderTapAction.NEXT_PAGE,
                 resolveReaderTapAction(x, 500f, 1000f, 1000f, tapAnywhereToNext = true),
             )
         }
+        assertEquals(
+            ReaderTapAction.TOGGLE_CHROME,
+            resolveReaderTapAction(500f, 500f, 1000f, 1000f, tapAnywhereToNext = true),
+        )
     }
     @Test fun previousNextRatioChangesBoundaryAndKeepsCenterMenu() {
         assertEquals(
