@@ -94,7 +94,7 @@ class LibraryViewModel @Inject constructor(
         val showFilename = controls.second[6] as Boolean
         val selectedShelf = controls.second[7] as LibraryShelf?
         val allCards = pairs.map { (book, progress, tags) ->
-            book.toBookCard(progress).copy(tags = tags, sourceFolder = book.sourceFolder, filename = book.sourceFileName ?: uriFilename(book.uri), displayFilename = showFilename)
+            book.toBookCard(progress).copy(tags = tags, sourceFolder = book.sourceFolder, filename = book.sourceFileName ?: uriFilename(book.uri), displayFilename = showFilename, sha256 = book.sha256)
         }
         val queryFiltered = if (query.isBlank()) allCards else {
             allCards.filter { card ->
@@ -169,8 +169,16 @@ class LibraryViewModel @Inject constructor(
             .sortedByDescending { it.lastOpenedAt }
             .take(4)
         val continueCard = continueCards.firstOrNull()
+        // Keep this rail for individually imported books; folder books are browsed in their hierarchy.
+        // SHA-256 suppresses an individual copy when the same EPUB is present in a folder.
+        // Titles are deliberately not used as identity.
+        val folderImportHashes = allCards
+            .filter { !it.sourceFolder.isNullOrBlank() }
+            .mapNotNull { it.sha256?.lowercase() }
+            .toSet()
         val recentlyOpened = filteredCards
-            .filter { it.lastOpenedAt != null }
+            .filter { it.lastOpenedAt != null && it.sourceFolder.isNullOrBlank() }
+            .filter { it.sha256.isNullOrBlank() || it.sha256.lowercase() !in folderImportHashes }
             .sortedByDescending { it.lastOpenedAt }
             .take(8)
         val newestBooks = filteredCards.sortedByDescending { it.addedAt }.take(8)
