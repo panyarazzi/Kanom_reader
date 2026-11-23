@@ -289,7 +289,7 @@ fun BookGridItem(
 
 /**
  * List row: small cover, title + author (for LIST/DETAIL modes), progress bar + percentage.
- * Supports selection mode: long-press enters selection, tap toggles when in selection mode.
+ * Long-press is delegated to the caller (context actions in Library, selection fallback in previews).
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
