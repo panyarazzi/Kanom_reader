@@ -178,6 +178,16 @@ class LibraryViewModelTest {
     }
 
     @Test
+    fun `continueCards contains at most four most recently opened in-progress books`() = runTest {
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        fakeBooks.books.value = (1..6).map { book("$it", "Book $it", lastOpenedAt = it.toLong()) }
+        (1..6).forEach { fakeProgress.setProgress("$it", progress("$it", 0.2f)) }
+        runCurrent()
+        assertEquals(listOf("6", "5", "4", "3"), vm.uiState.value.continueCards.map { it.id })
+        assertEquals("6", vm.uiState.value.continueCard?.id)
+    }
+
+    @Test
     fun `continueCard is null when no in-progress books`() = runTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         fakeBooks.books.value = listOf(book("1", "Finished", lastOpenedAt = 1000L))
@@ -215,11 +225,18 @@ class LibraryViewModelTest {
             book("3", "Gamma").copy(sourceFolder = "Series/Two"),
         )
         runCurrent()
-        assertEquals(2, vm.uiState.value.folders.size)
-        assertEquals(2, vm.uiState.value.folders.first { it.name == "Series/One" }.count)
-        vm.setFolderFilter("Series/One")
+        assertEquals(1, vm.uiState.value.folders.size)
+        assertEquals("Series", vm.uiState.value.folders.first().name)
+        assertEquals(3, vm.uiState.value.folders.first().count)
+        assertTrue(vm.uiState.value.books.isEmpty())
+        vm.setFolderFilter("Series")
         runCurrent()
-        assertEquals(listOf("1", "2"), vm.uiState.value.books.map { it.id })
+        assertEquals(2, vm.uiState.value.folders.size)
+        assertEquals(listOf("1", "2"), vm.uiState.value.folders.first { it.name == "One" }.let { folder ->
+            vm.setFolderFilter(folder.path)
+            runCurrent()
+            vm.uiState.value.books.map { it.id }
+        })
     }
 
     @Test
