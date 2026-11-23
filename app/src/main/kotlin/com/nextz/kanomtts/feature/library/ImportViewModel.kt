@@ -63,7 +63,13 @@ class ImportViewModel @Inject constructor(
             var relinkedCount = 0
             var unreadableCount = 0
             var scanFailed = false
-            val rootName = runCatching { root.name }.getOrNull().orEmpty()
+            val rootName = try {
+                root.name.orEmpty()
+            } catch (_: Exception) {
+                scanFailed = true
+                unreadableCount++
+                ""
+            }
 
             suspend fun scan(folder: DocumentFile, relativePath: String) {
                 currentCoroutineContext().ensureActive()
@@ -83,6 +89,7 @@ class ImportViewModel @Inject constructor(
                     } catch (cancelled: CancellationException) {
                         throw cancelled
                     } catch (_: Exception) {
+                        scanFailed = true
                         unreadableCount++
                         continue
                     }
@@ -92,6 +99,7 @@ class ImportViewModel @Inject constructor(
                         } catch (cancelled: CancellationException) {
                             throw cancelled
                         } catch (_: Exception) {
+                            scanFailed = true
                             unreadableCount++
                             ""
                         }
@@ -106,6 +114,7 @@ class ImportViewModel @Inject constructor(
                     } catch (cancelled: CancellationException) {
                         throw cancelled
                     } catch (_: Exception) {
+                        scanFailed = true
                         unreadableCount++
                         continue
                     }
@@ -115,6 +124,7 @@ class ImportViewModel @Inject constructor(
                     } catch (cancelled: CancellationException) {
                         throw cancelled
                     } catch (_: Exception) {
+                        scanFailed = true
                         unreadableCount++
                         null
                     }
