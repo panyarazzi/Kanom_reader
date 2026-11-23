@@ -126,6 +126,38 @@ class ReaderProgressLabelTest {
         )
     }
 
+    @Test fun chapter34LastPageKeepsItsOwnPaginationLocatorAndTitle() {
+        val chapter34 = Link(
+            href = Href(Url("OPS/Text/chapter-34.xhtml")!!),
+            title = "ตอนที่ 34",
+        )
+        val chapter35 = Link(
+            href = Href(Url("OPS/Text/chapter-35.xhtml")!!),
+            title = "ตอนที่ 35",
+        )
+        val title = resolveProgressChapterTitle(
+            paginationLocatorHref = "OPS/Text/chapter-34.xhtml",
+            paginationLocatorTitle = null,
+            currentLocatorHref = "OPS/Text/chapter-35.xhtml",
+            currentLocatorTitle = "ตอนที่ 35",
+            toc = listOf(chapter34, chapter35),
+        )
+        val content = buildProgressContent(
+            pageNumber = 24,
+            totalPages = 24,
+            chapterTitle = title,
+            bookTitle = "หนังสือทดสอบ",
+            totalProgression = 0.98,
+            time = null,
+            batteryPercent = null,
+            charging = false,
+        )
+
+        assertEquals("24/24", content.chapterPage)
+        assertEquals("24/24 ตอนที่ 34", content.chapterTitle)
+        assertEquals("ตอนที่ 34", title)
+    }
+
     @Test fun rejectsGenericOrFabricatedLocatorTitles() {
         assertNull(resolveChapterTitle("OPS/a.xhtml", "เล่มที่ 2", emptyList()))
         assertNull(resolveChapterTitle("OPS/a.xhtml", "chapter", emptyList()))
