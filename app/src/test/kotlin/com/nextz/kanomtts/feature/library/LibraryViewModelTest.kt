@@ -153,6 +153,20 @@ class LibraryViewModelTest {
     }
 
     @Test
+    fun `search results include matching books inside folder containers`() = runTest {
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        fakeBooks.books.value = listOf(
+            book("1", "Alpha").copy(sourceFolder = "Books/Fiction"),
+            book("2", "Beta").copy(sourceFolder = "Books/History"),
+        )
+        runCurrent()
+        assertTrue(vm.uiState.value.books.isEmpty())
+        vm.setQuery("Alpha")
+        runCurrent()
+        assertEquals(listOf("1"), vm.uiState.value.books.map { it.id })
+    }
+
+    @Test
     fun `setQuery empty shows all books`() = runTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         fakeBooks.books.value = listOf(book("1", "Alpha"), book("2", "Beta"))
