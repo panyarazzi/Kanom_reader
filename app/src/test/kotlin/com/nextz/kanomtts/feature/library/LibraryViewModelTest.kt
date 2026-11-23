@@ -253,13 +253,13 @@ class LibraryViewModelTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         fakeBooks.books.value = listOf(
             book("old", "Old", lastOpenedAt = 100L).copy(addedAt = 1000L),
-            book("recent", "Recent", lastOpenedAt = 300L).copy(addedAt = 3000L),
-            book("middle", "Middle", lastOpenedAt = 200L).copy(addedAt = 2000L),
+            book("recent", "Recent", lastOpenedAt = 300L).copy(addedAt = 2000L),
+            book("middle", "Middle", lastOpenedAt = 200L).copy(addedAt = 4000L),
         )
         runCurrent()
 
         assertEquals(listOf("recent", "middle", "old"), vm.uiState.value.recentlyOpened.map { it.id })
-        assertEquals(listOf("recent", "middle", "old"), vm.uiState.value.newestBooks.map { it.id })
+        assertEquals(listOf("middle", "recent", "old"), vm.uiState.value.newestBooks.map { it.id })
     }
 
     @Test
