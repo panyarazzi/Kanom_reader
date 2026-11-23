@@ -2,6 +2,7 @@ package com.nextz.kanomtts.feature.library
 import com.nextz.kanomtts.feature.library.util.FakeBookRepository
 import com.nextz.kanomtts.feature.library.util.FakeMetadataExtractor
 import kotlinx.coroutines.test.runTest
+import java.util.concurrent.CancellationException
 import org.junit.Assert.*
 import org.junit.Test
 import java.io.File
@@ -23,6 +24,23 @@ class EpubImporterTest {
         assertEquals("Series/Volume 1", saved.sourceFolder)
         assertEquals("original-name.epub", saved.sourceFileName)
     }
+    @Test fun `cancellation during fingerprinting propagates and does not add a book`() = runTest {
+        val repo = FakeBookRepository()
+        val imp = importer(
+            repo,
+            FakeMetadataExtractor(BookMetadata("Cancelled", null, null, null)),
+            createTempDir(),
+        ) { throw CancellationException("cancelled") }
+
+        try {
+            imp.import("content://cancelled", 10, "cancelled.epub")
+            fail("Expected cancellation to propagate")
+        } catch (_: CancellationException) {
+            // Expected: cancellation must not be converted into a successful import.
+        }
+        assertTrue(repo.books.value.isEmpty())
+    }
+
     @Test fun `duplicate source uri is not added twice`() = runTest {
         val repo = FakeBookRepository()
         val imp = importer(repo, FakeMetadataExtractor(BookMetadata("Dup", null, null, null)), createTempDir())

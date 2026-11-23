@@ -115,7 +115,8 @@ fun AdvancedSettingsScreen(
             }
 
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
-            Text("ตัวเลือกการอ่าน", style = MaterialTheme.typography.titleMedium)
+            Text("การอ่านและการนำทาง", style = MaterialTheme.typography.titleMedium)
+            ToggleRow("แตะพื้นที่อ่านเพื่อไปหน้าถัดไป (เว้นกลางจอ)", prefs.tapAnywhereToNext, viewModel::setTapAnywhereToNext)
             ToggleRow("สลับปุ่ม Volume", prefs.reverseVolumeKeys, viewModel::setReverseVolumeKeys)
             ToggleRow("ใช้สไตล์ผู้จัดพิมพ์", prefs.usePublisherStyles, viewModel::setUsePublisherStyles)
             ToggleRow("บังคับแบบอักษร", prefs.forceFont, viewModel::setForceFont)
