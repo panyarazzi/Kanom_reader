@@ -35,9 +35,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 
 private val standardBookTags = listOf("แนะนำ", "อ่านจบแล้ว", "กำลังอ่าน", "รออ่าน", "แปลดี", "สำนวนดี", "ไม่แนะนำ")
-import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
 fun BookAnnotationsScreen(
