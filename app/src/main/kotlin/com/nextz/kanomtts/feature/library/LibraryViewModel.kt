@@ -162,11 +162,12 @@ class LibraryViewModel @Inject constructor(
             .sortedByDescending { it.lastOpenedAt }
             .take(8)
         val newestBooks = filteredCards.sortedByDescending { it.addedAt }.take(8)
-        val visibleBooks = if (selectedFolder == null) {
+        val visibleBooks = if (selectedFolder == null && selectedShelf == null) {
             // Folder-imported books are reached through their real folder container.
             // Only books added outside a folder (future Classic mode) appear at root.
             filteredCards.filter { it.sourceFolder.isNullOrBlank() }
         } else {
+            // Shelf selections intentionally span folders and show matching books together.
             filteredCards
         }
         LibraryUiState(
