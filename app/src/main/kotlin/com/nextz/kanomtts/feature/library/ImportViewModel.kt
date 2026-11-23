@@ -11,6 +11,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -25,6 +26,7 @@ class ImportViewModel @Inject constructor(
 ) : ViewModel() {
     private val _events = Channel<ImportResult>(Channel.BUFFERED)
     val events: Flow<ImportResult> = _events.receiveAsFlow()
+    private var activeFolderImport: Job? = null
 
     fun importFrom(uri: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -41,7 +43,8 @@ class ImportViewModel @Inject constructor(
     }
 
     fun importFolder(treeUri: Uri) {
-        viewModelScope.launch(Dispatchers.IO) {
+        if (activeFolderImport?.isActive == true) return
+        activeFolderImport = viewModelScope.launch(Dispatchers.IO) {
             val root = try {
                 DocumentFile.fromTreeUri(context, treeUri)
             } catch (cancelled: CancellationException) {
@@ -60,6 +63,7 @@ class ImportViewModel @Inject constructor(
             var relinkedCount = 0
             var unreadableCount = 0
             var scanFailed = false
+            val rootName = runCatching { root.name }.getOrNull().orEmpty()
 
             suspend fun scan(folder: DocumentFile, relativePath: String) {
                 currentCoroutineContext().ensureActive()
@@ -74,34 +78,72 @@ class ImportViewModel @Inject constructor(
                 }
                 for (child in children) {
                     currentCoroutineContext().ensureActive()
-                    if (child.isDirectory) {
-                        val childPath = listOf(relativePath, child.name.orEmpty())
-                            .filter { it.isNotBlank() }
-                            .joinToString("/")
-                        scan(child, childPath)
-                    } else if (child.isFile && child.name?.endsWith(".epub", ignoreCase = true) == true) {
-                        epubCount++
-                        val result = try {
-                            importer.import(
-                                uri = child.uri.toString(),
-                                fileSize = child.length(),
-                                displayName = child.name,
-                                sourceFolder = listOf(root.name.orEmpty(), relativePath)
-                                    .filter { it.isNotBlank() }
-                                    .joinToString("/"),
-                            )
+                    val isDirectory = try {
+                        child.isDirectory
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        unreadableCount++
+                        continue
+                    }
+                    if (isDirectory) {
+                        val childName = try {
+                            child.name.orEmpty()
                         } catch (cancelled: CancellationException) {
                             throw cancelled
                         } catch (_: Exception) {
-                            ImportResult.Unreadable
+                            unreadableCount++
+                            ""
                         }
-                        when (result) {
-                            is ImportResult.Imported -> importedCount++
-                            is ImportResult.Relinked -> relinkedCount++
-                            ImportResult.Duplicate -> duplicateCount++
-                            ImportResult.Unreadable -> unreadableCount++
-                            ImportResult.EmptyFolder, is ImportResult.FolderSummary -> Unit
-                        }
+                        val childPath = listOf(relativePath, childName)
+                            .filter { it.isNotBlank() }
+                            .joinToString("/")
+                        scan(child, childPath)
+                        continue
+                    }
+                    val isFile = try {
+                        child.isFile
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        unreadableCount++
+                        continue
+                    }
+                    if (!isFile) continue
+                    val displayName = try {
+                        child.name
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        unreadableCount++
+                        null
+                    }
+                    if (displayName?.endsWith(".epub", ignoreCase = true) != true) {
+                        if (displayName == null) unreadableCount++
+                        continue
+                    }
+                    epubCount++
+                    val result = try {
+                        val size = runCatching { child.length() }.getOrDefault(0L)
+                        importer.import(
+                            uri = child.uri.toString(),
+                            fileSize = size,
+                            displayName = displayName,
+                            sourceFolder = listOf(rootName, relativePath)
+                                .filter { it.isNotBlank() }
+                                .joinToString("/"),
+                        )
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        ImportResult.Unreadable
+                    }
+                    when (result) {
+                        is ImportResult.Imported -> importedCount++
+                        is ImportResult.Relinked -> relinkedCount++
+                        ImportResult.Duplicate -> duplicateCount++
+                        ImportResult.Unreadable -> unreadableCount++
+                        ImportResult.EmptyFolder, is ImportResult.FolderSummary -> Unit
                     }
                 }
             }
