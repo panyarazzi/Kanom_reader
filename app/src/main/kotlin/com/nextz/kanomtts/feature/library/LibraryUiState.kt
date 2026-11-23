@@ -8,6 +8,11 @@ enum class LibraryShelf(val label: String) {
     FINISHED("อ่านจบแล้ว"),
 }
 
+enum class LibrarySecondarySortMode(val label: String) {
+    FILENAME_ASC("ชื่อไฟล์ A–Z"),
+    FILENAME_DESC("ชื่อไฟล์ Z–A"),
+}
+
 enum class LibrarySortMode(val label: String) {
     TITLE_ASC("ชื่อ A–Z"),
     TITLE_DESC("ชื่อ Z–A"),
@@ -50,6 +55,7 @@ data class LibraryUiState(
     val folders: List<LibraryFolderCard> = emptyList(),
     val selectedFolder: String? = null,
     val sortMode: LibrarySortMode = LibrarySortMode.TITLE_ASC,
+    val secondarySortMode: LibrarySecondarySortMode = LibrarySecondarySortMode.FILENAME_ASC,
     val showFilename: Boolean = false,
     val totalBookCount: Int = 0,
     val selectedShelf: LibraryShelf? = null,
