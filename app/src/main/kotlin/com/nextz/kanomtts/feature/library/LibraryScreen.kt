@@ -67,7 +67,7 @@ fun LibraryScreen(
     viewModel: LibraryViewModel = hiltViewModel(),
     importViewModel: ImportViewModel,
     onOpenStatistics: () -> Unit = {},
-    onOpenAnnotations: () -> Unit = {},
+    onOpenAnnotations: (String) -> Unit = {},
     onOpenNowPlaying: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -609,7 +609,7 @@ fun LibraryContent(
             title = { Text(book.displayTitle, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    TextButton(onClick = { contextBook = null; onOpenAnnotations() }) { Text("Tags / Notes") }
+                    TextButton(onClick = { onOpenAnnotations(book.id); contextBook = null }) { Text("Tags / Notes") }
                     TextButton(onClick = { detailsBook = book; contextBook = null }) { Text("รายละเอียดหนังสือ") }
                     TextButton(onClick = { onToggleSelection(book.id); contextBook = null }) { Text("เลือกหลายรายการ") }
                     TextButton(onClick = { removeBook = book; contextBook = null }) { Text("นำออกจากรายการ") }
