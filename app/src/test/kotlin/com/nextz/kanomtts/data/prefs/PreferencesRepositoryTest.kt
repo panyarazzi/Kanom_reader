@@ -27,6 +27,7 @@ class PreferencesRepositoryTest {
         assertEquals(18, p.fontSizeSp)
         assertEquals(false, p.premiumUnlocked)
         assertEquals(false, p.reverseVolumeKeys)
+        assertEquals(false, p.tapAnywhereToNext)
         assertEquals(1.0f, p.paragraphIndentEm)
         assertEquals(0.0f, p.paragraphSpacingEm)
     }
@@ -131,6 +132,14 @@ class PreferencesRepositoryTest {
         assertEquals(true, r.preferences.first().reverseVolumeKeys)
         r.setReverseVolumeKeys(false)
         assertEquals(false, r.preferences.first().reverseVolumeKeys)
+    }
+
+    @Test fun tapAnywhereToNext_round_trip() = runTest {
+        val r = repo()
+        r.setTapAnywhereToNext(true)
+        assertEquals(true, r.preferences.first().tapAnywhereToNext)
+        r.setTapAnywhereToNext(false)
+        assertEquals(false, r.preferences.first().tapAnywhereToNext)
     }
 
     @Test fun pageAnimation_default_is_true() = runTest {
