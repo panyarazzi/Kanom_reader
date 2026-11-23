@@ -8,16 +8,40 @@ enum class LibraryShelf(val label: String) {
     FINISHED("อ่านจบแล้ว"),
 }
 
-enum class LibrarySecondarySortMode(val label: String) {
-    FILENAME_ASC("ชื่อไฟล์ A–Z"),
-    FILENAME_DESC("ชื่อไฟล์ Z–A"),
+enum class LibraryGroupMode(val label: String) {
+    NONE("ไม่จัดกลุ่ม"),
+    FOLDER("โฟลเดอร์"),
+    AUTHOR("ผู้แต่ง"),
+    SERIES("ซีรีส์ / ชุดหนังสือ"),
+    READING_STATUS("สถานะการอ่าน"),
+    TAG("แท็ก"),
 }
 
-enum class LibrarySortMode(val label: String) {
-    TITLE_ASC("ชื่อ A–Z"),
-    TITLE_DESC("ชื่อ Z–A"),
+enum class SortDirection(val label: String) {
+    ASC("A–Z / น้อยไปมาก / เก่าที่สุด"),
+    DESC("Z–A / มากไปน้อย / ใหม่ที่สุด"),
+}
+
+enum class LibrarySortMode(val label: String, val ascendingLabel: String, val descendingLabel: String) {
+    TITLE_ASC("ชื่อหนังสือ", "A–Z", "Z–A"),
+    AUTHOR_ASC("ชื่อผู้แต่ง", "A–Z", "Z–A"),
+    FILENAME_ASC("ชื่อไฟล์ต้นฉบับ", "A–Z", "Z–A"),
+    ADDED_AT_ASC("วันที่เพิ่มเข้าคลัง", "เก่าที่สุด", "ใหม่ที่สุด"),
+    LAST_OPENED_AT_ASC("วันที่เปิดอ่านล่าสุด", "เก่าที่สุด", "ล่าสุด"),
+    PROGRESS_ASC("ความคืบหน้าในการอ่าน", "น้อยไปมาก", "มากไปน้อย"),
+}
+
+enum class LibrarySecondarySortMode(val label: String) {
+    TITLE_ASC("ชื่อหนังสือ A–Z"),
+    TITLE_DESC("ชื่อหนังสือ Z–A"),
+    AUTHOR_ASC("ชื่อผู้แต่ง A–Z"),
+    AUTHOR_DESC("ชื่อผู้แต่ง Z–A"),
     FILENAME_ASC("ชื่อไฟล์ A–Z"),
     FILENAME_DESC("ชื่อไฟล์ Z–A"),
+    ADDED_NEWEST("วันที่เพิ่ม ใหม่ที่สุด"),
+    ADDED_OLDEST("วันที่เพิ่ม เก่าที่สุด"),
+    OPENED_NEWEST("วันที่เปิดอ่านล่าสุด"),
+    OPENED_OLDEST("วันที่เปิดอ่านเก่าที่สุด"),
 }
 
 data class BookCard(
@@ -55,7 +79,7 @@ data class LibraryUiState(
     val selectedTag: String? = null,
     val folders: List<LibraryFolderCard> = emptyList(),
     val selectedFolder: String? = null,
-    val sortMode: LibrarySortMode = LibrarySortMode.TITLE_ASC,
+    val groupMode: LibraryGroupMode = LibraryGroupMode.FOLDER,\n    val sortMode: LibrarySortMode = LibrarySortMode.TITLE_ASC,
     val secondarySortMode: LibrarySecondarySortMode = LibrarySecondarySortMode.FILENAME_ASC,
     val showFilename: Boolean = false,
     val totalBookCount: Int = 0,
