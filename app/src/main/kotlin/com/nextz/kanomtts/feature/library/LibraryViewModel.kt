@@ -218,7 +218,24 @@ class LibraryViewModel @Inject constructor(
     fun setTagFilter(tag: String?) { _selectedTag.value = tag }
     fun setFolderFilter(folder: String?) { _selectedFolder.value = folder; _selectedShelf.value = null }
     fun setGroupMode(mode: LibraryGroupMode) { _groupMode.value = mode }
-    fun setSortMode(mode: LibrarySortMode) { _sortMode.value = mode }
+    fun setSortMode(mode: LibrarySortMode) {
+        _sortMode.value = mode
+        val secondaryConflicts = when (mode) {
+            LibrarySortMode.TITLE_ASC -> _secondarySortMode.value.name.startsWith("TITLE_")
+            LibrarySortMode.AUTHOR_ASC -> _secondarySortMode.value.name.startsWith("AUTHOR_")
+            LibrarySortMode.FILENAME_ASC -> _secondarySortMode.value.name.startsWith("FILENAME_")
+            LibrarySortMode.ADDED_AT_ASC -> _secondarySortMode.value.name.startsWith("ADDED_")
+            LibrarySortMode.LAST_OPENED_AT_ASC -> _secondarySortMode.value.name.startsWith("OPENED_")
+            LibrarySortMode.PROGRESS_ASC -> false
+        }
+        if (secondaryConflicts) {
+            _secondarySortMode.value = if (mode == LibrarySortMode.FILENAME_ASC) {
+                LibrarySecondarySortMode.TITLE_ASC
+            } else {
+                LibrarySecondarySortMode.FILENAME_ASC
+            }
+        }
+    }
     fun setSortDescending(descending: Boolean) { _sortDescending.value = descending }
     fun setSecondarySortMode(mode: LibrarySecondarySortMode) { _secondarySortMode.value = mode }
     fun setShowFilename(show: Boolean) { _showFilename.value = show }
