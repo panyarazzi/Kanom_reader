@@ -320,7 +320,7 @@ fun SettingsScreen(
                 },
             )
         }
-        RestoreReconciliationStage.NOT_FOUND -> {
+        RestoreReconciliationStage.NOT_FOUND -> if (!portable.busy) {
             val missing = portable.unresolvedBooks
             AlertDialog(
                 onDismissRequest = portableVm::cancelRestore,
@@ -352,7 +352,9 @@ fun SettingsScreen(
             onDismissRequest = {},
             title = { Text("กำลังเตรียม Restore") },
             text = { Column { CircularProgressIndicator(); Spacer(Modifier.height(12.dp)); Text(portable.message.orEmpty()) } },
-            confirmButton = {},
+            confirmButton = {
+                TextButton(onClick = portableVm::cancelRestore) { Text("ยกเลิก") }
+            },
         )
     }
 }
