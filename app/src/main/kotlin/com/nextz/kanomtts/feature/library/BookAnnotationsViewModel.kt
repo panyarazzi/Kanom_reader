@@ -6,6 +6,7 @@ import com.nextz.kanomtts.data.db.BookNoteDao
 import com.nextz.kanomtts.data.db.BookNoteEntity
 import com.nextz.kanomtts.data.db.BookTagDao
 import com.nextz.kanomtts.data.db.BookTagEntity
+import com.nextz.kanomtts.data.db.KanomDatabase
 import com.nextz.kanomtts.data.repository.BookReader
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import androidx.room.withTransaction
 
 data class BookAnnotationRow(
     val id: String,
@@ -38,9 +40,10 @@ data class BookAnnotationsUiState(
 @HiltViewModel
 class BookAnnotationsViewModel @Inject constructor(
     books: BookReader,
-    private val tagDao: BookTagDao,
-    private val noteDao: BookNoteDao,
+    private val database: KanomDatabase,
 ) : ViewModel() {
+    private val tagDao: BookTagDao get() = database.bookTagDao()
+    private val noteDao: BookNoteDao get() = database.bookNoteDao()
     private val query = MutableStateFlow("")
     private val selectedTag = MutableStateFlow<String?>(null)
     private val notesOnly = MutableStateFlow(false)
@@ -85,11 +88,13 @@ class BookAnnotationsViewModel @Inject constructor(
                 .filter { it.isNotEmpty() }
                 .distinctBy { it.lowercase() }
                 .map { BookTagEntity(bookId, it) }
-            tagDao.deleteForBook(bookId)
-            if (tags.isNotEmpty()) tagDao.insertAll(tags)
-            val note = noteText.trim()
-            if (note.isEmpty()) noteDao.deleteForBook(bookId)
-            else noteDao.upsert(BookNoteEntity(bookId, note, System.currentTimeMillis()))
+            database.withTransaction {
+                tagDao.deleteForBook(bookId)
+                if (tags.isNotEmpty()) tagDao.insertAll(tags)
+                val note = noteText.trim()
+                if (note.isEmpty()) noteDao.deleteForBook(bookId)
+                else noteDao.upsert(BookNoteEntity(bookId, note, System.currentTimeMillis()))
+            }
         }
     }
 

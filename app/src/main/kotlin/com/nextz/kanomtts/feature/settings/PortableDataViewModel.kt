@@ -265,18 +265,25 @@ class PortableDataViewModel @Inject constructor(
         )
     }
 
-    private fun hash(uri: Uri): String? = runCatching {
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            val digest = MessageDigest.getInstance("SHA-256")
-            val buffer = ByteArray(64 * 1024)
-            while (true) {
-                val count = input.read(buffer)
-                if (count < 0) break
-                if (count > 0) digest.update(buffer, 0, count)
+    private suspend fun hash(uri: Uri): String? {
+        return try {
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                val digest = MessageDigest.getInstance("SHA-256")
+                val buffer = ByteArray(64 * 1024)
+                while (true) {
+                    currentCoroutineContext().ensureActive()
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    if (count > 0) digest.update(buffer, 0, count)
+                }
+                digest.digest().joinToString("") { "%02x".format(it) }
             }
-            digest.digest().joinToString("") { "%02x".format(it) }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            null
         }
-    }.getOrNull()
+    }
 
     private fun backupSummary(label: String, result: PortableBackupSummary): String =
         "$label — หนังสือ ${result.books} เล่ม, ตำแหน่งอ่าน ${result.progress} รายการ, Bookmark ${result.bookmarks} รายการ, กฎแทนที่ ${result.replacementRules} รายการ, เสียงพากย์ ${result.voiceConfigs} รายการ, Tags ${result.tags} รายการ, Notes ${result.notes} รายการ, Reading Sessions ${result.readingSessions} รายการ"
