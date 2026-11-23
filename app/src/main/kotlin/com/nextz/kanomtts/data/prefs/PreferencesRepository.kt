@@ -53,6 +53,7 @@ class PreferencesRepository @Inject constructor(
 
     companion object {
         private val DEFAULTS = KanomPreferences()
+        private val VALID_RIGHT_PROGRESS_SLOTS = setOf("TIME_BATTERY", "TIME", "BATTERY", "CHARGING", "BOOK_PERCENT", "NONE")
     }
 
     override val preferences: Flow<KanomPreferences> = store.data.map { p ->
@@ -65,7 +66,7 @@ class PreferencesRepository @Inject constructor(
             footerProgressEnabled = p[Keys.footerProgressEnabled] ?: DEFAULTS.footerProgressEnabled,
             topProgressLeft = p[Keys.topProgressLeft] ?: DEFAULTS.topProgressLeft,
             topProgressCenter = p[Keys.topProgressCenter] ?: DEFAULTS.topProgressCenter,
-            topProgressRight = p[Keys.topProgressRight]?.takeIf { it == "BOOK_PERCENT" || it == "NONE" } ?: DEFAULTS.topProgressRight,
+            topProgressRight = p[Keys.topProgressRight]?.takeIf { it in VALID_RIGHT_PROGRESS_SLOTS } ?: DEFAULTS.topProgressRight,
             footerProgressLeft = p[Keys.footerProgressLeft] ?: DEFAULTS.footerProgressLeft,
             footerProgressCenter = p[Keys.footerProgressCenter] ?: DEFAULTS.footerProgressCenter,
             footerProgressRight = p[Keys.footerProgressRight] ?: DEFAULTS.footerProgressRight,

@@ -77,6 +77,16 @@ class PreferencesRepositoryTest {
         assertEquals("TIME", p.footerProgressRight)
     }
 
+    @Test fun topRightProgress_acceptsAllSlotsExposedByAdvancedSettings() = runTest {
+        val r = repo()
+        r.setTopProgressLayout("CHAPTER_PAGE", "CHAPTER_TITLE", "TIME_BATTERY")
+        assertEquals("TIME_BATTERY", r.preferences.first().topProgressRight)
+        r.setTopProgressLayout("CHAPTER_PAGE", "CHAPTER_TITLE", "TIME")
+        assertEquals("TIME", r.preferences.first().topProgressRight)
+        r.setTopProgressLayout("CHAPTER_PAGE", "CHAPTER_TITLE", "BATTERY")
+        assertEquals("BATTERY", r.preferences.first().topProgressRight)
+    }
+
     @Test fun corrupt_enum_falls_back_to_default() = runTest {
         // setting an int where enum expected isn't possible via API; verify unknown name path via valueOf guard
         val r = repo(); r.setReadingFont(ReadingFont.SERIF)
