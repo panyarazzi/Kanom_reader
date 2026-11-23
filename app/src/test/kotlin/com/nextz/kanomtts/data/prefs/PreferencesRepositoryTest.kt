@@ -28,6 +28,8 @@ class PreferencesRepositoryTest {
         assertEquals(false, p.premiumUnlocked)
         assertEquals(false, p.reverseVolumeKeys)
         assertEquals(false, p.tapAnywhereToNext)
+        assertEquals(50, p.previousTouchZonePercent)
+        assertEquals(50, p.nextTouchZonePercent)
         assertEquals(1.0f, p.paragraphIndentEm)
         assertEquals(0.0f, p.paragraphSpacingEm)
     }
@@ -140,6 +142,19 @@ class PreferencesRepositoryTest {
         assertEquals(true, r.preferences.first().tapAnywhereToNext)
         r.setTapAnywhereToNext(false)
         assertEquals(false, r.preferences.first().tapAnywhereToNext)
+    }
+
+    @Test fun previousNextTouchZoneRatio_round_trip_and_clamps() = runTest {
+        val r = repo()
+        r.setPreviousTouchZonePercent(65)
+        assertEquals(65, r.preferences.first().previousTouchZonePercent)
+        assertEquals(35, r.preferences.first().nextTouchZonePercent)
+        r.setPreviousTouchZonePercent(105)
+        assertEquals(100, r.preferences.first().previousTouchZonePercent)
+        assertEquals(0, r.preferences.first().nextTouchZonePercent)
+        r.setPreviousTouchZonePercent(-5)
+        assertEquals(0, r.preferences.first().previousTouchZonePercent)
+        assertEquals(100, r.preferences.first().nextTouchZonePercent)
     }
 
     @Test fun pageAnimation_default_is_true() = runTest {

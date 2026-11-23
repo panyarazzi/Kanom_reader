@@ -11,6 +11,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -19,6 +21,7 @@ import kotlinx.coroutines.launch
 class PlaybackSettingsViewModel @Inject constructor(
     private val prefs: ReaderPreferences,
 ) : ViewModel() {
+    private val touchZoneMutex = Mutex()
     val uiState: StateFlow<KanomPreferences> =
         prefs.preferences.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), KanomPreferences())
 
@@ -41,8 +44,10 @@ class PlaybackSettingsViewModel @Inject constructor(
     fun setReverseVolumeKeys(v: Boolean) = viewModelScope.launch { prefs.setReverseVolumeKeys(v) }
     fun setTapAnywhereToNext(v: Boolean) = viewModelScope.launch { prefs.setTapAnywhereToNext(v) }
     fun adjustPreviousTouchZone(delta: Int) = viewModelScope.launch {
-        val current = prefs.preferences.first().previousTouchZonePercent
-        prefs.setPreviousTouchZonePercent((current + delta).coerceIn(0, 100))
+        touchZoneMutex.withLock {
+            val current = prefs.preferences.first().previousTouchZonePercent
+            prefs.setPreviousTouchZonePercent((current + delta).coerceIn(0, 100))
+        }
     }
     fun adjustNextTouchZone(delta: Int) = adjustPreviousTouchZone(-delta)
     fun setUsePublisherStyles(v: Boolean) = viewModelScope.launch { prefs.setUsePublisherStyles(v) }
