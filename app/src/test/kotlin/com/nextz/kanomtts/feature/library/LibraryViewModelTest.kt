@@ -253,7 +253,7 @@ class LibraryViewModelTest {
     }
 
     @Test
-    fun `shelf counts and filters follow reading progress and folder grouping`() = runTest {
+    fun `shelf counts follow reading progress and do not infer series from folders`() = runTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         fakeBooks.books.value = listOf(
             book("reading", "Reading").copy(sourceFolder = "Series/One"),
@@ -266,7 +266,7 @@ class LibraryViewModelTest {
 
         assertEquals(1, vm.uiState.value.readingCount)
         assertEquals(1, vm.uiState.value.toReadCount)
-        assertEquals(1, vm.uiState.value.seriesCount)
+        assertEquals(0, vm.uiState.value.seriesCount)
         assertEquals(1, vm.uiState.value.finishedCount)
 
         vm.setShelfFilter(LibraryShelf.READING)
@@ -373,6 +373,34 @@ class LibraryViewModelTest {
         vm.setSecondarySortMode(LibrarySecondarySortMode.FILENAME_DESC)
         runCurrent()
         assertEquals(listOf("z", "a"), vm.uiState.value.books.map { it.id })
+    }
+
+    @Test
+    fun `primary sort direction and secondary sort remain independent`() = runTest {
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        fakeBooks.books.value = listOf(
+            book("a", "Alpha", lastOpenedAt = 100L).copy(addedAt = 10L, sourceFileName = "z.epub"),
+            book("b", "Beta", lastOpenedAt = 300L).copy(addedAt = 30L, sourceFileName = "b.epub"),
+            book("c", "Charlie", lastOpenedAt = 200L).copy(addedAt = 20L, sourceFileName = "a.epub"),
+        )
+        runCurrent()
+
+        vm.setSortMode(LibrarySortMode.ADDED_AT_ASC)
+        vm.setSortDescending(false)
+        vm.setSecondarySortMode(LibrarySecondarySortMode.TITLE_DESC)
+        runCurrent()
+        assertEquals(listOf("a", "c", "b"), vm.uiState.value.books.map { it.id })
+
+        vm.setSortDescending(true)
+        runCurrent()
+        assertEquals(listOf("b", "c", "a"), vm.uiState.value.books.map { it.id })
+
+        vm.setSortMode(LibrarySortMode.FILENAME_ASC)
+        runCurrent()
+        assertEquals(LibrarySecondarySortMode.TITLE_ASC, vm.uiState.value.secondarySortMode)
+        vm.setSecondarySortMode(LibrarySecondarySortMode.FILENAME_DESC)
+        runCurrent()
+        assertEquals(LibrarySecondarySortMode.TITLE_ASC, vm.uiState.value.secondarySortMode)
     }
 
     // ── Task 3: selection + delete ────────────────────────────────────────────
