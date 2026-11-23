@@ -22,6 +22,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -123,6 +125,7 @@ fun LibraryScreen(
             onFolderFilter = viewModel::setFolderFilter,
             onShelfFilter = viewModel::setShelfFilter,
             onSortMode = viewModel::setSortMode,
+            onSecondarySortMode = viewModel::setSecondarySortMode,
             onShowFilename = viewModel::setShowFilename,
             onImportFolder = { folderLauncher.launch(null) },
             statistics = statisticsState,
@@ -158,6 +161,7 @@ fun LibraryContent(
     onFolderFilter: (String?) -> Unit = {},
     onShelfFilter: (LibraryShelf?) -> Unit = {},
     onSortMode: (LibrarySortMode) -> Unit = {},
+    onSecondarySortMode: (LibrarySecondarySortMode) -> Unit = {},
     onShowFilename: (Boolean) -> Unit = {},
     onImportFolder: () -> Unit = {},
     statistics: ReadingStatisticsUiState? = null,
@@ -172,6 +176,9 @@ fun LibraryContent(
     modifier: Modifier = Modifier,
 ) {
     var showConfirm by remember { mutableStateOf(false) }
+    var showOrganizationControls by remember { mutableStateOf(false) }
+    var sortMenuExpanded by remember { mutableStateOf(false) }
+    var secondarySortMenuExpanded by remember { mutableStateOf(false) }
     // Close a stale confirm dialog if selection is cleared externally (e.g. system back).
     LaunchedEffect(state.isSelectionMode) { if (!state.isSelectionMode) showConfirm = false }
     val screenWidthDp = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp
@@ -385,26 +392,85 @@ fun LibraryContent(
         }
 
         if (!state.isSelectionMode) {
-            item(key = "library-sort") {
-                Row(
-                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    LibrarySortMode.entries.forEach { mode ->
-                        FilterChip(
-                            selected = state.sortMode == mode,
-                            onClick = { onSortMode(mode) },
-                            label = { Text(mode.label) },
-                        )
+            item(key = "library-organization-controls") {
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text("จัดกลุ่มและเรียงลำดับ", style = MaterialTheme.typography.titleSmall)
+                                Text(
+                                    "Group by · Sort by · Then by",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            TextButton(onClick = { showOrganizationControls = !showOrganizationControls }) {
+                                Text(if (showOrganizationControls) "ย่อ" else "ปรับ")
+                            }
+                        }
+                        if (showOrganizationControls) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text("Group by", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+                                Text("โฟลเดอร์จริง", style = MaterialTheme.typography.bodyMedium)
+                            }
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text("Sort by", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+                                Box {
+                                    TextButton(onClick = { sortMenuExpanded = true }) {
+                                        Text(if (state.sortMode == LibrarySortMode.TITLE_DESC) "ชื่อหนังสือ Z–A" else "ชื่อหนังสือ A–Z")
+                                    }
+                                    DropdownMenu(expanded = sortMenuExpanded, onDismissRequest = { sortMenuExpanded = false }) {
+                                        DropdownMenuItem(
+                                            text = { Text("ชื่อหนังสือ A–Z") },
+                                            onClick = { onSortMode(LibrarySortMode.TITLE_ASC); sortMenuExpanded = false },
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("ชื่อหนังสือ Z–A") },
+                                            onClick = { onSortMode(LibrarySortMode.TITLE_DESC); sortMenuExpanded = false },
+                                        )
+                                    }
+                                }
+                            }
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text("Then by", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+                                Box {
+                                    TextButton(onClick = { secondarySortMenuExpanded = true }) {
+                                        Text(state.secondarySortMode.label)
+                                    }
+                                    DropdownMenu(expanded = secondarySortMenuExpanded, onDismissRequest = { secondarySortMenuExpanded = false }) {
+                                        LibrarySecondarySortMode.entries.forEach { mode ->
+                                            DropdownMenuItem(
+                                                text = { Text(mode.label) },
+                                                onClick = { onSecondarySortMode(mode); secondarySortMenuExpanded = false },
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text("ชื่อที่แสดง", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+                                TextButton(onClick = { onShowFilename(!state.showFilename) }) {
+                                    Text(if (state.showFilename) "ชื่อไฟล์ต้นฉบับ" else "ชื่อหนังสือ")
+                                }
+                            }
+                        }
                     }
                 }
-            }
-            item(key = "library-filename-toggle") {
-                FilterChip(
-                    selected = state.showFilename,
-                    onClick = { onShowFilename(!state.showFilename) },
-                    label = { Text(if (state.showFilename) "แสดงชื่อไฟล์ต้นฉบับ" else "แสดงชื่อหนังสือ") },
-                )
             }
             if (state.availableTags.isNotEmpty()) {
                 item(key = "library-tags") {
