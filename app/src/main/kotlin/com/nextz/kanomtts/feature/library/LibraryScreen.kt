@@ -193,9 +193,6 @@ fun LibraryContent(
                     }
                 }
                 TextButton(onClick = onImportFolder) { Text("นำเข้าหนังสือจากโฟลเดอร์") }
-                if (statistics != null) {
-                    ReadingStatisticsCard(state = statistics, onMore = onOpenStatistics)
-                }
             }
         }
 
@@ -269,6 +266,11 @@ fun LibraryContent(
                             }
                         }
                     }
+                }
+            }
+            if (statistics != null) {
+                item(key = "library-reading-statistics") {
+                    ReadingStatisticsCard(state = statistics, onMore = onOpenStatistics)
                 }
             }
             if (state.folders.isNotEmpty()) {
