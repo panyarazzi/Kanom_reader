@@ -31,7 +31,7 @@ data class KanomPreferences(
     val boldText: Boolean = false,
     /** When true, swap the page-turn direction assigned to volume keys. */
     val reverseVolumeKeys: Boolean = false,
-    /** When enabled, every unhandled tap advances; the original center-menu tap zone is disabled. */
+    /** When enabled, every unhandled tap outside the reserved center-menu zone advances. */
     val tapAnywhereToNext: Boolean = false,
     /** Previous/Next touch-zone ratio; Next is always the inverse to total 100%. */
     val previousTouchZonePercent: Int = 50,

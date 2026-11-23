@@ -121,7 +121,7 @@ fun SettingsScreen(
         Slider(value = prefs.fontSizeSp.toFloat(), onValueChange = { playbackVm.setFontSizeSp(it.toInt()) },
             valueRange = 12f..72f, steps = 59)
         ToggleRow("ตัวอักษรหนา", prefs.boldText, playbackVm::setBoldText)
-        ToggleRow("แตะทั้งหน้าจอเพื่อไปหน้าถัดไป", prefs.tapAnywhereToNext, playbackVm::setTapAnywhereToNext)
+        ToggleRow("แตะพื้นที่อ่านเพื่อไปหน้าถัดไป (เว้นกลางจอ)", prefs.tapAnywhereToNext, playbackVm::setTapAnywhereToNext)
         Card(Modifier.fillMaxWidth().clickable(onClick = onOpenAdvanced)) {
             Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
