@@ -10,6 +10,13 @@ sealed interface ImportResult {
     data class Relinked(val bookId: String) : ImportResult
     object Unreadable : ImportResult
     object EmptyFolder : ImportResult
+    data class FolderSummary(
+        val scanned: Int,
+        val imported: Int,
+        val duplicates: Int,
+        val relinked: Int,
+        val unreadable: Int,
+    ) : ImportResult
 }
 class EpubImporter(
     private val extractor: MetadataExtractor,

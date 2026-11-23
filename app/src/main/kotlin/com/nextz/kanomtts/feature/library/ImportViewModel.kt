@@ -55,7 +55,12 @@ class ImportViewModel @Inject constructor(
             }
 
             var epubCount = 0
+            var importedCount = 0
+            var duplicateCount = 0
+            var relinkedCount = 0
+            var unreadableCount = 0
             var scanFailed = false
+
             suspend fun scan(folder: DocumentFile, relativePath: String) {
                 currentCoroutineContext().ensureActive()
                 val children = try {
@@ -64,7 +69,7 @@ class ImportViewModel @Inject constructor(
                     throw cancelled
                 } catch (_: Exception) {
                     scanFailed = true
-                    _events.send(ImportResult.Unreadable)
+                    unreadableCount++
                     return
                 }
                 for (child in children) {
@@ -90,13 +95,31 @@ class ImportViewModel @Inject constructor(
                         } catch (_: Exception) {
                             ImportResult.Unreadable
                         }
-                        _events.send(result)
+                        when (result) {
+                            is ImportResult.Imported -> importedCount++
+                            is ImportResult.Relinked -> relinkedCount++
+                            ImportResult.Duplicate -> duplicateCount++
+                            ImportResult.Unreadable -> unreadableCount++
+                            ImportResult.EmptyFolder, is ImportResult.FolderSummary -> Unit
+                        }
                     }
                 }
             }
 
             scan(root, "")
-            if (epubCount == 0 && !scanFailed) _events.send(ImportResult.EmptyFolder)
+            when {
+                epubCount == 0 && !scanFailed -> _events.send(ImportResult.EmptyFolder)
+                epubCount == 0 -> _events.send(ImportResult.Unreadable)
+                else -> _events.send(
+                    ImportResult.FolderSummary(
+                        scanned = epubCount,
+                        imported = importedCount,
+                        duplicates = duplicateCount,
+                        relinked = relinkedCount,
+                        unreadable = unreadableCount,
+                    )
+                )
+            }
         }
     }
 

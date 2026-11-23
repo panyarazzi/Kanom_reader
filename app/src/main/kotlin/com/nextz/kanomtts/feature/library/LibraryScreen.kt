@@ -89,6 +89,7 @@ fun LibraryScreen(
                 is ImportResult.Duplicate -> "มีหนังสือนี้อยู่แล้ว"
                 is ImportResult.Unreadable -> "เปิดไฟล์ไม่ได้"
                 is ImportResult.EmptyFolder -> "ไม่พบไฟล์ EPUB ในโฟลเดอร์ที่เลือก"
+                is ImportResult.FolderSummary -> "ตรวจ ${result.scanned} ไฟล์: เพิ่ม ${result.imported}, เชื่อมใหม่ ${result.relinked}, ซ้ำ ${result.duplicates}, อ่านไม่ได้ ${result.unreadable}"
             }
             snackbarHostState.showSnackbar(message)
         }
