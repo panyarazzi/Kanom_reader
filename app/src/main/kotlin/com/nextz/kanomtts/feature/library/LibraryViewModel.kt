@@ -37,11 +37,11 @@ fun playingBookIsSelected(state: PlaybackState, selected: Set<String>): Boolean 
 class LibraryViewModel @Inject constructor(
     bookReader: BookReader,
     progressReader: ProgressReader,
-    private val bookDao: BookDao,
-    private val progressDao: ProgressDao,
     private val bookDeleter: BookDeleter,
     private val playbackStopper: PlaybackStopper,
     private val bookTagDao: BookTagDao? = null,
+    private val bookDao: BookDao? = null,
+    private val progressDao: ProgressDao? = null,
 ) : ViewModel() {
 
     private val _viewMode = MutableStateFlow(LibraryViewMode.GRID)
@@ -277,14 +277,15 @@ class LibraryViewModel @Inject constructor(
     fun setReadingStatus(bookId: String, shelf: LibraryShelf) {
         if (shelf == LibraryShelf.SERIES) return
         viewModelScope.launch {
-            val current = progressDao.get(bookId)
+            val dao = progressDao ?: return@launch
+            val current = dao.get(bookId)
             val percent = when (shelf) {
                 LibraryShelf.READING -> current?.percent?.takeIf { it > 0f && it < 1f } ?: 0.001f
                 LibraryShelf.TO_READ -> 0f
                 LibraryShelf.FINISHED -> 1f
                 LibraryShelf.SERIES -> return@launch
             }
-            progressDao.upsert(
+            dao.upsert(
                 ProgressEntity(
                     bookId = bookId,
                     locator = current?.locator,
@@ -299,15 +300,17 @@ class LibraryViewModel @Inject constructor(
     fun updateBookMetadata(bookId: String, title: String, author: String?) {
         val cleanTitle = title.trim()
         if (cleanTitle.isEmpty()) return
+        val dao = bookDao ?: return
         viewModelScope.launch {
-            bookDao.updateMetadata(bookId, cleanTitle, author?.trim()?.takeIf { it.isNotEmpty() })
+            dao.updateMetadata(bookId, cleanTitle, author?.trim()?.takeIf { it.isNotEmpty() })
         }
     }
 
     fun updateBookCover(bookId: String, coverPath: String) {
+        val dao = bookDao ?: return
         viewModelScope.launch {
-            val oldPath = bookDao.getById(bookId)?.coverPath
-            bookDao.updateCoverPath(bookId, coverPath)
+            val oldPath = dao.getById(bookId)?.coverPath
+            dao.updateCoverPath(bookId, coverPath)
             if (!oldPath.isNullOrBlank() && oldPath != coverPath) {
                 runCatching { File(oldPath).delete() }
             }
