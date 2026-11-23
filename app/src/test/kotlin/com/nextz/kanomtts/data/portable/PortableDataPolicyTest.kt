@@ -2,6 +2,7 @@ package com.nextz.kanomtts.data.portable
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.json.JSONObject
 class PortableDataPolicyTest {
     @Test fun `only metadata and cover entries are restored from zip archives`() {
         assertTrue(isRestorablePortableEntry("data.json"))
@@ -11,4 +12,17 @@ class PortableDataPolicyTest {
         assertFalse(isRestorablePortableEntry("portableEpub/book-1.epub"))
         assertFalse(isRestorablePortableEntry("unknown/payload.bin"))
     }
+    @Test fun `legacy backup without savedTags restores an empty reusable tag library`() {
+        assertTrue(parseSavedTagLibrary(JSONObject().put("formatVersion", 1)).isEmpty())
+    }
+
+    @Test fun `saved tag restore trims blanks and deduplicates without changing assigned tags`() {
+        val json = JSONObject().put("savedTags", org.json.JSONArray()
+            .put(JSONObject().put("tag", " Review "))
+            .put(JSONObject().put("tag", "review"))
+            .put(JSONObject().put("tag", ""))
+            .put(JSONObject().put("tag", " แนะนำ ")))
+        assertEquals(listOf("Review", "แนะนำ"), parseSavedTagLibrary(json).map { it.tag })
+    }
+
 }
