@@ -93,6 +93,7 @@ fun ReaderSettingsSheet(
         onBottomMargin = { viewModel.onBottomMargin(it) },
         onBoldText = { viewModel.onBoldText(it) },
         onReverseVolumeKeys = { viewModel.onReverseVolumeKeys(it) },
+        onTapAnywhereToNext = { viewModel.onTapAnywhereToNext(it) },
         onUsePublisherStyles = { viewModel.onUsePublisherStyles(it) },
         onForceFont = { viewModel.onForceFont(it) },
         onStripColors = { viewModel.onStripColors(it) },
@@ -124,6 +125,7 @@ internal fun ReaderSettingsSheetContent(
     onBottomMargin: (Int) -> Unit = {},
     onBoldText: (Boolean) -> Unit = {},
     onReverseVolumeKeys: (Boolean) -> Unit = {},
+    onTapAnywhereToNext: (Boolean) -> Unit = {},
     onUsePublisherStyles: (Boolean) -> Unit = {},
     onForceFont: (Boolean) -> Unit = {},
     onStripColors: (Boolean) -> Unit = {},
@@ -309,6 +311,11 @@ internal fun ReaderSettingsSheetContent(
                 label = "ตัวอักษรหนา",
                 checked = prefs.boldText,
                 onCheckedChange = onBoldText,
+            )
+            ToggleRow(
+                label = "แตะทั้งหน้าจอเพื่อไปหน้าถัดไป",
+                checked = prefs.tapAnywhereToNext,
+                onCheckedChange = onTapAnywhereToNext,
             )
             ToggleRow(
                 label = "สลับปุ่ม Volume",
