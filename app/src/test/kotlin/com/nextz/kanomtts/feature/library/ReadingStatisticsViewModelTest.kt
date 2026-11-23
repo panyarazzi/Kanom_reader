@@ -20,7 +20,7 @@ class ReadingStatisticsViewModelTest {
     @Test
     fun allTimeChartStartsAtTheOldestRecordedSession() {
         val sessions = listOf(
-            session(today.minusDays(40), 120_000L),
+            session(today.minusDays(400), 120_000L),
             session(today.minusDays(20), 60_000L),
             session(today.minusDays(1), 30_000L),
         )
@@ -29,8 +29,8 @@ class ReadingStatisticsViewModelTest {
         val month = buildStatistics(emptyList(), sessions, StatisticsRange.MONTH)
         val week = buildStatistics(emptyList(), sessions, StatisticsRange.WEEK)
 
-        assertEquals(today.minusDays(40), all.chartDays.first().date)
-        assertEquals(41, all.chartDays.size)
+        assertEquals(today.minusDays(400), all.chartDays.first().date)
+        assertEquals(401, all.chartDays.size)
         assertEquals(120_000L, all.chartDays.first().durationMs)
         assertEquals(today.minusDays(29), month.chartDays.first().date)
         assertEquals(30, month.chartDays.size)
