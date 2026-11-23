@@ -111,21 +111,21 @@ class LibraryViewModel @Inject constructor(
                 }
             }
             .let { cards ->
-                val primarySorted = when (sortMode) {
-                    LibrarySortMode.TITLE_ASC -> cards.sortedBy { it.title.lowercase() }
-                    LibrarySortMode.TITLE_DESC -> cards.sortedByDescending { it.title.lowercase() }
-                    LibrarySortMode.FILENAME_ASC -> cards.sortedBy { it.filename.lowercase() }
-                    LibrarySortMode.FILENAME_DESC -> cards.sortedByDescending { it.filename.lowercase() }
-                }
-                primarySorted.sortedWith(
-                    compareBy<BookCard> { it.title.lowercase() }
-                        .let { comparator ->
-                            if (secondarySortMode == LibrarySecondarySortMode.FILENAME_DESC) {
-                                comparator.thenByDescending { it.filename.lowercase() }
-                            } else {
-                                comparator.thenBy { it.filename.lowercase() }
+                cards.sortedWith(
+                    when (sortMode) {
+                        LibrarySortMode.TITLE_ASC -> compareBy<BookCard> { it.title.lowercase() }
+                            .let { primary ->
+                                if (secondarySortMode == LibrarySecondarySortMode.FILENAME_DESC) primary.thenByDescending { it.filename.lowercase() }
+                                else primary.thenBy { it.filename.lowercase() }
                             }
-                        }
+                        LibrarySortMode.TITLE_DESC -> compareByDescending<BookCard> { it.title.lowercase() }
+                            .let { primary ->
+                                if (secondarySortMode == LibrarySecondarySortMode.FILENAME_DESC) primary.thenByDescending { it.filename.lowercase() }
+                                else primary.thenBy { it.filename.lowercase() }
+                            }
+                        LibrarySortMode.FILENAME_ASC -> compareBy<BookCard> { it.filename.lowercase() }.thenBy { it.title.lowercase() }
+                        LibrarySortMode.FILENAME_DESC -> compareByDescending<BookCard> { it.filename.lowercase() }.thenBy { it.title.lowercase() }
+                    }
                 )
             }
         // Build only the immediate children of the currently-open real folder.
@@ -152,9 +152,11 @@ class LibraryViewModel @Inject constructor(
                 sampleCovers = descendantBooks.take(4).map { it.coverPath },
             )
         }
-        val continueCard = filteredCards
+        val continueCards = filteredCards
             .filter { it.percent > 0f && it.percent < 0.999f && it.lastOpenedAt != null }
-            .maxByOrNull { it.lastOpenedAt!! }
+            .sortedByDescending { it.lastOpenedAt }
+            .take(4)
+        val continueCard = continueCards.firstOrNull()
         val recentlyOpened = filteredCards
             .filter { it.lastOpenedAt != null }
             .sortedByDescending { it.lastOpenedAt }
@@ -163,6 +165,7 @@ class LibraryViewModel @Inject constructor(
         LibraryUiState(
             books = filteredCards,
             continueCard = continueCard,
+            continueCards = continueCards,
             viewMode = viewMode,
             query = query,
             selectedIds = selectedIds,
