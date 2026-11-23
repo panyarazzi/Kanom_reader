@@ -54,8 +54,8 @@ jobs:
               exit 0
             fi
 
-            if grep -Eq 'HTTP response code: 429|status code.?429|HTTP 429|429 from server' "$LOG_FILE" && [ "$attempt" -lt 3 ]; then
-              echo "Maven Central rate limit (HTTP 429); retrying after 30 seconds."
+            if grep -Eq 'HTTP response code: 429|status code.?429|HTTP 429|429 from server|MavenArtifactFetcher|java\.io\.IOException' "$LOG_FILE" && [ "$attempt" -lt 3 ]; then
+              echo "Transient Maven/Robolectric artifact download failure; retrying after 30 seconds."
               sleep 30
             else
               exit "$status"
