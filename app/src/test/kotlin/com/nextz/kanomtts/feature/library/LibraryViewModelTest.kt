@@ -395,6 +395,7 @@ class LibraryViewModelTest {
         runCurrent()
         assertEquals(listOf("b", "c", "a"), vm.uiState.value.books.map { it.id })
 
+        vm.setSecondarySortMode(LibrarySecondarySortMode.FILENAME_DESC)
         vm.setSortMode(LibrarySortMode.FILENAME_ASC)
         runCurrent()
         assertEquals(LibrarySecondarySortMode.TITLE_ASC, vm.uiState.value.secondarySortMode)
