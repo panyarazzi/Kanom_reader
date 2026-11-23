@@ -19,4 +19,5 @@ data class BookEntity(
     val sourceFileName: String? = null,
     val seriesName: String? = null,
     val seriesPosition: Double? = null,
+    val readingStatus: String? = null,
 )
