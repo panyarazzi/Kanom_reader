@@ -44,6 +44,8 @@ fun SettingsScreen(
     contentPadding: PaddingValues = PaddingValues(),
     onOpenReplacements: () -> Unit = {},
     onOpenAdvanced: () -> Unit = {},
+    backupOnly: Boolean = false,
+    onBack: () -> Unit = {},
     playbackVm: PlaybackSettingsViewModel = hiltViewModel(),
     portableVm: PortableDataViewModel = hiltViewModel(),
 ) {
@@ -91,11 +93,13 @@ fun SettingsScreen(
             Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("ตั้งค่า", style = MaterialTheme.typography.titleLarge)
+            if (backupOnly) { TextButton(onClick = onBack) { Text("กลับ") } }
+            Text(if (backupOnly) "Backup / Restore" else "ตั้งค่า", style = MaterialTheme.typography.titleLarge)
         }
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
         ) {
+        if (!backupOnly) {
         Text("การอ่าน", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(vertical = 12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             ReaderTheme.entries.forEach { theme ->
@@ -177,7 +181,7 @@ fun SettingsScreen(
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
         }
 
-        HorizontalDivider(Modifier.padding(vertical = 16.dp))
+        }
         Text("ข้อมูลถาวรของ Kanom", style = MaterialTheme.typography.titleLarge)
         Text(
             "สำรองและกู้คืนข้อมูลผ่านโฟลเดอร์ Internal Storage/Kanom ระบบจะไม่คัดลอกไฟล์ EPUB จึงควรเก็บไฟล์ต้นฉบับไว้ และอาจต้องเชื่อมไฟล์ใหม่หลังติดตั้งแอปหรือย้ายอุปกรณ์",
@@ -246,11 +250,13 @@ fun SettingsScreen(
             modifier = Modifier.padding(top = 4.dp),
         )
 
+        if (!backupOnly) {
         HorizontalDivider(Modifier.padding(vertical = 16.dp))
         Text("Neural · พรีเมียม — เร็วๆ นี้",
             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(vertical = 8.dp))
         Spacer(Modifier.height(24.dp))
+        }
         }
     }
     }
