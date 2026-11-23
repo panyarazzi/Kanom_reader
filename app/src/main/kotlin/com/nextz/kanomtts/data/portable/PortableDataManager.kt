@@ -452,6 +452,9 @@ class PortableDataManager @Inject constructor(
         }
     }
 
+    // Preserve every stored preference key, including per-book typography maps
+    // (book_custom_typography) and tap-anywhere navigation. Only the installation-local
+    // premium entitlement is excluded from portable backups.
     private fun encodePreferences(prefs: Preferences): JSONArray = JSONArray().apply {
         prefs.asMap().filterNot { it.key.name == "premium_unlocked" }.forEach { (key, value) ->
             val item = JSONObject().put("name", key.name)
