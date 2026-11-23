@@ -32,6 +32,15 @@ object ReaderTocFocus {
         toc.forEachIndexed { index, link -> append(link, 0, listOf(index)) }
     }
 
+    /** Search the complete depth-first ToC, independent of the currently expanded branches. */
+    fun search(entries: List<Entry>, query: String): List<Entry> {
+        val needle = query.trim()
+        if (needle.isBlank()) return entries
+        return entries.filter { entry ->
+            (entry.link.title ?: entry.link.href.toString()).contains(needle, ignoreCase = true)
+        }
+    }
+
     /** Parent title chain for a depth-first tree path, used as search-result context. */
     fun parentContext(toc: List<Link>, path: List<Int>): List<String> {
         val result = mutableListOf<String>()

@@ -110,14 +110,16 @@ class ReaderTocFocusTest {
     }
 
 
-    @Test fun `search results include descendants even when every branch is collapsed`() {
+    @Test fun `search results include all descendants and preserve depth first order when branches are collapsed`() {
         val toc = listOf(link("volume.xhtml", children = listOf(
-            link("part.xhtml", children = listOf(link("target-chapter.xhtml"))),
-            link("appendix.xhtml"),
+            link("target-part.xhtml", children = listOf(link("target-chapter.xhtml"))),
+            link("appendix-target.xhtml"),
         )))
-        val flattened = ReaderTocFocus.flatten(toc)
-        val results = flattened.filter { it.link.href.toString().contains("target", ignoreCase = true) }
-        assertEquals(listOf("target-chapter.xhtml"), results.map { it.link.href.toString() })
+        val results = ReaderTocFocus.search(ReaderTocFocus.flatten(toc), "target")
+        assertEquals(
+            listOf("target-part.xhtml", "target-chapter.xhtml", "appendix-target.xhtml"),
+            results.map { it.link.href.toString() },
+        )
     }
 
     @Test fun `search result context includes all parent titles`() {

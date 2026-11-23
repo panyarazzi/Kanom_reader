@@ -99,8 +99,7 @@ fun ReaderTocSheet(
     }
 
     val displayedEntries = remember(entries, flattened, searchQuery) {
-        if (searchQuery.isBlank()) entries
-        else flattened.filter { (it.link.title ?: it.link.href.toString()).contains(searchQuery, ignoreCase = true) }
+        if (searchQuery.isBlank()) entries else ReaderTocFocus.search(flattened, searchQuery)
     }
     val listState = rememberLazyListState()
     val displayFocusKey = if (searchQuery.isBlank()) focusedVisibleKey
