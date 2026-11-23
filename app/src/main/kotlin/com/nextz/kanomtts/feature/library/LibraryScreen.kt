@@ -297,37 +297,57 @@ fun LibraryContent(
                     }
                 }
             }
-            if (state.folders.isNotEmpty()) {
             item(key = "library-folders") {
-                Row(
-                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Card(Modifier.width(112.dp).clickable { onFolderFilter(null) }) {
-                        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("ทั้งหมด", style = MaterialTheme.typography.titleSmall)
-                            Text("${state.totalBookCount} เล่ม", style = MaterialTheme.typography.labelSmall)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            if (state.selectedFolder == null) "โฟลเดอร์หนังสือ" else state.selectedFolder.substringAfterLast('/'),
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (state.selectedFolder != null) {
+                            TextButton(onClick = {
+                                onFolderFilter(state.selectedFolder.substringBeforeLast('/', "").ifBlank { null })
+                            }) { Text("ย้อนกลับ") }
                         }
                     }
-                    state.folders.forEach { folder ->
-                        Card(Modifier.width(160.dp).clickable {
-                            onFolderFilter(if (state.selectedFolder == folder.name) null else folder.name)
-                        }) {
-                            Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                                    folder.sampleCovers.forEach { cover ->
-                                        CoverImage(cover, Modifier.width(25.dp).height(34.dp))
+                    if (state.selectedFolder != null) {
+                        Text(
+                            state.selectedFolder.replace("/", "  ›  "),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Row(
+                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Card(Modifier.width(112.dp).clickable { onFolderFilter(null) }) {
+                            Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("คลังทั้งหมด", style = MaterialTheme.typography.titleSmall)
+                                Text("${state.totalBookCount} เล่ม", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                        state.folders.forEach { folder ->
+                            Card(Modifier.width(160.dp).clickable { onFolderFilter(folder.path) }) {
+                                Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        folder.sampleCovers.forEach { cover ->
+                                            CoverImage(cover, Modifier.width(25.dp).height(34.dp))
+                                        }
                                     }
+                                    Text(folder.name, style = MaterialTheme.typography.titleSmall, maxLines = 1)
+                                    Text("${folder.count} เล่ม", style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
-                                Text(folder.name, style = MaterialTheme.typography.titleSmall, maxLines = 1)
-                                Text("${folder.count} เล่ม", style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
                 }
             }
-        }
 
         }
 
