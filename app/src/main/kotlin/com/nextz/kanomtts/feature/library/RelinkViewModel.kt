@@ -99,8 +99,8 @@ class RelinkViewModel @Inject constructor(
 
     private fun search(bookId: String, scan: suspend () -> List<RelinkCandidate>) {
         if (_uiState.value.busy) return
+        _uiState.value = RelinkUiState(busy = true, bookId = bookId)
         viewModelScope.launch(Dispatchers.IO) {
-            _uiState.value = RelinkUiState(busy = true, bookId = bookId)
             try {
                 val original = books.get(bookId) ?: error("ไม่พบข้อมูลหนังสือเดิม")
                 val matches = scan().mapNotNull { candidate ->
@@ -110,8 +110,8 @@ class RelinkViewModel @Inject constructor(
                         val candidateHash = candidate.sha256 ?: hash(Uri.parse(candidate.uri))
                         relinkCandidateWithFingerprint(original, candidate, candidateHash)
                     } else {
-                        val sizePossible = original.fileSize > 0L && candidate.size > 0L &&
-                            original.fileSize == candidate.size
+                        val sizeKnown = original.fileSize > 0L && candidate.size > 0L
+                        val sizePossible = !sizeKnown || original.fileSize == candidate.size
                         if (!sizePossible) null else {
                             val extractedTitle = metadata.extract(candidate.uri)?.title
                             candidate.takeIf { relinkMatches(original, it, extractedTitle) }
@@ -138,8 +138,8 @@ class RelinkViewModel @Inject constructor(
         if (_uiState.value.busy) return
         val bookId = _uiState.value.bookId ?: return
         if (_uiState.value.candidates.none { it.uri == candidate.uri }) return
+        _uiState.value = _uiState.value.copy(busy = true, message = "กำลังตรวจสอบไฟล์ต้นฉบับอีกครั้ง…")
         viewModelScope.launch(Dispatchers.IO) {
-            _uiState.value = _uiState.value.copy(busy = true, message = "กำลังตรวจสอบไฟล์ต้นฉบับอีกครั้ง…")
             try {
                 val original = books.get(bookId) ?: error("ไม่พบข้อมูลหนังสือเดิม")
                 val uri = Uri.parse(candidate.uri)

@@ -76,9 +76,9 @@ class PortableDataViewModel @Inject constructor(
     /** Start a read-only preflight. The live database is not changed here. */
     fun prepareRestore() {
         if (_uiState.value.busy) return
+        _uiState.value = _uiState.value.copy(busy = true, message = null, restorePlan = null, unresolvedBooks = emptyList())
+        selectedSources.clear()
         activeRestoreJob = viewModelScope.launch(Dispatchers.IO) {
-            _uiState.value = _uiState.value.copy(busy = true, message = null, restorePlan = null, unresolvedBooks = emptyList())
-            selectedSources.clear()
             val result = runCatching { manager.previewBackupBooks() }
             result.onSuccess { books ->
                 previewBooks = books
@@ -101,8 +101,8 @@ class PortableDataViewModel @Inject constructor(
     /** Recursively scan the selected SAF tree and build a conservative review plan. */
     fun scanRestoreFolder(treeUri: Uri) {
         if (_uiState.value.busy || _uiState.value.restoreStage != RestoreReconciliationStage.CHOOSE_FOLDER) return
+        _uiState.value = _uiState.value.copy(busy = true, message = "กำลังค้นหา EPUB ในโฟลเดอร์และโฟลเดอร์ย่อย…")
         activeRestoreJob = viewModelScope.launch(Dispatchers.IO) {
-            _uiState.value = _uiState.value.copy(busy = true, message = "กำลังค้นหา EPUB ในโฟลเดอร์และโฟลเดอร์ย่อย…")
             val result = runCatching {
                 val root = DocumentFile.fromTreeUri(context, treeUri)
                     ?: error("ไม่สามารถเปิดโฟลเดอร์ที่เลือกได้")
@@ -223,8 +223,8 @@ class PortableDataViewModel @Inject constructor(
         if (_uiState.value.busy || _uiState.value.restoreStage != RestoreReconciliationStage.NOT_FOUND) return
         // Snapshot the confirmed mapping on the caller thread before the IO restore starts.
         val sourceSnapshot = selectedSources.toMap()
+        _uiState.value = _uiState.value.copy(busy = true, message = "กำลังกู้คืนข้อมูล…")
         activeRestoreJob = viewModelScope.launch(Dispatchers.IO) {
-            _uiState.value = _uiState.value.copy(busy = true, message = "กำลังกู้คืนข้อมูล…")
             val result = runCatching { manager.restoreLatestBackup(sourceSnapshot) }
             result.onSuccess { summary ->
                 selectedSources.clear()
@@ -308,8 +308,8 @@ class PortableDataViewModel @Inject constructor(
 
     private fun runOperation(block: suspend () -> String) {
         if (_uiState.value.busy) return
+        _uiState.value = _uiState.value.copy(busy = true, message = null)
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(busy = true, message = null)
             val message = runCatching { block() }.fold(
                 onSuccess = { it },
                 onFailure = { "ดำเนินการไม่สำเร็จ: ${it.message ?: "เกิดข้อผิดพลาด"}" },
