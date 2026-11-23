@@ -11,6 +11,9 @@ interface BookTagLibraryDao {
     @Query("SELECT * FROM book_tag_library ORDER BY tag COLLATE NOCASE")
     fun observeAll(): Flow<List<BookTagLibraryEntity>>
 
+    @Query("SELECT * FROM book_tag_library ORDER BY tag COLLATE NOCASE")
+    suspend fun getAllForBackup(): List<BookTagLibraryEntity>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(tag: BookTagLibraryEntity)
 
