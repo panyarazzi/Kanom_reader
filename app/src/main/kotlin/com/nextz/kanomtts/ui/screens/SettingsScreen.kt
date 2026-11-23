@@ -183,6 +183,7 @@ fun SettingsScreen(
         }
 
         }
+        if (backupOnly) {
         Text("ข้อมูลถาวรของ Kanom", style = MaterialTheme.typography.titleLarge)
         Text(
             "สำรองและกู้คืนข้อมูลผ่านโฟลเดอร์ Internal Storage/Kanom ระบบจะไม่คัดลอกไฟล์ EPUB จึงควรเก็บไฟล์ต้นฉบับไว้ และอาจต้องเชื่อมไฟล์ใหม่หลังติดตั้งแอปหรือย้ายอุปกรณ์",
@@ -251,6 +252,7 @@ fun SettingsScreen(
             modifier = Modifier.padding(top = 4.dp),
         )
 
+        }
         if (!backupOnly) {
         HorizontalDivider(Modifier.padding(vertical = 16.dp))
         Text("Neural · พรีเมียม — เร็วๆ นี้",
