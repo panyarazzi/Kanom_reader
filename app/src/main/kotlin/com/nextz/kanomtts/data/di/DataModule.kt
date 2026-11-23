@@ -18,7 +18,7 @@ object DataModule {
     @Provides @Singleton
     fun provideDatabase(@ApplicationContext ctx: Context): KanomDatabase =
         Room.databaseBuilder(ctx, KanomDatabase::class.java, "kanom.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
             .build()
     @Provides fun provideBookDao(db: KanomDatabase): BookDao = db.bookDao()
     @Provides fun provideProgressDao(db: KanomDatabase): ProgressDao = db.progressDao()
@@ -27,6 +27,7 @@ object DataModule {
     @Provides fun provideVoiceConfigDao(db: KanomDatabase): VoiceConfigDao = db.voiceConfigDao()
     @Provides fun provideReadingSessionDao(db: KanomDatabase): ReadingSessionDao = db.readingSessionDao()
     @Provides fun provideBookTagDao(db: KanomDatabase): BookTagDao = db.bookTagDao()
+    @Provides fun provideBookTagLibraryDao(db: KanomDatabase): BookTagLibraryDao = db.bookTagLibraryDao()
     @Provides fun provideBookNoteDao(db: KanomDatabase): BookNoteDao = db.bookNoteDao()
     @Provides @Singleton fun provideDataStore(@ApplicationContext ctx: Context): DataStore<Preferences> = ctx.dataStore
 }
