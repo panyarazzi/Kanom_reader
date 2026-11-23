@@ -320,7 +320,7 @@ fun LibraryContent(
                 item(key = "library-reading-statistics-and-listening") {
                     androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
                         val listeningVisible = playbackState?.visible == true
-                        if (listeningVisible && maxWidth >= 600.dp) {
+                        if (listeningVisible && maxWidth >= 720.dp) {
                             Row(
                                 Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
