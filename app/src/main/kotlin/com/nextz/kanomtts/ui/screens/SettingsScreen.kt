@@ -321,7 +321,7 @@ fun SettingsScreen(
             )
         }
         RestoreReconciliationStage.NOT_FOUND -> {
-            val missing = portable.restorePlan?.notFound.orEmpty()
+            val missing = portable.unresolvedBooks
             AlertDialog(
                 onDismissRequest = portableVm::cancelRestore,
                 title = { Text("หนังสือที่ไม่พบไฟล์ต้นฉบับ") },

@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nextz.kanomtts.data.db.BookEntity
 import com.nextz.kanomtts.data.portable.PortableBackupSummary
 import com.nextz.kanomtts.data.portable.PortableDataManager
 import com.nextz.kanomtts.data.portable.RestoreSourceCandidate
@@ -41,6 +42,7 @@ data class PortableDataUiState(
     val restoreStage: RestoreReconciliationStage = RestoreReconciliationStage.NONE,
     val restorePlan: RestoreSourcePlan? = null,
     val ambiguousIndex: Int = 0,
+    val unresolvedBooks: List<BookEntity> = emptyList(),
 )
 
 @HiltViewModel
@@ -75,7 +77,7 @@ class PortableDataViewModel @Inject constructor(
     fun prepareRestore() {
         if (_uiState.value.busy) return
         activeRestoreJob = viewModelScope.launch(Dispatchers.IO) {
-            _uiState.value = _uiState.value.copy(busy = true, message = null, restorePlan = null)
+            _uiState.value = _uiState.value.copy(busy = true, message = null, restorePlan = null, unresolvedBooks = emptyList())
             selectedSources.clear()
             val result = runCatching { manager.previewBackupBooks() }
             result.onSuccess { books ->
@@ -146,6 +148,7 @@ class PortableDataViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     busy = false,
                     restorePlan = plan,
+                    unresolvedBooks = emptyList(),
                     restoreStage = RestoreReconciliationStage.REVIEW_UNIQUE,
                     message = "ตรวจพบ EPUB ที่จับคู่ได้แน่นอน ${plan.uniqueMatches.size} เล่ม, ต้องเลือกเอง ${plan.ambiguousMatches.size} เล่ม, ไม่พบ ${plan.notFound.size} เล่ม",
                 )
@@ -155,6 +158,7 @@ class PortableDataViewModel @Inject constructor(
                     busy = false,
                     restoreStage = if (cancelled) RestoreReconciliationStage.NONE else RestoreReconciliationStage.CHOOSE_FOLDER,
                     restorePlan = null,
+                    unresolvedBooks = emptyList(),
                     message = if (cancelled) "ยกเลิกการค้นหาโฟลเดอร์แล้ว" else "ค้นหาโฟลเดอร์ไม่สำเร็จ: ${it.message}",
                 )
                 if (cancelled) activeRestoreJob = null
@@ -171,6 +175,7 @@ class PortableDataViewModel @Inject constructor(
             restoreStage = if (plan.ambiguousMatches.isEmpty()) RestoreReconciliationStage.NOT_FOUND
                 else RestoreReconciliationStage.AMBIGUOUS,
             ambiguousIndex = 0,
+            unresolvedBooks = plan.notFound,
             message = null,
         )
     }
@@ -196,6 +201,10 @@ class PortableDataViewModel @Inject constructor(
     fun skipAmbiguousBook() {
         if (_uiState.value.busy || _uiState.value.restoreStage != RestoreReconciliationStage.AMBIGUOUS) return
         val plan = _uiState.value.restorePlan ?: return
+        val item = plan.ambiguousMatches.getOrNull(_uiState.value.ambiguousIndex) ?: return
+        _uiState.value = _uiState.value.copy(
+            unresolvedBooks = (_uiState.value.unresolvedBooks + item.book).distinctBy { it.id },
+        )
         advanceAmbiguous(plan)
     }
 
@@ -225,6 +234,7 @@ class PortableDataViewModel @Inject constructor(
                     busy = false,
                     restoreStage = RestoreReconciliationStage.NONE,
                     restorePlan = null,
+                    unresolvedBooks = emptyList(),
                     message = backupSummary("กู้คืนข้อมูลสำเร็จ", summary),
                 )
             }.onFailure {
@@ -236,6 +246,7 @@ class PortableDataViewModel @Inject constructor(
                         restoreStage = RestoreReconciliationStage.NONE,
                         restorePlan = null,
                         ambiguousIndex = 0,
+                        unresolvedBooks = emptyList(),
                         message = "ยกเลิกการกู้คืนแล้ว ข้อมูลเดิมยังคงอยู่",
                     )
                     activeRestoreJob = null
@@ -266,6 +277,7 @@ class PortableDataViewModel @Inject constructor(
             restoreStage = RestoreReconciliationStage.NONE,
             restorePlan = null,
             ambiguousIndex = 0,
+            unresolvedBooks = emptyList(),
             message = "ยกเลิกการกู้คืนแล้ว ข้อมูลปัจจุบันไม่ได้เปลี่ยนแปลง",
         )
     }
