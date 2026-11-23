@@ -24,20 +24,13 @@ class ReaderNavInputListener(
     private val viewportHeightPx: () -> Float,
     private val centerMenuFraction: Float = 0.34f,
     tapAnywhereToNext: Boolean = false,
-    previousZonePercent: Int = 50,
 ) : InputListener {
     @Volatile
     private var tapAnywhereToNextEnabled: Boolean = tapAnywhereToNext
-    @Volatile
-    private var previousZonePercentEnabled: Int = previousZonePercent.coerceIn(0, 100)
 
     /** Update the active listener immediately when the user changes the reader setting. */
     fun setTapAnywhereToNext(enabled: Boolean) {
         tapAnywhereToNextEnabled = enabled
-    }
-
-    fun setPreviousZonePercent(percent: Int) {
-        previousZonePercentEnabled = percent.coerceIn(0, 100)
     }
 
     override fun onTap(event: TapEvent): Boolean {
@@ -48,7 +41,6 @@ class ReaderNavInputListener(
             height = viewportHeightPx(),
             tapAnywhereToNext = tapAnywhereToNextEnabled,
             centerMenuFraction = centerMenuFraction,
-            previousZonePercent = previousZonePercentEnabled,
         )) {
             ReaderTapAction.TOGGLE_CHROME -> onToggleChrome()
             ReaderTapAction.PREVIOUS_PAGE -> onPrevPage()
@@ -92,11 +84,10 @@ internal fun resolveReaderTapAction(
     height: Float,
     tapAnywhereToNext: Boolean,
     centerMenuFraction: Float = 0.34f,
-    previousZonePercent: Int = 50,
 ): ReaderTapAction =
     when {
         isCenterMenuTap(x, y, width, height, centerMenuFraction) -> ReaderTapAction.TOGGLE_CHROME
         tapAnywhereToNext -> ReaderTapAction.NEXT_PAGE
-        width > 0f && x < width * previousZonePercent.coerceIn(0, 100) / 100f -> ReaderTapAction.PREVIOUS_PAGE
+        width > 0f && x < width / 2f -> ReaderTapAction.PREVIOUS_PAGE
         else -> ReaderTapAction.NEXT_PAGE
     }

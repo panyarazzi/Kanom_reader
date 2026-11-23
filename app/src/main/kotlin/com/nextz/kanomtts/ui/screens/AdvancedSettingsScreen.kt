@@ -116,26 +116,6 @@ fun AdvancedSettingsScreen(
             }
 
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
-            Text("การแบ่งเขตแตะเปลี่ยนหน้า", style = MaterialTheme.typography.titleMedium)
-            Text(
-                "กำหนดสัดส่วนพื้นที่แตะ Previous และ Next รวมกัน 100% ปรับครั้งละ 5%",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            TouchZoneControlRow(
-                label = "Previous",
-                value = prefs.previousTouchZonePercent,
-                onDecrease = { viewModel.adjustPreviousTouchZone(-5) },
-                onIncrease = { viewModel.adjustPreviousTouchZone(5) },
-            )
-            TouchZoneControlRow(
-                label = "Next",
-                value = prefs.nextTouchZonePercent,
-                onDecrease = { viewModel.adjustNextTouchZone(-5) },
-                onIncrease = { viewModel.adjustNextTouchZone(5) },
-            )
-
-            HorizontalDivider(Modifier.padding(vertical = 8.dp))
             Text("ตัวเลือกการอ่าน", style = MaterialTheme.typography.titleMedium)
             ToggleRow("สลับปุ่ม Volume", prefs.reverseVolumeKeys, viewModel::setReverseVolumeKeys)
             ToggleRow("ใช้สไตล์ผู้จัดพิมพ์", prefs.usePublisherStyles, viewModel::setUsePublisherStyles)
@@ -199,24 +179,6 @@ private fun LayoutChoice(label: String, selected: String, options: List<Pair<Str
                 DropdownMenuItem(text = { Text(text) }, onClick = { onSelect(value); expanded = false })
             }
         }
-    }
-}
-
-@Composable
-private fun TouchZoneControlRow(
-    label: String,
-    value: Int,
-    onDecrease: () -> Unit,
-    onIncrease: () -> Unit,
-) {
-    Row(
-        Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text("$label: $value%", modifier = Modifier.weight(1f))
-        Button(onClick = onDecrease, enabled = value > 0) { Text("− 5") }
-        Button(onClick = onIncrease, enabled = value < 100) { Text("+ 5") }
     }
 }
 

@@ -227,7 +227,6 @@ class ReaderViewModel @Inject constructor(
     private var reverseVolumeKeys: Boolean = false
     /** Live tap mode; false preserves the original centered menu activation zone. */
     private var tapAnywhereToNext: Boolean = false
-    private var previousTouchZonePercent: Int = 50
 
     /** Buffer up to 1 pending locator; oldest dropped so tryEmit always keeps the latest value. */
     private val locatorChanges = MutableSharedFlow<Locator>(
@@ -263,9 +262,7 @@ class ReaderViewModel @Inject constructor(
                 thaiWordBreak = p.thaiWordBreak
                 reverseVolumeKeys = p.reverseVolumeKeys
                 tapAnywhereToNext = p.tapAnywhereToNext
-                previousTouchZonePercent = p.previousTouchZonePercent
                 navListener?.setTapAnywhereToNext(p.tapAnywhereToNext)
-                navListener?.setPreviousZonePercent(p.previousTouchZonePercent)
                 navigator?.submitPreferences(EpubPreferencesMapper.map(p))
                 _uiState.update { s -> if (s is ReaderUiState.Ready) s.copy(prefs = p) else s }
                 applyPublisherLineHeight()
@@ -312,7 +309,6 @@ class ReaderViewModel @Inject constructor(
         // Read prefs first so thaiWordBreak toggle is available before opening the display publication.
         val initialPrefs = prefs.preferences.first()
         tapAnywhereToNext = initialPrefs.tapAnywhereToNext
-        previousTouchZonePercent = initialPrefs.previousTouchZonePercent
 
         // Snapshot visual replacement rules at open time (apply-on-next-open).
         // Only fetch when the pref is on; empty list = no injection (today's behaviour).
@@ -521,7 +517,6 @@ class ReaderViewModel @Inject constructor(
             viewportWidthPx = { nav.view?.width?.toFloat() ?: 0f },
             viewportHeightPx = { nav.view?.height?.toFloat() ?: 0f },
             tapAnywhereToNext = tapAnywhereToNext,
-            previousZonePercent = previousTouchZonePercent,
         )
         nav.addInputListener(interactionListener) // FIRST → observes taps/drags without consuming them
         nav.addInputListener(edgeAdapter)   // SECOND → keyboard navigation only
