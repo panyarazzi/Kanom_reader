@@ -56,9 +56,8 @@ import com.nextz.kanomtts.ui.theme.KanomTheme
 // ─── VM-bound entry point ───────────────────────────────────────────────────────
 
 /**
- * Folder Library test mode: imports recursively from a selected folder and shows
- * import-result snackbars. Single-file Classic Library entry is intentionally not
- * exposed in this test version; it remains a separate release-mode requirement.
+ * Folder Library test mode: supports recursive folder import and individual EPUB import
+ * through separate floating actions, while retaining the real source-folder hierarchy.
  */
 @Composable
 fun LibraryScreen(
@@ -533,7 +532,7 @@ fun LibraryContent(
                 ) {
                     Text(
                         text = when {
-                            state.totalBookCount == 0 -> "ยังไม่มีหนังสือ — แตะนำเข้าหนังสือจากโฟลเดอร์เพื่อเพิ่ม"
+                            state.totalBookCount == 0 -> "ยังไม่มีหนังสือ — ใช้ปุ่ม + เพื่อนำเข้า EPUB หรือปุ่มโฟลเดอร์เพื่อนำเข้าทั้งโฟลเดอร์"
                             state.query.isNotBlank() -> "ไม่พบหนังสือที่ค้นหา"
                             else -> "ไม่พบหนังสือตามตัวกรองที่เลือก"
                         },
