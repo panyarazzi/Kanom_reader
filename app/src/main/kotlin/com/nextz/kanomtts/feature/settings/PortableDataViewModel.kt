@@ -206,9 +206,11 @@ class PortableDataViewModel @Inject constructor(
     /** Not-found books are intentionally left unresolved; then apply the staged restore. */
     fun finishRestore() {
         if (_uiState.value.busy || _uiState.value.restoreStage != RestoreReconciliationStage.NOT_FOUND) return
+        // Snapshot the confirmed mapping on the caller thread before the IO restore starts.
+        val sourceSnapshot = selectedSources.toMap()
         activeRestoreJob = viewModelScope.launch(Dispatchers.IO) {
             _uiState.value = _uiState.value.copy(busy = true, message = "กำลังกู้คืนข้อมูล…")
-            val result = runCatching { manager.restoreLatestBackup(selectedSources.toMap()) }
+            val result = runCatching { manager.restoreLatestBackup(sourceSnapshot) }
             result.onSuccess { summary ->
                 selectedSources.clear()
                 previewBooks = emptyList()
