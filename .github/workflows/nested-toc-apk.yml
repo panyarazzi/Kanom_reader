@@ -1,8 +1,9 @@
 name: Kanom Reader APK
 
 on:
-  # Intentionally manual only while the release scope is being completed.
-  # Do not re-enable push builds until all agreed requirements are complete.
+  push:
+    branches:
+      - feature/readest-library-responsive
   workflow_dispatch:
 
 permissions:
