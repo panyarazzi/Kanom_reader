@@ -526,7 +526,6 @@ fun LibraryContent(
                 }
             }
         }
-        }
 
         if (!state.isSelectionMode) {
             item(key = "library-organization-controls") {
