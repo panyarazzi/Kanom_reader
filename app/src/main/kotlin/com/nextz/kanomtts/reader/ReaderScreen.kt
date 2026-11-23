@@ -242,9 +242,11 @@ private fun ReaderChromeLayer(
     val progressContent = buildProgressContent(
         pageNumber = state.chapterPageNumber,
         totalPages = state.chapterPageCount,
-        chapterTitle = resolveChapterTitle(
-            locatorHref = progressLocator?.href?.toString(),
-            locatorTitle = progressLocator?.title,
+        chapterTitle = resolveProgressChapterTitle(
+            paginationLocatorHref = state.chapterProgressLocator?.href?.toString(),
+            paginationLocatorTitle = state.chapterProgressLocator?.title,
+            currentLocatorHref = state.currentLocator?.href?.toString(),
+            currentLocatorTitle = state.currentLocator?.title,
             toc = state.toc,
         ),
         bookTitle = state.book.title,

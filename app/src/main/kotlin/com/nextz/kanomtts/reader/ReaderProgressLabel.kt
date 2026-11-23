@@ -56,6 +56,26 @@ internal fun resolveChapterTitle(
     return tocTitle ?: locatorTitle?.trim()?.takeIf(::isUsefulChapterTitle)
 }
 
+
+/**
+ * Resolve the chapter title using the locator delivered with the pagination callback.
+ * A later currentLocator emission may already point at the next chapter while the page
+ * count still belongs to the previous chapter; never mix those two events.
+ */
+internal fun resolveProgressChapterTitle(
+    paginationLocatorHref: String?,
+    paginationLocatorTitle: String?,
+    currentLocatorHref: String?,
+    currentLocatorTitle: String?,
+    toc: List<Link>,
+): String? {
+    return if (!paginationLocatorHref.isNullOrBlank()) {
+        resolveChapterTitle(paginationLocatorHref, paginationLocatorTitle, toc)
+    } else {
+        resolveChapterTitle(currentLocatorHref, currentLocatorTitle, toc)
+    }
+}
+
 private fun isUsefulChapterTitle(value: String): Boolean {
     if (value.isBlank()) return false
     if (value.matches(Regex("(?i)^chapter$|^section$|^untitled$"))) return false

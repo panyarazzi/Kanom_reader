@@ -93,6 +93,28 @@ class ReaderProgressLabelTest {
         )
     }
 
+
+    @Test fun paginationChapterTitleDoesNotUseLaterNextChapterLocator() {
+        val previousChapter = Link(
+            href = Href(Url("OPS/Text/chapter-34.xhtml")!!),
+            title = "ตอนที่ 34",
+        )
+        val nextChapter = Link(
+            href = Href(Url("OPS/Text/chapter-35.xhtml")!!),
+            title = "ตอนที่ 35",
+        )
+        assertEquals(
+            "ตอนที่ 34",
+            resolveProgressChapterTitle(
+                paginationLocatorHref = "OPS/Text/chapter-34.xhtml",
+                paginationLocatorTitle = null,
+                currentLocatorHref = "OPS/Text/chapter-35.xhtml",
+                currentLocatorTitle = "ตอนที่ 35",
+                toc = listOf(previousChapter, nextChapter),
+            ),
+        )
+    }
+
     @Test fun rejectsGenericOrFabricatedLocatorTitles() {
         assertNull(resolveChapterTitle("OPS/a.xhtml", "เล่มที่ 2", emptyList()))
         assertNull(resolveChapterTitle("OPS/a.xhtml", "chapter", emptyList()))
