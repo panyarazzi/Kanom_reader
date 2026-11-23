@@ -67,6 +67,7 @@ fun LibraryScreen(
     viewModel: LibraryViewModel = hiltViewModel(),
     importViewModel: ImportViewModel,
     onOpenStatistics: () -> Unit = {},
+    onOpenAnnotations: () -> Unit = {},
     onOpenNowPlaying: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -165,6 +166,7 @@ fun LibraryScreen(
             onImportFolder = { folderLauncher.launch(null) },
             statistics = statisticsState,
             onOpenStatistics = onOpenStatistics,
+            onOpenAnnotations = onOpenAnnotations,
             onOpenNowPlaying = onOpenNowPlaying,
             playbackState = playbackState,
             onPlaybackToggle = playbackViewModel::playPause,
@@ -203,6 +205,7 @@ fun LibraryContent(
     onImportFolder: () -> Unit = {},
     statistics: ReadingStatisticsUiState? = null,
     onOpenStatistics: () -> Unit = {},
+    onOpenAnnotations: () -> Unit = {},
     onOpenNowPlaying: () -> Unit = {},
     playbackState: MiniPlayerUiState? = null,
     onPlaybackToggle: () -> Unit = {},
@@ -213,6 +216,9 @@ fun LibraryContent(
     modifier: Modifier = Modifier,
 ) {
     var showConfirm by remember { mutableStateOf(false) }
+    var contextBook by remember { mutableStateOf<BookCard?>(null) }
+    var detailsBook by remember { mutableStateOf<BookCard?>(null) }
+    var removeBook by remember { mutableStateOf<BookCard?>(null) }
     var showOrganizationControls by remember { mutableStateOf(false) }
     var groupMenuExpanded by remember { mutableStateOf(false) }
     var sortMenuExpanded by remember { mutableStateOf(false) }
@@ -346,6 +352,7 @@ fun LibraryContent(
                                     isSelected = false,
                                     onClick = { onOpenBook(card.id) },
                                     onToggle = { onToggleSelection(card.id) },
+                                    onLongPress = { if (state.isSelectionMode) onToggleSelection(card.id) else contextBook = card },
                                     modifier = Modifier.width(104.dp),
                                 )
                             }
@@ -589,6 +596,51 @@ fun LibraryContent(
         }
 
 
+    }
+
+    contextBook?.let { book ->
+        AlertDialog(
+            onDismissRequest = { contextBook = null },
+            title = { Text(book.displayTitle, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    TextButton(onClick = { contextBook = null; onOpenAnnotations() }) { Text("Tags / Notes") }
+                    TextButton(onClick = { detailsBook = book; contextBook = null }) { Text("รายละเอียดหนังสือ") }
+                    TextButton(onClick = { onToggleSelection(book.id); contextBook = null }) { Text("เลือกหลายรายการ") }
+                    TextButton(onClick = { removeBook = book; contextBook = null }) { Text("นำออกจากรายการ") }
+                }
+            },
+            confirmButton = {},
+        )
+    }
+    detailsBook?.let { book ->
+        AlertDialog(
+            onDismissRequest = { detailsBook = null },
+            title = { Text("รายละเอียดหนังสือ") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text(book.title, style = MaterialTheme.typography.titleMedium)
+                    book.author?.takeIf { it.isNotBlank() }?.let { Text("ผู้แต่ง: $it") }
+                    book.filename.takeIf { it.isNotBlank() }?.let { Text("ชื่อไฟล์: $it") }
+                    book.sourceFolder?.takeIf { it.isNotBlank() }?.let { Text("โฟลเดอร์: $it") }
+                    book.seriesName?.takeIf { it.isNotBlank() }?.let { Text("ซีรีส์: $it") }
+                    if (book.tags.isNotEmpty()) Text("Tags: ${book.tags.joinToString(" · ")}")
+                    Text("ความคืบหน้า: ${(book.percent * 100).toInt()}%")
+                }
+            },
+            confirmButton = { TextButton(onClick = { detailsBook = null }) { Text("ปิด") } },
+        )
+    }
+    removeBook?.let { book ->
+        AlertDialog(
+            onDismissRequest = { removeBook = null },
+            title = { Text("นำหนังสือ ${book.displayTitle} ออกจากรายการใช่หรือไม่?") },
+            text = { Text("การดำเนินการนี้จะนำข้อมูลหนังสือออกจาก Library เท่านั้น ไม่ได้ลบไฟล์ EPUB ต้นฉบับที่จัดเก็บอยู่ในเครื่อง") },
+            confirmButton = {
+                TextButton(onClick = { onToggleSelection(book.id); onDeleteSelected(); removeBook = null }) { Text("นำออก") }
+            },
+            dismissButton = { TextButton(onClick = { removeBook = null }) { Text("ยกเลิก") } },
+        )
     }
 
     if (showConfirm) {
