@@ -234,13 +234,14 @@ fun BookGridItem(
     onClick: () -> Unit,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
+    onLongPress: () -> Unit = onToggle,
 ) {
     Column(
         modifier = modifier
             .clip(MaterialTheme.shapes.medium)
             .combinedClickable(
                 onClick = { if (isSelectionMode) onToggle() else onClick() },
-                onLongClick = onToggle,
+                onLongClick = onLongPress,
             )
             .padding(bottom = 8.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -299,6 +300,7 @@ fun BookListItem(
     onClick: () -> Unit,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
+    onLongPress: () -> Unit = onToggle,
 ) {
     Row(
         modifier = modifier
@@ -306,7 +308,7 @@ fun BookListItem(
             .clip(MaterialTheme.shapes.medium)
             .combinedClickable(
                 onClick = { if (isSelectionMode) onToggle() else onClick() },
-                onLongClick = onToggle,
+                onLongClick = onLongPress,
             )
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically,
