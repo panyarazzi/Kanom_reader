@@ -199,8 +199,9 @@ fun LibraryContent(
         LibraryGroupMode.AUTHOR -> state.books.groupBy { it.author?.takeIf(String::isNotBlank) ?: "ไม่ทราบผู้แต่ง" }
             .toSortedMap(String.CASE_INSENSITIVE_ORDER).toList()
         LibraryGroupMode.SERIES -> state.books
-            .groupBy { card -> card.tags.firstOrNull { it.startsWith("series:", ignoreCase = true) }?.substringAfter(':')?.trim()?.takeIf(String::isNotBlank) ?: "ยังไม่ระบุซีรีส์" }
-            .toSortedMap(String.CASE_INSENSITIVE_ORDER).toList()
+            .groupBy { card -> card.seriesName?.takeIf(String::isNotBlank) ?: "ไม่มี Series Metadata" }
+            .toSortedMap(String.CASE_INSENSITIVE_ORDER)
+            .map { (name, books) -> name to books.sortedWith(compareBy<BookCard> { it.seriesPosition ?: Double.MAX_VALUE }.thenBy { it.title.lowercase() }) }
         LibraryGroupMode.READING_STATUS -> state.books.groupBy { card ->
             when { card.percent >= 0.999f -> "อ่านจบแล้ว"; card.percent > 0f -> "กำลังอ่าน"; else -> "รออ่าน" }
         }.toList().sortedBy { listOf("กำลังอ่าน", "รออ่าน", "อ่านจบแล้ว").indexOf(it.first) }
@@ -472,7 +473,7 @@ fun LibraryContent(
                             }
                             if (state.groupMode == LibraryGroupMode.SERIES) {
                                 Text(
-                                    "การจัดกลุ่มซีรีส์ใช้แท็กที่ขึ้นต้นด้วย series: เช่น series:สามก๊ก",
+                                    "จัดกลุ่มจาก Series Metadata ที่ฝังอยู่ใน EPUB เท่านั้น",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
