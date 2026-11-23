@@ -30,7 +30,8 @@ class EpubImporter(
         if (books.isDuplicate(uri)) return ImportResult.Duplicate
         val meta = extractor.extract(uri) ?: return ImportResult.Unreadable
         val filenameTitle = displayName?.takeIf { it.isNotBlank() }?.let { name ->
-            if (name.endsWith(".epub", ignoreCase = true)) name.dropLast(5) else name
+            (if (name.endsWith(".epub", ignoreCase = true)) name.dropLast(5) else name)
+                .takeIf { it.isNotBlank() }
         }
         val title = meta.title.ifBlank { filenameTitle ?: "Untitled" }
         // Matching by title and size can collide. Relinking is always explicit and user-confirmed.
