@@ -15,7 +15,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.security.MessageDigest
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -48,6 +52,7 @@ class PortableDataViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(PortableDataUiState())
     val uiState: StateFlow<PortableDataUiState> = _uiState.asStateFlow()
     private val selectedSources = linkedMapOf<String, RestoreSourceCandidate>()
+    private var activeRestoreJob: Job? = null
     private var previewBooks = emptyList<com.nextz.kanomtts.data.db.BookEntity>()
 
     init { refresh() }
@@ -69,7 +74,7 @@ class PortableDataViewModel @Inject constructor(
     /** Start a read-only preflight. The live database is not changed here. */
     fun prepareRestore() {
         if (_uiState.value.busy) return
-        viewModelScope.launch(Dispatchers.IO) {
+        activeRestoreJob = viewModelScope.launch(Dispatchers.IO) {
             _uiState.value = _uiState.value.copy(busy = true, message = null, restorePlan = null)
             selectedSources.clear()
             val result = runCatching { manager.previewBackupBooks() }
@@ -83,8 +88,10 @@ class PortableDataViewModel @Inject constructor(
             }.onFailure {
                 _uiState.value = _uiState.value.copy(
                     busy = false,
-                    message = "อ่านข้อมูลสำรองไม่สำเร็จ: ${it.message}",
+                    restoreStage = RestoreReconciliationStage.NONE,
+                    message = if (it is CancellationException) "ยกเลิกการเตรียม Restore แล้ว" else "อ่านข้อมูลสำรองไม่สำเร็จ: ${it.message}",
                 )
+                if (it is CancellationException) activeRestoreJob = null
             }
         }
     }
@@ -92,7 +99,7 @@ class PortableDataViewModel @Inject constructor(
     /** Recursively scan the selected SAF tree and build a conservative review plan. */
     fun scanRestoreFolder(treeUri: Uri) {
         if (_uiState.value.busy || previewBooks.isEmpty()) return
-        viewModelScope.launch(Dispatchers.IO) {
+        activeRestoreJob = viewModelScope.launch(Dispatchers.IO) {
             _uiState.value = _uiState.value.copy(busy = true, message = "กำลังค้นหา EPUB ในโฟลเดอร์และโฟลเดอร์ย่อย…")
             val result = runCatching {
                 val root = DocumentFile.fromTreeUri(context, treeUri)
@@ -101,7 +108,9 @@ class PortableDataViewModel @Inject constructor(
                 val legacyBooks = previewBooks.filter { it.sha256.isNullOrBlank() }
                 val found = mutableListOf<RestoreSourceCandidate>()
                 suspend fun walk(folder: DocumentFile, relative: String) {
+                    currentCoroutineContext().ensureActive()
                     folder.listFiles().forEach { child ->
+                        currentCoroutineContext().ensureActive()
                         if (child.isDirectory) {
                             val next = listOf(relative, child.name.orEmpty())
                                 .filter { it.isNotBlank() }.joinToString("/")
@@ -140,8 +149,10 @@ class PortableDataViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     busy = false,
                     restoreStage = RestoreReconciliationStage.CHOOSE_FOLDER,
-                    message = "ค้นหาโฟลเดอร์ไม่สำเร็จ: ${it.message}",
+                    restorePlan = null,
+                    message = if (it is CancellationException) "ยกเลิกการค้นหาโฟลเดอร์แล้ว" else "ค้นหาโฟลเดอร์ไม่สำเร็จ: ${it.message}",
                 )
+                if (it is CancellationException) activeRestoreJob = null
             }
         }
     }
@@ -182,7 +193,7 @@ class PortableDataViewModel @Inject constructor(
     /** Not-found books are intentionally left unresolved; then apply the staged restore. */
     fun finishRestore() {
         if (_uiState.value.busy) return
-        viewModelScope.launch(Dispatchers.IO) {
+        activeRestoreJob = viewModelScope.launch(Dispatchers.IO) {
             _uiState.value = _uiState.value.copy(busy = true, message = "กำลังกู้คืนข้อมูล…")
             val result = runCatching { manager.restoreLatestBackup(selectedSources.toMap()) }
             result.onSuccess { summary ->
@@ -197,15 +208,37 @@ class PortableDataViewModel @Inject constructor(
                     message = backupSummary("กู้คืนข้อมูลสำเร็จ", summary),
                 )
             }.onFailure {
-                _uiState.value = _uiState.value.copy(
-                    busy = false,
-                    message = "กู้คืนไม่สำเร็จ ข้อมูลเดิมยังไม่ถูกแทนที่: ${it.message}",
-                )
+                if (it is CancellationException) {
+                    selectedSources.clear()
+                    previewBooks = emptyList()
+                    _uiState.value = _uiState.value.copy(
+                        busy = false,
+                        restoreStage = RestoreReconciliationStage.NONE,
+                        restorePlan = null,
+                        ambiguousIndex = 0,
+                        message = "ยกเลิกการกู้คืนแล้ว ข้อมูลเดิมยังคงอยู่",
+                    )
+                    activeRestoreJob = null
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        busy = false,
+                        message = "กู้คืนไม่สำเร็จ ข้อมูลเดิมยังไม่ถูกแทนที่: ${it.message}",
+                    )
+                }
             }
         }
     }
 
     fun cancelRestore() {
+        val running = activeRestoreJob
+        if (running?.isActive == true) {
+            // Keep the operation marked busy until its cancellation has unwound. The manager
+            // checks cancellation before the Room transaction and within its restore stages.
+            _uiState.value = _uiState.value.copy(busy = true, message = "กำลังยกเลิกการกู้คืน…")
+            running.cancel()
+            return
+        }
+        activeRestoreJob = null
         selectedSources.clear()
         previewBooks = emptyList()
         _uiState.value = _uiState.value.copy(
