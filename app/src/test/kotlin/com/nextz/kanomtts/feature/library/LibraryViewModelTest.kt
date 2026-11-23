@@ -249,6 +249,28 @@ class LibraryViewModelTest {
     }
 
     @Test
+    fun `completion threshold is consistent across reading and finished shelves`() = runTest {
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        fakeBooks.books.value = listOf(
+            book("reading", "Reading"),
+            book("finished", "Finished"),
+            book("unread", "Unread"),
+        )
+        fakeProgress.setProgress("reading", progress("reading", 0.998f))
+        fakeProgress.setProgress("finished", progress("finished", 0.999f))
+        fakeProgress.setProgress("unread", progress("unread", 0f))
+        runCurrent()
+
+        assertEquals(1, vm.uiState.value.readingCount)
+        assertEquals(1, vm.uiState.value.finishedCount)
+        assertTrue(vm.uiState.value.books.first { it.id == "finished" }.isReading.not())
+
+        vm.setShelfFilter(LibraryShelf.FINISHED)
+        runCurrent()
+        assertEquals(listOf("finished"), vm.uiState.value.books.map { it.id })
+    }
+
+    @Test
     fun `recently opened and newest book rows use their respective timestamps`() = runTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         fakeBooks.books.value = listOf(

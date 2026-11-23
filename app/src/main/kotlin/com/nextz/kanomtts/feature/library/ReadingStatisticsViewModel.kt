@@ -106,7 +106,7 @@ class ReadingStatisticsViewModel @Inject constructor(
     }
 }
 
-private fun buildStatistics(
+internal fun buildStatistics(
     pairs: List<Pair<BookEntity, ProgressEntity?>>,
     sessions: List<ReadingSessionEntity>,
     range: StatisticsRange,

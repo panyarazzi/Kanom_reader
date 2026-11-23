@@ -100,10 +100,10 @@ class LibraryViewModel @Inject constructor(
             .filter { card -> selectedFolder == null || card.sourceFolder == selectedFolder }
             .filter { card ->
                 when (selectedShelf) {
-                    LibraryShelf.READING -> card.percent > 0f && card.percent < 1f
+                    LibraryShelf.READING -> card.percent > 0f && card.percent < 0.999f
                     LibraryShelf.TO_READ -> card.percent <= 0f
                     LibraryShelf.SERIES -> !card.sourceFolder.isNullOrBlank()
-                    LibraryShelf.FINISHED -> card.percent >= 1f
+                    LibraryShelf.FINISHED -> card.percent >= 0.999f
                     null -> true
                 }
             }
@@ -120,7 +120,7 @@ class LibraryViewModel @Inject constructor(
             .toSortedMap(String.CASE_INSENSITIVE_ORDER)
             .map { (name, cards) -> LibraryFolderCard(name, cards.size, cards.take(4).map { it.coverPath }) }
         val continueCard = filteredCards
-            .filter { it.percent > 0f && it.percent < 1f && it.lastOpenedAt != null }
+            .filter { it.percent > 0f && it.percent < 0.999f && it.lastOpenedAt != null }
             .maxByOrNull { it.lastOpenedAt!! }
         val recentlyOpened = filteredCards
             .filter { it.lastOpenedAt != null }
@@ -141,10 +141,10 @@ class LibraryViewModel @Inject constructor(
             showFilename = showFilename,
             totalBookCount = allCards.size,
             selectedShelf = selectedShelf,
-            readingCount = allCards.count { it.percent > 0f && it.percent < 1f },
+            readingCount = allCards.count { it.percent > 0f && it.percent < 0.999f },
             toReadCount = allCards.count { it.percent <= 0f },
             seriesCount = allCards.mapNotNull { it.sourceFolder?.takeIf(String::isNotBlank) }.distinct().size,
-            finishedCount = allCards.count { it.percent >= 1f },
+            finishedCount = allCards.count { it.percent >= 0.999f },
             recentlyOpened = recentlyOpened,
             newestBooks = newestBooks,
         )
@@ -189,7 +189,7 @@ class LibraryViewModel @Inject constructor(
             author = author,
             coverPath = coverPath,
             percent = percent,
-            isReading = percent > 0f && percent < 1f,
+            isReading = percent > 0f && percent < 0.999f,
             addedAt = addedAt,
             lastOpenedAt = lastOpenedAt,
         )
