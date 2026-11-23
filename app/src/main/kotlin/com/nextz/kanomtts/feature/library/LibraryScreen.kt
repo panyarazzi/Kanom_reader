@@ -135,7 +135,7 @@ fun LibraryScreen(
                 } ?: error("อ่านภาพที่เลือกไม่ได้")
                 viewModel.updateBookCover(bookId, destination.absolutePath)
             }.onFailure {
-                snackbarHostState.showSnackbar("เปลี่ยนภาพปกไม่สำเร็จ: ${it.message ?: "เกิดข้อผิดพลาด"}")
+                android.widget.Toast.makeText(context, "เปลี่ยนภาพปกไม่สำเร็จ: ${it.message ?: "เกิดข้อผิดพลาด"}", android.widget.Toast.LENGTH_LONG).show()
             }
         }
     }
