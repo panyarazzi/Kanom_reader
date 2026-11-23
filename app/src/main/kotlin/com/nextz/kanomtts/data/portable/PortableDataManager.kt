@@ -50,6 +50,22 @@ import javax.inject.Singleton
 
 internal fun isRestorablePortableEntry(name: String): Boolean = name == "data.json" || name.startsWith("covers/")
 
+internal fun encodePortablePreferences(prefs: Preferences): JSONArray = JSONArray().apply {
+    prefs.asMap().filterNot { it.key.name == "premium_unlocked" }.forEach { (key, value) ->
+        val item = JSONObject().put("name", key.name)
+        when (value) {
+            is Boolean -> item.put("type", "boolean").put("value", value)
+            is Int -> item.put("type", "int").put("value", value)
+            is Long -> item.put("type", "long").put("value", value)
+            is Float -> item.put("type", "float").put("value", value.toDouble())
+            is Double -> item.put("type", "double").put("value", value)
+            is String -> item.put("type", "string").put("value", value)
+            is Set<*> -> item.put("type", "stringSet").put("value", JSONArray(value.toList()))
+        }
+        put(item)
+    }
+}
+
 data class PortableBackupSummary(
     val books: Int,
     val progress: Int,
@@ -184,7 +200,7 @@ class PortableDataManager @Inject constructor(
                     .put("bookId", session.bookId).put("startedAt", session.startedAt)
                     .put("durationMs", session.durationMs)) }
             })
-            put("preferences", encodePreferences(prefs))
+            put("preferences", encodePortablePreferences(prefs))
         }
 
         val temp = File(backupDir, "kanom-latest.zip.tmp")
@@ -356,7 +372,7 @@ class PortableDataManager @Inject constructor(
         currentCoroutineContext().ensureActive()
         // Room and DataStore are separate stores. Snapshot the current preferences so a
         // failed/cancelled Room transaction can compensate if the DataStore write succeeded.
-        val previousPreferences = encodePreferences(dataStore.data.first())
+        val previousPreferences = encodePortablePreferences(dataStore.data.first())
         try {
             database.withTransaction {
                 currentCoroutineContext().ensureActive()
@@ -400,24 +416,6 @@ class PortableDataManager @Inject constructor(
         }
     }
 
-    // Preserve every stored preference key, including per-book typography maps
-    // (book_custom_typography) and tap-anywhere navigation. Only the installation-local
-    // premium entitlement is excluded from portable backups.
-    private fun encodePreferences(prefs: Preferences): JSONArray = JSONArray().apply {
-        prefs.asMap().filterNot { it.key.name == "premium_unlocked" }.forEach { (key, value) ->
-            val item = JSONObject().put("name", key.name)
-            when (value) {
-                is Boolean -> item.put("type", "boolean").put("value", value)
-                is Int -> item.put("type", "int").put("value", value)
-                is Long -> item.put("type", "long").put("value", value)
-                is Float -> item.put("type", "float").put("value", value.toDouble())
-                is Double -> item.put("type", "double").put("value", value)
-                is String -> item.put("type", "string").put("value", value)
-                is Set<*> -> item.put("type", "stringSet").put("value", JSONArray(value.map { it.toString() }))
-            }
-            put(item)
-        }
-    }
 
     private suspend fun restorePreferences(array: JSONArray) {
         dataStore.edit { prefs ->
