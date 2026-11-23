@@ -113,6 +113,17 @@ class ReaderProgressLabelTest {
                 toc = listOf(previousChapter, nextChapter),
             ),
         )
+        // Reverse navigation must also prefer the pagination event, not the stale/current stream.
+        assertEquals(
+            "ตอนที่ 35",
+            resolveProgressChapterTitle(
+                paginationLocatorHref = "OPS/Text/chapter-35.xhtml",
+                paginationLocatorTitle = null,
+                currentLocatorHref = "OPS/Text/chapter-34.xhtml",
+                currentLocatorTitle = "ตอนที่ 34",
+                toc = listOf(previousChapter, nextChapter),
+            ),
+        )
     }
 
     @Test fun rejectsGenericOrFabricatedLocatorTitles() {
