@@ -214,6 +214,7 @@ class PortableDataViewModel @Inject constructor(
             ambiguousIndex = next,
             restoreStage = if (next >= plan.ambiguousMatches.size) RestoreReconciliationStage.NOT_FOUND
                 else RestoreReconciliationStage.AMBIGUOUS,
+            message = null,
         )
     }
 
