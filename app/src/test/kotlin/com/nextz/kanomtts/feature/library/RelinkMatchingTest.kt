@@ -21,4 +21,12 @@ class RelinkMatchingTest {
         assertTrue(relinkMatches(legacy, RelinkCandidate("content://new/a", "Same Title.epub", 2048L, null, null), null))
         assertFalse(relinkMatches(legacy, RelinkCandidate("content://new/a", "Same Title.epub", 4096L, null, null), null))
     }
+    @Test fun `folder relink retains verified fingerprint for confirmation`() {
+        val candidate = RelinkCandidate("content://new/a.epub", "a.epub", 2048L, null, "Series")
+        val verified = relinkCandidateWithFingerprint(original, candidate, "abc123")
+        assertEquals("abc123", verified?.sha256)
+        assertEquals(candidate.uri, verified?.uri)
+        assertTrue(verified != null)
+    }
+
 }

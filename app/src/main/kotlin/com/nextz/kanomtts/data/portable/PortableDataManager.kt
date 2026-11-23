@@ -38,7 +38,7 @@ import java.io.FileOutputStream
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.zip.ZipEntry
-import java.util.zip.ZipInputStream
+import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -213,18 +213,17 @@ class PortableDataManager @Inject constructor(
         requireStorageAccess()
         check(latestBackup.isFile) { "ไม่พบไฟล์สำรอง Kanom" }
         val entries = mutableMapOf<String, ByteArray>()
-        ZipInputStream(FileInputStream(latestBackup).buffered()).use { zip ->
-            while (true) {
-                val entry = zip.nextEntry ?: break
-                if (!entry.isDirectory) {
-                    // Legacy ZIPs may contain EPUB payloads. Never extract or read them.
-                    if (isRestorablePortableEntry(entry.name)) {
-                        val bytes = zip.readBytes()
-                        require(bytes.size <= MAX_ENTRY_BYTES) { "ไฟล์ในชุดสำรองมีขนาดใหญ่เกินกำหนด" }
-                        entries[entry.name] = bytes
-                    }
-                }
-                zip.closeEntry()
+        // Use the ZIP central directory to enumerate entries, then open streams only for
+        // the explicit metadata/cover allowlist. Legacy EPUB entries are never opened,
+        // decompressed, copied, or extracted during restore.
+        ZipFile(latestBackup).use { zip ->
+            val zipEntries = zip.entries()
+            while (zipEntries.hasMoreElements()) {
+                val entry = zipEntries.nextElement()
+                if (entry.isDirectory || !isRestorablePortableEntry(entry.name)) continue
+                val bytes = zip.getInputStream(entry).use { it.readBytes() }
+                require(bytes.size <= MAX_ENTRY_BYTES) { "ไฟล์ในชุดสำรองมีขนาดใหญ่เกินกำหนด" }
+                entries[entry.name] = bytes
             }
         }
         val json = JSONObject(String(entries["data.json"] ?: error("ไฟล์สำรองไม่มี data.json"), Charsets.UTF_8))

@@ -34,6 +34,16 @@ internal fun relinkMatches(original: BookEntity, candidate: RelinkCandidate, ext
     return titleMatches && sizeMatches
 }
 
+internal fun relinkCandidateWithFingerprint(
+    original: BookEntity,
+    candidate: RelinkCandidate,
+    fingerprint: String?,
+): RelinkCandidate? {
+    if (original.sha256.isNullOrBlank()) return candidate
+    val verified = candidate.copy(sha256 = fingerprint ?: candidate.sha256)
+    return verified.takeIf { relinkMatches(original, it, null) }
+}
+
 data class RelinkUiState(
     val busy: Boolean = false,
     val bookId: String? = null,
@@ -82,17 +92,18 @@ class RelinkViewModel @Inject constructor(
             _uiState.value = RelinkUiState(busy = true, bookId = bookId)
             val result = runCatching {
                 val original = books.get(bookId) ?: error("ไม่พบข้อมูลหนังสือเดิม")
-                val matches = scan().filter { candidate ->
+                val matches = scan().mapNotNull { candidate ->
                     if (!original.sha256.isNullOrBlank()) {
                         // SHA-256 is authoritative; do not reject a candidate based on provider size metadata.
+                        // Keep the verified fingerprint on the returned candidate so confirm() persists it.
                         val candidateHash = candidate.sha256 ?: hash(Uri.parse(candidate.uri))
-                        relinkMatches(original, candidate.copy(sha256 = candidateHash), null)
+                        relinkCandidateWithFingerprint(original, candidate, candidateHash)
                     } else {
                         val sizePossible = original.fileSize <= 0L || candidate.size <= 0L ||
                             original.fileSize == candidate.size
-                        if (!sizePossible) false else {
+                        if (!sizePossible) null else {
                             val extractedTitle = metadata.extract(candidate.uri)?.title
-                            relinkMatches(original, candidate, extractedTitle)
+                            candidate.takeIf { relinkMatches(original, it, extractedTitle) }
                         }
                     }
                 }
