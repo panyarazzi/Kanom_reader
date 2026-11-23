@@ -363,7 +363,7 @@ fun LibraryContent(
                         text = when {
                             state.totalBookCount == 0 -> "ยังไม่มีหนังสือ — แตะนำเข้าหนังสือจากโฟลเดอร์เพื่อเพิ่ม"
                             state.query.isNotBlank() -> "ไม่พบหนังสือที่ค้นหา"
-                            else -> "ไม่พบหนังสือในชั้นหรือโฟลเดอร์ที่เลือก"
+                            else -> "ไม่พบหนังสือตามตัวกรองที่เลือก"
                         },
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
