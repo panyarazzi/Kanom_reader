@@ -72,8 +72,8 @@ class LibraryViewModel @Inject constructor(
     private val basicControls = combine(_viewMode, _query, _selectedIds) { mode, query, ids ->
         Triple(mode, query, ids)
     }
-    private val filterControls = combine(_selectedTag, _selectedFolder, _sortMode, _showFilename, _selectedShelf) { tag, folder, sort, showFilename, shelf ->
-        listOf(tag, folder, sort, showFilename, shelf)
+    private val filterControls = combine(_selectedTag, _selectedFolder, _sortMode, _secondarySortMode, _showFilename, _selectedShelf) { tag, folder, sort, secondarySort, showFilename, shelf ->
+        listOf(tag, folder, sort, secondarySort, showFilename, shelf)
     }
     private val libraryControls = combine(basicControls, filterControls) { basic, filters ->
         basic to filters
@@ -84,8 +84,9 @@ class LibraryViewModel @Inject constructor(
         val selectedTag = controls.second[0] as String?
         val selectedFolder = controls.second[1] as String?
         val sortMode = controls.second[2] as LibrarySortMode
-        val showFilename = controls.second[3] as Boolean
-        val selectedShelf = controls.second[4] as LibraryShelf?
+        val secondarySortMode = controls.second[3] as LibrarySecondarySortMode
+        val showFilename = controls.second[4] as Boolean
+        val selectedShelf = controls.second[5] as LibraryShelf?
         val allCards = pairs.map { (book, progress, tags) ->
             book.toBookCard(progress).copy(tags = tags, sourceFolder = book.sourceFolder, filename = book.sourceFileName ?: uriFilename(book.uri), displayFilename = showFilename)
         }
@@ -110,12 +111,22 @@ class LibraryViewModel @Inject constructor(
                 }
             }
             .let { cards ->
-                when (sortMode) {
+                val primarySorted = when (sortMode) {
                     LibrarySortMode.TITLE_ASC -> cards.sortedBy { it.title.lowercase() }
                     LibrarySortMode.TITLE_DESC -> cards.sortedByDescending { it.title.lowercase() }
                     LibrarySortMode.FILENAME_ASC -> cards.sortedBy { it.filename.lowercase() }
                     LibrarySortMode.FILENAME_DESC -> cards.sortedByDescending { it.filename.lowercase() }
                 }
+                primarySorted.sortedWith(
+                    compareBy<BookCard> { it.title.lowercase() }
+                        .let { comparator ->
+                            if (secondarySortMode == LibrarySecondarySortMode.FILENAME_DESC) {
+                                comparator.thenByDescending { it.filename.lowercase() }
+                            } else {
+                                comparator.thenBy { it.filename.lowercase() }
+                            }
+                        }
+                )
             }
         // Build only the immediate children of the currently-open real folder.
         // Folder paths are relative SAF paths such as "Books/Fantasy/Series".
@@ -160,6 +171,7 @@ class LibraryViewModel @Inject constructor(
             folders = folders,
             selectedFolder = selectedFolder,
             sortMode = sortMode,
+            secondarySortMode = secondarySortMode,
             showFilename = showFilename,
             totalBookCount = allCards.size,
             selectedShelf = selectedShelf,
@@ -181,6 +193,7 @@ class LibraryViewModel @Inject constructor(
     fun setTagFilter(tag: String?) { _selectedTag.value = tag }
     fun setFolderFilter(folder: String?) { _selectedFolder.value = folder; _selectedShelf.value = null }
     fun setSortMode(mode: LibrarySortMode) { _sortMode.value = mode }
+    fun setSecondarySortMode(mode: LibrarySecondarySortMode) { _secondarySortMode.value = mode }
     fun setShowFilename(show: Boolean) { _showFilename.value = show }
     fun setShelfFilter(shelf: LibraryShelf?) {
         _selectedShelf.value = if (_selectedShelf.value == shelf) null else shelf
