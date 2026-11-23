@@ -17,4 +17,6 @@ data class BookEntity(
     val sha256: String? = null,
     val sourceFolder: String? = null,
     val sourceFileName: String? = null,
+    val seriesName: String? = null,
+    val seriesPosition: Double? = null,
 )
