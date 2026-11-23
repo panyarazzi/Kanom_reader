@@ -35,8 +35,6 @@ data class KanomPreferences(
     val tapAnywhereToNext: Boolean = false,
     /** Previous/Next touch-zone ratio; Next is always the inverse to total 100%. */
     val previousTouchZonePercent: Int = 50,
-) {
-    val nextTouchZonePercent: Int get() = 100 - previousTouchZonePercent
     val skipUrls: Boolean = false,
     val highlightOn: Boolean = true,
     val autoScroll: Boolean = true,
@@ -50,4 +48,6 @@ data class KanomPreferences(
     val pageAnimation: Boolean = true,
     val visualReplacement: Boolean = false,
     val readingUnit: ReadingUnit = ReadingUnit.SENTENCE,
-)
+) {
+    val nextTouchZonePercent: Int get() = 100 - previousTouchZonePercent
+}
