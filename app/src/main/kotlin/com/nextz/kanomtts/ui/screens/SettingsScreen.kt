@@ -231,6 +231,14 @@ fun SettingsScreen(
             Text(portable.message!!, style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp))
         }
+        if (portable.restoreStage == RestoreReconciliationStage.CHOOSE_FOLDER && !portable.busy) {
+            TextButton(
+                onClick = { restoreFolderLauncher.launch(null) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("เลือกโฟลเดอร์ EPUB อีกครั้ง")
+            }
+        }
         Text(
             "ไฟล์สำรองล่าสุด: Kanom/backup/kanom-latest.zip",
             style = MaterialTheme.typography.labelSmall,
