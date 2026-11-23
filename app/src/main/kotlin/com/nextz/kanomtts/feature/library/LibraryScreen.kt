@@ -408,27 +408,38 @@ fun LibraryContent(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    Row(
-                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Card(Modifier.width(112.dp).clickable { onFolderFilter(null) }) {
-                            Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("คลังทั้งหมด", style = MaterialTheme.typography.titleSmall)
-                                Text("${state.totalBookCount} เล่ม", style = MaterialTheme.typography.labelSmall)
-                            }
-                        }
-                        state.folders.forEach { folder ->
-                            Card(Modifier.width(160.dp).clickable { onFolderFilter(folder.path) }) {
-                                Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                                        folder.sampleCovers.forEach { cover ->
-                                            CoverImage(cover, Modifier.width(25.dp).height(34.dp))
+                    if (state.folders.isNotEmpty()) {
+                        when (state.viewMode) {
+                            LibraryViewMode.GRID -> {
+                                val folderColumns = if (screenWidthDp >= 560) 4 else 2
+                                state.folders.chunked(folderColumns).forEach { folderRow ->
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        folderRow.forEach { folder ->
+                                            Box(Modifier.weight(1f)) {
+                                                FolderGridItem(
+                                                    folder = folder,
+                                                    onClick = { onFolderFilter(folder.path) },
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                )
+                                            }
+                                        }
+                                        repeat((folderColumns - folderRow.size).coerceAtLeast(0)) {
+                                            Spacer(Modifier.weight(1f))
                                         }
                                     }
-                                    Text(folder.name, style = MaterialTheme.typography.titleSmall, maxLines = 1)
-                                    Text("${folder.count} เล่ม", style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                            LibraryViewMode.LIST, LibraryViewMode.DETAIL -> {
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    state.folders.forEach { folder ->
+                                        FolderListItem(
+                                            folder = folder,
+                                            onClick = { onFolderFilter(folder.path) },
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -645,6 +656,88 @@ fun LibraryContent(
             },
             title = { Text("ลบ ${state.selectedIds.size} เล่ม?") },
             text = { Text("การลบนี้ย้อนกลับไม่ได้") },
+        )
+    }
+}
+
+@Composable
+private fun FolderGridItem(
+    folder: LibraryFolderCard,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(modifier.clickable(onClick = onClick)) {
+        Column(
+            Modifier.fillMaxWidth().padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Row(
+                Modifier.fillMaxWidth().height(42.dp),
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                folder.sampleCovers.take(4).forEach { cover ->
+                    CoverImage(cover, Modifier.weight(1f).height(42.dp))
+                }
+                if (folder.sampleCovers.isEmpty()) {
+                    androidx.compose.material3.Icon(
+                        imageVector = androidx.compose.material.icons.Icons.Filled.Folder,
+                        contentDescription = "โฟลเดอร์",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.fillMaxSize().padding(5.dp),
+                    )
+                }
+            }
+            Text(
+                folder.name,
+                style = MaterialTheme.typography.labelMedium,
+                maxLines = 2,
+                minLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+            Text(
+                "${folder.count} เล่ม",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun FolderListItem(
+    folder: LibraryFolderCard,
+    onClick: () -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        androidx.compose.material3.Icon(
+            imageVector = androidx.compose.material.icons.Icons.Filled.Folder,
+            contentDescription = "โฟลเดอร์",
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        Column(Modifier.weight(1f)) {
+            Text(
+                folder.name,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+            Text(
+                "${folder.count} เล่ม",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        androidx.compose.material3.Icon(
+            imageVector = androidx.compose.material.icons.Icons.AutoMirrored.Filled.ViewList,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
