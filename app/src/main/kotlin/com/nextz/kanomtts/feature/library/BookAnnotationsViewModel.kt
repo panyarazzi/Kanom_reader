@@ -97,7 +97,7 @@ class BookAnnotationsViewModel @Inject constructor(
 
     fun saveReusableTag(value: String) {
         val tag = value.trim().takeIf { it.isNotEmpty() } ?: return
-        viewModelScope.launch { tagLibraryDao.insert(BookTagLibraryEntity(tag)) }
+        viewModelScope.launch { tagLibraryDao.insertIfMissing(tag) }
     }
 
     fun deleteReusableTag(value: String) {
