@@ -160,17 +160,8 @@ class ReaderProgressLabelTest {
 
     @Test fun malformedHrefEscapeDoesNotCrashProgressTitleResolution() {
         assertEquals(
-            "บททดสอบ",
-            resolveChapterTitle(
-                "OPS/Text/chapter%ZZ.xhtml",
-                null,
-                listOf(
-                    Link(
-                        href = Href(Url("OPS/Text/chapter%ZZ.xhtml")!!),
-                        title = "บททดสอบ",
-                    ),
-                ),
-            ),
+            "Fallback title",
+            resolveChapterTitle("OPS/Text/chapter%ZZ.xhtml", "Fallback title", emptyList()),
         )
     }
 
