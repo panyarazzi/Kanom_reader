@@ -379,8 +379,8 @@ private fun ReaderContent(
             top = state.prefs.topMarginDp.dp + progressTopSafeSpace,
             bottom = state.prefs.bottomMarginDp.dp + progressFooterSafeSpace,
         ).pointerInput(Unit) {
-            var accumulatedScale = 1f
             awaitEachGesture {
+                var accumulatedScale = 1f
                 var previousSpan: Float? = null
                 do {
                     val event = awaitPointerEvent()
