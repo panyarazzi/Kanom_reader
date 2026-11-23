@@ -59,6 +59,17 @@ class EpubImporterTest {
         assertNotEquals(first.bookId, second.bookId)
         assertEquals(2, repo.books.value.size)
     }
+    @Test fun `blank metadata title falls back to uppercase epub filename without extension`() = runTest {
+        val repo = FakeBookRepository()
+        val result = importer(
+            repo,
+            FakeMetadataExtractor(BookMetadata("", null, "th", null)),
+            createTempDir(),
+        ).import("content://uppercase", 10, "Novel.EPUB")
+        assertTrue(result is ImportResult.Imported)
+        assertEquals("Novel", repo.books.value.single().title)
+    }
+
     @Test fun `unreadable epub returns unreadable`() = runTest {
         val repo = FakeBookRepository()
         val result = importer(repo, FakeMetadataExtractor(null), createTempDir()).import("content://bad", 10, "bad.epub")
