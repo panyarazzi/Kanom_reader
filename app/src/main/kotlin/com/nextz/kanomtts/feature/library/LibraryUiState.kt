@@ -53,13 +53,13 @@ data class BookCard(
     val isReading: Boolean,
     val tags: List<String> = emptyList(),
     val sourceFolder: String? = null,
-    val sha256: String? = null,
     val filename: String = "",
     val displayFilename: Boolean = false,
     val addedAt: Long = 0L,
     val lastOpenedAt: Long? = null,
     val seriesName: String? = null,
     val seriesPosition: Double? = null,
+    val sha256: String? = null,
 ) {
     val displayTitle: String get() = if (displayFilename && filename.isNotBlank()) filename else title
 }
