@@ -34,6 +34,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+
+private val standardBookTags = listOf("แนะนำ", "อ่านจบแล้ว", "กำลังอ่าน", "รออ่าน", "แปลดี", "สำนวนดี", "ไม่แนะนำ")
 import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
@@ -104,6 +106,14 @@ fun BookAnnotationsScreen(
                 )
             }
         }
+        if (state.savedTags.isNotEmpty()) {
+            Text("Tag ที่บันทึกไว้ใช้ซ้ำ · แตะ × เพื่อนำออกจากคลัง Tag", style = MaterialTheme.typography.labelSmall)
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                state.savedTags.forEach { tag ->
+                    TextButton(onClick = { viewModel.deleteReusableTag(tag) }) { Text("× $tag") }
+                }
+            }
+        }
         Text("แสดง ${state.books.size} จาก ${state.allBooks.size} เล่ม", style = MaterialTheme.typography.bodySmall)
         exportError?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -144,6 +154,34 @@ fun BookAnnotationsScreen(
                         value = tagsText, onValueChange = { tagsText = it },
                         label = { Text("Tags (คั่นด้วยจุลภาค)") }, modifier = Modifier.fillMaxWidth(),
                     )
+                    Text("Tag มาตรฐาน", style = MaterialTheme.typography.labelMedium)
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                        standardBookTags.forEach { tag ->
+                            val selected = tagsText.split(',', ';', '\\n').any { it.trim().equals(tag, true) }
+                            FilterChip(selected = selected, onClick = {
+                                val current = tagsText.split(',', ';', '\\n').map { it.trim() }.filter { it.isNotEmpty() }
+                                val next = if (selected) current.filterNot { it.equals(tag, true) } else current + tag
+                                tagsText = next.distinctBy { it.lowercase() }.joinToString(", ")
+                            }, label = { Text(tag) })
+                        }
+                    }
+                    if (state.savedTags.isNotEmpty()) {
+                        Text("Tag ที่บันทึกไว้", style = MaterialTheme.typography.labelMedium)
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            state.savedTags.forEach { tag ->
+                                val selected = tagsText.split(',', ';', '\\n').any { it.trim().equals(tag, true) }
+                                FilterChip(selected = selected, onClick = {
+                                    val current = tagsText.split(',', ';', '\\n').map { it.trim() }.filter { it.isNotEmpty() }
+                                    val next = if (selected) current.filterNot { it.equals(tag, true) } else current + tag
+                                    tagsText = next.distinctBy { it.lowercase() }.joinToString(", ")
+                                }, label = { Text(tag) })
+                            }
+                        }
+                    }
+                    TextButton(onClick = {
+                        tagsText.split(',', ';', '\\n').map { it.trim() }.filter { it.isNotEmpty() }
+                            .forEach(viewModel::saveReusableTag)
+                    }) { Text("บันทึก Tag ในช่องนี้ไว้ใช้ซ้ำ") }
                     OutlinedTextField(
                         value = noteText, onValueChange = { noteText = it },
                         label = { Text("Notes / รีวิว") }, modifier = Modifier.fillMaxWidth(), minLines = 3,
