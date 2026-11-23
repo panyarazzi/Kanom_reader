@@ -223,7 +223,7 @@ fun SelectionBar(
 
 /**
  * Grid card (~140 dp wide): cover art (or gradient placeholder), title, small progress bar.
- * Supports selection mode: long-press enters selection, tap toggles when in selection mode.
+ * Long-press is delegated to the caller (context actions in Library, selection fallback in previews).
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
