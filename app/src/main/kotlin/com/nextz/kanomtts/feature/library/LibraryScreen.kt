@@ -21,6 +21,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CreateNewFolder
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -81,6 +86,20 @@ fun LibraryScreen(
         }
     }
 
+    val singleBookLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+            importViewModel.importFrom(uri)
+        }
+    }
+
     val folderLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
     ) { uri ->
@@ -110,6 +129,16 @@ fun LibraryScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                SmallFloatingActionButton(onClick = { folderLauncher.launch(null) }) {
+                    androidx.compose.material3.Icon(Icons.Filled.CreateNewFolder, contentDescription = "นำเข้าโฟลเดอร์")
+                }
+                FloatingActionButton(onClick = { singleBookLauncher.launch(arrayOf("application/epub+zip")) }) {
+                    androidx.compose.material3.Icon(Icons.Filled.Add, contentDescription = "นำเข้า EPUB")
+                }
+            }
+        },
     ) { innerPadding ->
         // Merge outer contentPadding (from app scaffold) with inner padding from this scaffold.
         val combinedPadding = PaddingValues(
@@ -227,24 +256,17 @@ fun LibraryContent(
                     onDelete = { showConfirm = true },
                 )
             } else {
-                Row(
+                BrandHeader(modifier = Modifier.fillMaxWidth())
+            }
+        }
+
+        if (!state.isSelectionMode) {
+            item(key = "library-search") {
+                LibrarySearchBar(
+                    query = state.query,
+                    onQueryChange = onQueryChange,
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    BrandHeader(modifier = Modifier.weight(1f))
-                    Column(
-                        modifier = Modifier.weight(1.45f),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        LibrarySearchBar(
-                            query = state.query,
-                            onQueryChange = onQueryChange,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                }
-                TextButton(onClick = onImportFolder) { Text("นำเข้าหนังสือจากโฟลเดอร์") }
+                )
             }
         }
 
