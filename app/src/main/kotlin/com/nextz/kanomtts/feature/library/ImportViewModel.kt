@@ -60,7 +60,6 @@ class ImportViewModel @Inject constructor(
             var epubCount = 0
             var importedCount = 0
             var duplicateCount = 0
-            var relinkedCount = 0
             var unreadableCount = 0
             var scanFailed = false
             val rootName = try {
@@ -152,7 +151,6 @@ class ImportViewModel @Inject constructor(
                     }
                     when (result) {
                         is ImportResult.Imported -> importedCount++
-                        is ImportResult.Relinked -> relinkedCount++
                         ImportResult.Duplicate -> duplicateCount++
                         ImportResult.Unreadable -> unreadableCount++
                         ImportResult.EmptyFolder, is ImportResult.FolderSummary -> Unit
@@ -169,7 +167,6 @@ class ImportViewModel @Inject constructor(
                         scanned = epubCount,
                         imported = importedCount,
                         duplicates = duplicateCount,
-                        relinked = relinkedCount,
                         unreadable = unreadableCount,
                     )
                 )

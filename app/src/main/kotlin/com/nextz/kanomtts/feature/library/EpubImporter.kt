@@ -7,14 +7,12 @@ import kotlinx.coroutines.CancellationException
 sealed interface ImportResult {
     object Duplicate : ImportResult
     data class Imported(val bookId: String) : ImportResult
-    data class Relinked(val bookId: String) : ImportResult
     object Unreadable : ImportResult
     object EmptyFolder : ImportResult
     data class FolderSummary(
         val scanned: Int,
         val imported: Int,
         val duplicates: Int,
-        val relinked: Int,
         val unreadable: Int,
     ) : ImportResult
 }
