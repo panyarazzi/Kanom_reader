@@ -104,7 +104,8 @@ class PortableDataViewModel @Inject constructor(
             val result = runCatching {
                 val root = DocumentFile.fromTreeUri(context, treeUri)
                     ?: error("ไม่สามารถเปิดโฟลเดอร์ที่เลือกได้")
-                val needsHashes = previewBooks.any { !it.sha256.isNullOrBlank() }
+                val hashTargetSizes = previewBooks.filter { !it.sha256.isNullOrBlank() }
+                    .map { it.fileSize }.filter { it > 0L }.toSet()
                 val legacyBooks = previewBooks.filter { it.sha256.isNullOrBlank() }
                 val found = mutableListOf<RestoreSourceCandidate>()
                 suspend fun walk(folder: DocumentFile, relative: String) {
@@ -118,7 +119,10 @@ class PortableDataViewModel @Inject constructor(
                         } else if (child.isFile && child.name?.endsWith(".epub", true) == true) {
                             val size = child.length()
                             val uri = child.uri
-                            val hash = if (needsHashes) hash(uri) else null
+                            // A matching SHA-256 necessarily has the same byte length. Avoid
+                            // reading every EPUB in a large library when its size cannot match
+                            // any fingerprinted backup book.
+                            val hash = if (size in hashTargetSizes) hash(uri) else null
                             val needsMetadata = legacyBooks.any { book ->
                                 book.fileSize > 0L && size > 0L && book.fileSize == size
                             }
