@@ -34,6 +34,7 @@ data class BookCard(
 
 data class LibraryFolderCard(
     val name: String,
+    val path: String,
     val count: Int,
     val sampleCovers: List<String?>,
 )
