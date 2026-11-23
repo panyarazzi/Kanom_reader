@@ -242,7 +242,6 @@ fun LibraryContent(
                             onQueryChange = onQueryChange,
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        ViewModeToggle(mode = state.viewMode, onSelect = onViewMode)
                     }
                 }
                 TextButton(onClick = onImportFolder) { Text("นำเข้าหนังสือจากโฟลเดอร์") }
@@ -395,6 +394,7 @@ fun LibraryContent(
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.weight(1f),
                         )
+                        ViewModeToggle(mode = state.viewMode, onSelect = onViewMode)
                         if (state.selectedFolder != null) {
                             TextButton(onClick = {
                                 onFolderFilter(state.selectedFolder.substringBeforeLast('/', "").ifBlank { null })
