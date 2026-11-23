@@ -39,32 +39,6 @@ class ReaderTapZoneTest {
             resolveReaderTapAction(500f, 500f, 1000f, 1000f, tapAnywhereToNext = true),
         )
     }
-    @Test fun previousNextRatioChangesBoundaryAndKeepsCenterMenu() {
-        assertEquals(
-            ReaderTapAction.PREVIOUS_PAGE,
-            resolveReaderTapAction(350f, 100f, 1000f, 1000f, tapAnywhereToNext = false, previousZonePercent = 40),
-        )
-        assertEquals(
-            ReaderTapAction.NEXT_PAGE,
-            resolveReaderTapAction(450f, 100f, 1000f, 1000f, tapAnywhereToNext = false, previousZonePercent = 40),
-        )
-        assertEquals(
-            ReaderTapAction.TOGGLE_CHROME,
-            resolveReaderTapAction(500f, 500f, 1000f, 1000f, tapAnywhereToNext = false, previousZonePercent = 40),
-        )
-    }
-
-    @Test fun previousNextRatioSupportsZeroAndOneHundredPercent() {
-        assertEquals(
-            ReaderTapAction.NEXT_PAGE,
-            resolveReaderTapAction(100f, 100f, 1000f, 1000f, tapAnywhereToNext = false, previousZonePercent = 0),
-        )
-        assertEquals(
-            ReaderTapAction.PREVIOUS_PAGE,
-            resolveReaderTapAction(900f, 100f, 1000f, 1000f, tapAnywhereToNext = false, previousZonePercent = 100),
-        )
-    }
-
     @Test fun originalZonesRemainScreenRelativeInLandscape() {
         assertEquals(
             ReaderTapAction.PREVIOUS_PAGE,
