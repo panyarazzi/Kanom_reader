@@ -97,7 +97,9 @@ class LibraryViewModel @Inject constructor(
         }
         val filteredCards = queryFiltered
             .filter { card -> selectedTag == null || selectedTag in card.tags }
-            .filter { card -> selectedFolder == null || card.sourceFolder == selectedFolder }
+            .filter { card ->
+                selectedFolder == null || card.sourceFolder == selectedFolder
+            }
             .filter { card ->
                 when (selectedShelf) {
                     LibraryShelf.READING -> card.percent > 0f && card.percent < 0.999f
@@ -115,10 +117,30 @@ class LibraryViewModel @Inject constructor(
                     LibrarySortMode.FILENAME_DESC -> cards.sortedByDescending { it.filename.lowercase() }
                 }
             }
-        val folders = allCards.filter { !it.sourceFolder.isNullOrBlank() }
-            .groupBy { it.sourceFolder!! }
-            .toSortedMap(String.CASE_INSENSITIVE_ORDER)
-            .map { (name, cards) -> LibraryFolderCard(name, cards.size, cards.take(4).map { it.coverPath }) }
+        // Build only the immediate children of the currently-open real folder.
+        // Folder paths are relative SAF paths such as "Books/Fantasy/Series".
+        val folderPaths = allCards.mapNotNull { it.sourceFolder?.takeIf(String::isNotBlank) }
+        val childFolderPaths = folderPaths.mapNotNull { path ->
+            val prefix = selectedFolder?.let { "$it/" }
+            if (prefix != null) {
+                if (!path.startsWith(prefix)) null
+                else path.removePrefix(prefix).substringBefore('/').takeIf(String::isNotBlank)?.let { "$prefix$it" }
+            } else {
+                path.substringBefore('/').takeIf(String::isNotBlank)
+            }
+        }.distinct().sortedWith(String.CASE_INSENSITIVE_ORDER)
+        val folders = childFolderPaths.map { path ->
+            val descendantBooks = allCards.filter { card ->
+                val source = card.sourceFolder.orEmpty()
+                source == path || source.startsWith("$path/")
+            }
+            LibraryFolderCard(
+                name = path.substringAfterLast('/'),
+                path = path,
+                count = descendantBooks.size,
+                sampleCovers = descendantBooks.take(4).map { it.coverPath },
+            )
+        }
         val continueCard = filteredCards
             .filter { it.percent > 0f && it.percent < 0.999f && it.lastOpenedAt != null }
             .maxByOrNull { it.lastOpenedAt!! }
