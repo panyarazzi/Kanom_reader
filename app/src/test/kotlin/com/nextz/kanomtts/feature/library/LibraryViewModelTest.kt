@@ -223,6 +223,46 @@ class LibraryViewModelTest {
     }
 
     @Test
+    fun `shelf counts and filters follow reading progress and folder grouping`() = runTest {
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        fakeBooks.books.value = listOf(
+            book("reading", "Reading").copy(sourceFolder = "Series/One"),
+            book("unread", "Unread"),
+            book("finished", "Finished"),
+        )
+        fakeProgress.setProgress("reading", progress("reading", 0.4f))
+        fakeProgress.setProgress("finished", progress("finished", 1f))
+        runCurrent()
+
+        assertEquals(1, vm.uiState.value.readingCount)
+        assertEquals(1, vm.uiState.value.toReadCount)
+        assertEquals(1, vm.uiState.value.seriesCount)
+        assertEquals(1, vm.uiState.value.finishedCount)
+
+        vm.setShelfFilter(LibraryShelf.READING)
+        runCurrent()
+        assertEquals(listOf("reading"), vm.uiState.value.books.map { it.id })
+
+        vm.setShelfFilter(LibraryShelf.READING)
+        runCurrent()
+        assertEquals(3, vm.uiState.value.books.size)
+    }
+
+    @Test
+    fun `recently opened and newest book rows use their respective timestamps`() = runTest {
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        fakeBooks.books.value = listOf(
+            book("old", "Old", lastOpenedAt = 100L).copy(addedAt = 1000L),
+            book("recent", "Recent", lastOpenedAt = 300L).copy(addedAt = 3000L),
+            book("middle", "Middle", lastOpenedAt = 200L).copy(addedAt = 2000L),
+        )
+        runCurrent()
+
+        assertEquals(listOf("recent", "middle", "old"), vm.uiState.value.recentlyOpened.map { it.id })
+        assertEquals(listOf("recent", "middle", "old"), vm.uiState.value.newestBooks.map { it.id })
+    }
+
+    @Test
     fun `filename sorting and source filename display can be selected`() = runTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         fakeBooks.books.value = listOf(
