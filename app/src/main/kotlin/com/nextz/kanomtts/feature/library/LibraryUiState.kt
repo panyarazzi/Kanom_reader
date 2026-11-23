@@ -79,7 +79,7 @@ data class LibraryUiState(
     val selectedTag: String? = null,
     val folders: List<LibraryFolderCard> = emptyList(),
     val selectedFolder: String? = null,
-    val groupMode: LibraryGroupMode = LibraryGroupMode.FOLDER,\n    val sortMode: LibrarySortMode = LibrarySortMode.TITLE_ASC,
+    val groupMode: LibraryGroupMode = LibraryGroupMode.FOLDER,\n    val sortMode: LibrarySortMode = LibrarySortMode.TITLE_ASC,\n    val sortDescending: Boolean = false,
     val secondarySortMode: LibrarySecondarySortMode = LibrarySecondarySortMode.FILENAME_ASC,
     val showFilename: Boolean = false,
     val totalBookCount: Int = 0,
