@@ -65,7 +65,7 @@ fun KanomApp(
                 // Mini-player gates its own visibility (renders nothing when idle). It appears
                 // above the nav bar on tabbed screens and alone at the bottom on the reader.
                 // Hidden on Now-Playing, where it would redundantly mirror the full player.
-                if (!onNowPlaying) {
+                if (!onNowPlaying && currentRoute != KanomDestination.LIBRARY.route) {
                     MiniPlayer(
                         onExpand = {
                             navController.navigate(KanomDestination.NOW_PLAYING.route) {
@@ -111,6 +111,7 @@ fun KanomApp(
                     contentPadding = padding,
                     importViewModel = importVm,
                     onOpenStatistics = { navController.navigate("reading_statistics") },
+                    onOpenNowPlaying = { navController.navigate(KanomDestination.NOW_PLAYING.route) { launchSingleTop = true } },
                 )
             }
             composable("reading_statistics") {
