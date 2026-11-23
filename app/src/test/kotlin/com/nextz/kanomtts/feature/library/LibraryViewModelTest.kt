@@ -232,11 +232,10 @@ class LibraryViewModelTest {
         vm.setFolderFilter("Series")
         runCurrent()
         assertEquals(2, vm.uiState.value.folders.size)
-        assertEquals(listOf("1", "2"), vm.uiState.value.folders.first { it.name == "One" }.let { folder ->
-            vm.setFolderFilter(folder.path)
-            runCurrent()
-            vm.uiState.value.books.map { it.id }
-        })
+        val oneFolder = vm.uiState.value.folders.first { it.name == "One" }
+        vm.setFolderFilter(oneFolder.path)
+        runCurrent()
+        assertEquals(listOf("1", "2"), vm.uiState.value.books.map { it.id })
     }
 
     @Test
@@ -329,6 +328,23 @@ class LibraryViewModelTest {
         runCurrent()
         assertEquals(listOf("1", "2"), vm.uiState.value.books.map { it.id })
         assertEquals("a.epub", vm.uiState.value.books.first().displayTitle)
+    }
+
+    @Test
+    fun `secondary sort orders equal titles by source filename`() = runTest {
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        fakeBooks.books.value = listOf(
+            book("z", "Same").copy(sourceFileName = "z-file.epub"),
+            book("a", "Same").copy(sourceFileName = "a-file.epub"),
+        )
+        runCurrent()
+        vm.setSortMode(LibrarySortMode.TITLE_ASC)
+        vm.setSecondarySortMode(LibrarySecondarySortMode.FILENAME_ASC)
+        runCurrent()
+        assertEquals(listOf("a", "z"), vm.uiState.value.books.map { it.id })
+        vm.setSecondarySortMode(LibrarySecondarySortMode.FILENAME_DESC)
+        runCurrent()
+        assertEquals(listOf("z", "a"), vm.uiState.value.books.map { it.id })
     }
 
     // ── Task 3: selection + delete ────────────────────────────────────────────
