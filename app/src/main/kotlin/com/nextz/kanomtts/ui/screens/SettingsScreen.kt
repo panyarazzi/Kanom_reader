@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -33,6 +34,7 @@ import com.nextz.kanomtts.data.prefs.ReadingFont
 import com.nextz.kanomtts.ui.theme.ReaderTheme
 import com.nextz.kanomtts.feature.settings.PlaybackSettingsViewModel
 import com.nextz.kanomtts.feature.settings.PortableDataViewModel
+import com.nextz.kanomtts.feature.settings.RestoreReconciliationStage
 import com.nextz.kanomtts.feature.settings.VoiceLanguageEditor
 import com.nextz.kanomtts.playback.PlaybackFormatting
 import com.nextz.kanomtts.text.pipeline.Lang
@@ -58,6 +60,28 @@ fun SettingsScreen(
     val legacyPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { portableVm.refresh() }
+
+    val restoreFolderLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree(),
+    ) { treeUri ->
+        if (treeUri == null) {
+            portableVm.cancelRestore()
+        } else {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    treeUri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+            portableVm.scanRestoreFolder(treeUri)
+        }
+    }
+
+    LaunchedEffect(portable.restoreStage) {
+        if (portable.restoreStage == RestoreReconciliationStage.CHOOSE_FOLDER) {
+            restoreFolderLauncher.launch(null)
+        }
+    }
 
     Box(
         modifier.fillMaxSize().padding(contentPadding),
@@ -229,13 +253,103 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { confirmRestore = false },
             title = { Text("กู้คืนข้อมูลจากไฟล์สำรอง?") },
-            text = { Text("ข้อมูลหนังสือ ตำแหน่งอ่าน Bookmark Tags Notes สถิติการอ่าน กฎแทนที่ เสียงพากย์ และค่าตั้งปัจจุบันจะถูกแทนที่ด้วยข้อมูลในไฟล์สำรอง Kanom ล่าสุด ควรสำรองข้อมูลปัจจุบันก่อนดำเนินการ") },
+            text = { Text("ก่อนเปลี่ยนข้อมูลปัจจุบัน ระบบจะให้เลือกโฟลเดอร์ EPUB ต้นฉบับ ตรวจสอบรายการที่จับคู่ได้ และให้เลือกเองในกรณีที่พบหลายไฟล์ ข้อมูลเดิมจะยังไม่ถูกแทนที่จนกว่าจะยืนยันขั้นตอนสุดท้าย ควรสำรองข้อมูลปัจจุบันก่อนดำเนินการ") },
             confirmButton = {
-                TextButton(onClick = { confirmRestore = false; portableVm.restoreBackup() }) { Text("กู้คืน") }
+                TextButton(onClick = { confirmRestore = false; portableVm.prepareRestore() }) { Text("ดำเนินการ") }
             },
             dismissButton = {
                 TextButton(onClick = { confirmRestore = false }) { Text("ยกเลิก") }
             },
+        )
+    }
+
+    when (portable.restoreStage) {
+        RestoreReconciliationStage.REVIEW_UNIQUE -> {
+            val plan = portable.restorePlan
+            AlertDialog(
+                onDismissRequest = portableVm::cancelRestore,
+                title = { Text("ตรวจสอบรายการ EPUB ที่จับคู่ได้") },
+                text = {
+                    Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+                        Text("พบรายการที่ตรงกันแน่นอน ${plan?.uniqueMatches?.size ?: 0} เล่ม")
+                        plan?.uniqueMatches?.forEach { (book, candidate) ->
+                            Text("${book.title}  →  ${candidate.name}", modifier = Modifier.padding(top = 8.dp))
+                            Text(candidate.sourceFolder.orEmpty(), style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        Text("รายการที่ต้องเลือกเอง: ${plan?.ambiguousMatches?.size ?: 0} เล่ม")
+                        Text("รายการที่ไม่พบ: ${plan?.notFound?.size ?: 0} เล่ม")
+                        Text("ไฟล์ต้นฉบับจะไม่ถูกคัดลอกหรือย้าย", style = MaterialTheme.typography.bodySmall)
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = portableVm::confirmUniqueMatches) { Text("ยืนยันรายการนี้") }
+                },
+                dismissButton = {
+                    TextButton(onClick = portableVm::cancelRestore) { Text("ยกเลิก Restore") }
+                },
+            )
+        }
+        RestoreReconciliationStage.AMBIGUOUS -> {
+            val item = portable.restorePlan?.ambiguousMatches?.getOrNull(portable.ambiguousIndex)
+            AlertDialog(
+                onDismissRequest = portableVm::cancelRestore,
+                title = { Text("เลือกไฟล์ต้นฉบับ (${portable.ambiguousIndex + 1}/${portable.restorePlan?.ambiguousMatches?.size ?: 0})") },
+                text = {
+                    Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+                        Text(item?.book?.title.orEmpty(), style = MaterialTheme.typography.titleMedium)
+                        item?.candidates?.forEach { candidate ->
+                            OutlinedButton(
+                                onClick = { portableVm.chooseAmbiguousCandidate(candidate) },
+                                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                            ) {
+                                Column {
+                                    Text(candidate.name)
+                                    Text(candidate.sourceFolder.orEmpty(), style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = portableVm::skipAmbiguousBook) { Text("ข้ามหนังสือเล่มนี้") }
+                },
+                dismissButton = {
+                    TextButton(onClick = portableVm::cancelRestore) { Text("ยกเลิก Restore") }
+                },
+            )
+        }
+        RestoreReconciliationStage.NOT_FOUND -> {
+            val missing = portable.restorePlan?.notFound.orEmpty()
+            AlertDialog(
+                onDismissRequest = portableVm::cancelRestore,
+                title = { Text("หนังสือที่ไม่พบไฟล์ต้นฉบับ") },
+                text = {
+                    Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+                        Text("หนังสือเหล่านี้จะกู้คืนข้อมูลและตำแหน่งอ่านไว้ แต่ยังเปิดอ่านไม่ได้จนกว่าจะ Relink ภายหลัง")
+                        missing.forEach { book ->
+                            Text("• ${book.title}", modifier = Modifier.padding(top = 6.dp))
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = portableVm::finishRestore, enabled = !portable.busy) { Text("กู้คืนต่อ") }
+                },
+                dismissButton = {
+                    TextButton(onClick = portableVm::cancelRestore) { Text("ยกเลิก Restore") }
+                },
+            )
+        }
+        else -> Unit
+    }
+
+    if (portable.busy && portable.restoreStage != RestoreReconciliationStage.NONE) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text("กำลังเตรียม Restore") },
+            text = { Column { CircularProgressIndicator(); Spacer(Modifier.height(12.dp)); Text(portable.message.orEmpty()) } },
+            confirmButton = {},
         )
     }
 }
