@@ -172,7 +172,7 @@ private fun buildStatistics(
         currentlyReading = reading,
         completedBooks = completed,
         completedCount = completed.size,
-        chartDays = if (range == StatisticsRange.ALL && chartDays.size > 365) chartDays.takeLast(365) else chartDays,
+        chartDays = chartDays,
         range = range,
     )
 }
