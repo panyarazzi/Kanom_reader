@@ -43,8 +43,11 @@ class EpubImporterTest {
 
     @Test fun `duplicate source uri is not added twice`() = runTest {
         val repo = FakeBookRepository()
-        val imp = importer(repo, FakeMetadataExtractor(BookMetadata("Dup", null, null, null)), createTempDir())
+        val extractor = FakeMetadataExtractor(BookMetadata("Dup", null, null, null))
+        val imp = importer(repo, extractor, createTempDir())
         imp.import("content://same", 50, "a.epub")
+        // A repeated import should be recognized before trying to reopen a now-unreadable URI.
+        extractor.result = null
         assertTrue(imp.import("content://same", 50, "a.epub") is ImportResult.Duplicate)
         assertEquals(1, repo.books.value.size)
     }
