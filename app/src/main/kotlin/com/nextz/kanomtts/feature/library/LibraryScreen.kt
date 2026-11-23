@@ -35,6 +35,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -52,6 +53,7 @@ import com.nextz.kanomtts.playback.ui.MiniPlayerBar
 import com.nextz.kanomtts.playback.ui.MiniPlayerUiState
 import com.nextz.kanomtts.playback.ui.PlaybackViewModel
 import com.nextz.kanomtts.ui.theme.KanomTheme
+import java.io.File
 
 // ─── VM-bound entry point ───────────────────────────────────────────────────────
 
@@ -68,6 +70,9 @@ fun LibraryScreen(
     importViewModel: ImportViewModel,
     onOpenStatistics: () -> Unit = {},
     onOpenAnnotations: (String) -> Unit = {},
+    onSetReadingStatus: (String, LibraryShelf) -> Unit = { _, _ -> },
+    onUpdateBookMetadata: (String, String, String?) -> Unit = { _, _, _ -> },
+    onChangeBookCover: (String) -> Unit = {},
     onOpenNowPlaying: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -77,6 +82,7 @@ fun LibraryScreen(
     val playbackState by playbackViewModel.uiState.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+    var pendingCoverBookId by remember { mutableStateOf<String?>(null) }
 
     BackHandler(enabled = uiState.isSelectionMode || uiState.selectedFolder != null) {
         if (uiState.isSelectionMode) {
@@ -111,6 +117,26 @@ fun LibraryScreen(
                 )
             }
             importViewModel.importFolder(uri)
+        }
+    }
+
+    val coverLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+    ) { uri ->
+        val bookId = pendingCoverBookId
+        pendingCoverBookId = null
+        if (uri != null && bookId != null) {
+            runCatching {
+                val directory = File(context.filesDir, "covers")
+                check(directory.exists() || directory.mkdirs()) { "สร้างโฟลเดอร์ภาพปกไม่สำเร็จ" }
+                val destination = File(directory, "custom-$bookId-${System.currentTimeMillis()}.img")
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    destination.outputStream().use { output -> input.copyTo(output) }
+                } ?: error("อ่านภาพที่เลือกไม่ได้")
+                viewModel.updateBookCover(bookId, destination.absolutePath)
+            }.onFailure {
+                snackbarHostState.showSnackbar("เปลี่ยนภาพปกไม่สำเร็จ: ${it.message ?: "เกิดข้อผิดพลาด"}")
+            }
         }
     }
 
@@ -167,6 +193,9 @@ fun LibraryScreen(
             statistics = statisticsState,
             onOpenStatistics = onOpenStatistics,
             onOpenAnnotations = onOpenAnnotations,
+            onSetReadingStatus = viewModel::setReadingStatus,
+            onUpdateBookMetadata = viewModel::updateBookMetadata,
+            onChangeBookCover = { bookId -> pendingCoverBookId = bookId; coverLauncher.launch("image/*") },
             onOpenNowPlaying = onOpenNowPlaying,
             playbackState = playbackState,
             onPlaybackToggle = playbackViewModel::playPause,
@@ -219,6 +248,10 @@ fun LibraryContent(
     var contextBook by remember { mutableStateOf<BookCard?>(null) }
     var detailsBook by remember { mutableStateOf<BookCard?>(null) }
     var removeBook by remember { mutableStateOf<BookCard?>(null) }
+    var shelfBook by remember { mutableStateOf<BookCard?>(null) }
+    var metadataBook by remember { mutableStateOf<BookCard?>(null) }
+    var metadataTitle by remember { mutableStateOf("") }
+    var metadataAuthor by remember { mutableStateOf("") }
     var showOrganizationControls by remember { mutableStateOf(false) }
     var groupMenuExpanded by remember { mutableStateOf(false) }
     var sortMenuExpanded by remember { mutableStateOf(false) }
@@ -352,7 +385,6 @@ fun LibraryContent(
                                     isSelected = false,
                                     onClick = { onOpenBook(card.id) },
                                     onToggle = { onToggleSelection(card.id) },
-                                    onLongPress = { if (state.isSelectionMode) onToggleSelection(card.id) else contextBook = card },
                                     onLongPress = { if (state.isSelectionMode) onToggleSelection(card.id) else contextBook = card },
                                     modifier = Modifier.width(104.dp),
                                 )
@@ -611,6 +643,11 @@ fun LibraryContent(
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     TextButton(onClick = { onOpenAnnotations(book.id); contextBook = null }) { Text("🏷 Tags / Notes") }
                     TextButton(onClick = { detailsBook = book; contextBook = null }) { Text("รายละเอียดหนังสือ") }
+                    TextButton(onClick = { onSetReadingStatus(book.id, LibraryShelf.FINISHED); contextBook = null }) { Text("ทำเครื่องหมายว่าอ่านจบแล้ว") }
+                    TextButton(onClick = { onSetReadingStatus(book.id, LibraryShelf.TO_READ); contextBook = null }) { Text("ทำเครื่องหมายว่ายังไม่ได้อ่าน") }
+                    TextButton(onClick = { shelfBook = book; contextBook = null }) { Text("ย้ายไปชั้นหนังสือ…") }
+                    TextButton(onClick = { onChangeBookCover(book.id); contextBook = null }) { Text("เปลี่ยนภาพปก") }
+                    TextButton(onClick = { metadataBook = book; metadataTitle = book.title; metadataAuthor = book.author.orEmpty(); contextBook = null }) { Text("แก้ไขชื่อหนังสือ / ผู้แต่ง") }
                     TextButton(onClick = { onToggleSelection(book.id); contextBook = null }) { Text("เลือกหลายรายการ") }
                     TextButton(onClick = { removeBook = book; contextBook = null }) { Text("นำออกจากรายการ") }
                 }
@@ -634,6 +671,37 @@ fun LibraryContent(
                 }
             },
             confirmButton = { TextButton(onClick = { detailsBook = null }) { Text("ปิด") } },
+        )
+    }
+    shelfBook?.let { book ->
+        AlertDialog(
+            onDismissRequest = { shelfBook = null },
+            title = { Text("เลือกชั้นหนังสือ") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    TextButton(onClick = { onSetReadingStatus(book.id, LibraryShelf.READING); shelfBook = null }) { Text("กำลังอ่าน") }
+                    TextButton(onClick = { onSetReadingStatus(book.id, LibraryShelf.TO_READ); shelfBook = null }) { Text("รออ่าน") }
+                    TextButton(onClick = { onSetReadingStatus(book.id, LibraryShelf.FINISHED); shelfBook = null }) { Text("อ่านจบแล้ว") }
+                }
+            },
+            confirmButton = { TextButton(onClick = { shelfBook = null }) { Text("ปิด") } },
+        )
+    }
+    metadataBook?.let { book ->
+        AlertDialog(
+            onDismissRequest = { metadataBook = null },
+            title = { Text("แก้ไขข้อมูลหนังสือ") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = metadataTitle, onValueChange = { metadataTitle = it }, label = { Text("ชื่อหนังสือ") }, singleLine = true)
+                    OutlinedTextField(value = metadataAuthor, onValueChange = { metadataAuthor = it }, label = { Text("ผู้แต่ง") }, singleLine = true)
+                    Text("แก้ไขเฉพาะข้อมูลในคลัง Kanom Reader ไม่เปลี่ยนชื่อไฟล์ EPUB ต้นฉบับ")
+                }
+            },
+            confirmButton = {
+                TextButton(enabled = metadataTitle.isNotBlank(), onClick = { onUpdateBookMetadata(book.id, metadataTitle, metadataAuthor); metadataBook = null }) { Text("บันทึก") }
+            },
+            dismissButton = { TextButton(onClick = { metadataBook = null }) { Text("ยกเลิก") } },
         )
     }
     removeBook?.let { book ->
