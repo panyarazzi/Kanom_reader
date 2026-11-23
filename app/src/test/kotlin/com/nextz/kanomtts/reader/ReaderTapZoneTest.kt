@@ -35,4 +35,19 @@ class ReaderTapZoneTest {
             )
         }
     }
+    @Test fun originalZonesRemainScreenRelativeInLandscape() {
+        assertEquals(
+            ReaderTapAction.PREVIOUS_PAGE,
+            resolveReaderTapAction(40f, 300f, 1200f, 600f, tapAnywhereToNext = false),
+        )
+        assertEquals(
+            ReaderTapAction.NEXT_PAGE,
+            resolveReaderTapAction(1160f, 300f, 1200f, 600f, tapAnywhereToNext = false),
+        )
+        assertEquals(
+            ReaderTapAction.TOGGLE_CHROME,
+            resolveReaderTapAction(600f, 300f, 1200f, 600f, tapAnywhereToNext = false),
+        )
+    }
+
 }
