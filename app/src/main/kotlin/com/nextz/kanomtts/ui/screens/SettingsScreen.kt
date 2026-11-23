@@ -121,6 +121,7 @@ fun SettingsScreen(
             }
         }
         Text("ขนาดตัวอักษร: ${prefs.fontSizeSp} sp", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 8.dp))
+        Text("ระหว่างอ่านสามารถใช้นิ้วสองนิ้วถ่างเพื่อขยาย หรือหุบเพื่อย่อได้ โดยใช้ค่าขนาดเดียวกับที่ตั้งไว้นี้", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Slider(value = prefs.fontSizeSp.toFloat(), onValueChange = { playbackVm.setFontSizeSp(it.toInt()) },
             valueRange = 12f..72f, steps = 59)
         ToggleRow("ตัวอักษรหนา", prefs.boldText, playbackVm::setBoldText)
