@@ -57,6 +57,8 @@ data class BookCard(
     val displayFilename: Boolean = false,
     val addedAt: Long = 0L,
     val lastOpenedAt: Long? = null,
+    val seriesName: String? = null,
+    val seriesPosition: Double? = null,
 ) {
     val displayTitle: String get() = if (displayFilename && filename.isNotBlank()) filename else title
 }
@@ -79,7 +81,8 @@ data class LibraryUiState(
     val selectedTag: String? = null,
     val folders: List<LibraryFolderCard> = emptyList(),
     val selectedFolder: String? = null,
-    val groupMode: LibraryGroupMode = LibraryGroupMode.FOLDER,\n    val sortMode: LibrarySortMode = LibrarySortMode.TITLE_ASC,\n    val sortDescending: Boolean = false,
+    val groupMode: LibraryGroupMode = LibraryGroupMode.FOLDER,
+    val sortMode: LibrarySortMode = LibrarySortMode.TITLE_ASC,\n    val sortDescending: Boolean = false,
     val secondarySortMode: LibrarySecondarySortMode = LibrarySecondarySortMode.FILENAME_ASC,
     val showFilename: Boolean = false,
     val totalBookCount: Int = 0,
