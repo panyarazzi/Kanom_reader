@@ -111,7 +111,7 @@ class LibraryViewModel @Inject constructor(
                 when (selectedShelf) {
                     LibraryShelf.READING -> card.percent > 0f && card.percent < 0.999f
                     LibraryShelf.TO_READ -> card.percent <= 0f
-                    LibraryShelf.SERIES -> !card.sourceFolder.isNullOrBlank()
+                    LibraryShelf.SERIES -> !card.seriesName.isNullOrBlank()
                     LibraryShelf.FINISHED -> card.percent >= 0.999f
                     null -> true
                 }
@@ -202,7 +202,7 @@ class LibraryViewModel @Inject constructor(
             selectedShelf = selectedShelf,
             readingCount = allCards.count { it.percent > 0f && it.percent < 0.999f },
             toReadCount = allCards.count { it.percent <= 0f },
-            seriesCount = allCards.count { !it.sourceFolder.isNullOrBlank() },
+            seriesCount = allCards.count { !it.seriesName.isNullOrBlank() },
             finishedCount = allCards.count { it.percent >= 0.999f },
             recentlyOpened = recentlyOpened,
             newestBooks = newestBooks,
@@ -271,6 +271,8 @@ class LibraryViewModel @Inject constructor(
             isReading = percent > 0f && percent < 0.999f,
             addedAt = addedAt,
             lastOpenedAt = lastOpenedAt,
+            seriesName = seriesName,
+            seriesPosition = seriesPosition,
         )
     }
 
