@@ -3,6 +3,7 @@ import com.nextz.kanomtts.data.db.BookEntity
 import com.nextz.kanomtts.data.repository.BookWriter
 import java.io.File
 import java.security.MessageDigest
+import kotlinx.coroutines.CancellationException
 sealed interface ImportResult {
     object Duplicate : ImportResult
     data class Imported(val bookId: String) : ImportResult
@@ -22,7 +23,13 @@ class EpubImporter(
         val title = meta.title.ifBlank { displayName?.removeSuffix(".epub") ?: "Untitled" }
         // Matching by title and size can collide. Relinking is always explicit and user-confirmed.
         if (books.isDuplicate(uri)) return ImportResult.Duplicate
-        val sha256 = runCatching { contentHasher(uri) }.getOrNull()
+        val sha256 = try {
+            contentHasher(uri)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            null
+        }
         val id = stableId(uri)
         val coverPath = meta.coverBytes?.let { bytes ->
             coversDir.mkdirs()

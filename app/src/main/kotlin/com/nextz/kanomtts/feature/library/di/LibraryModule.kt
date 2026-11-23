@@ -14,6 +14,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import java.io.File
 import java.security.MessageDigest
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
@@ -36,6 +38,7 @@ object LibraryModule {
                     val digest = MessageDigest.getInstance("SHA-256")
                     val buffer = ByteArray(64 * 1024)
                     while (true) {
+                        currentCoroutineContext().ensureActive()
                         val count = input.read(buffer)
                         if (count < 0) break
                         if (count > 0) digest.update(buffer, 0, count)

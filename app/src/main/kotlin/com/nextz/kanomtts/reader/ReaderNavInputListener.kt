@@ -8,7 +8,7 @@ import org.readium.r2.shared.ExperimentalReadiumApi
 /**
  * Reader nav handled by Readium after the WebView's own touch handling (so it never steals
  * long-press selection). Original Zones maps the left side to Previous, right side to Next,
- * and the center to the reader menu. Anywhere to Next maps every unhandled tap to Next.
+ * and the center to the reader menu. Anywhere to Next maps every non-center tap to Next.
  * Swipe page-turn is reimplemented from [DragEvent].
  *
  * NOTE: the paginated WebView may also page horizontally on drag; if a swipe double-turns on
@@ -74,8 +74,7 @@ internal enum class ReaderTapAction { TOGGLE_CHROME, PREVIOUS_PAGE, NEXT_PAGE }
 
 /**
  * The center menu zone is always reserved. With tap-anywhere enabled, every other
- * unhandled tap advances. Otherwise the non-center area is split by the configured
- * Previous/Next ratio, relative to the current screen width.
+ * unhandled tap advances. Otherwise the left and right screen areas turn backward/forward.
  */
 internal fun resolveReaderTapAction(
     x: Float,

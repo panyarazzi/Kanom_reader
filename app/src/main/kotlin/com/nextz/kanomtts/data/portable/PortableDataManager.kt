@@ -29,6 +29,7 @@ import com.nextz.kanomtts.data.db.ReadingSessionEntity
 import com.nextz.kanomtts.data.db.VoiceConfigEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
@@ -417,31 +418,38 @@ class PortableDataManager @Inject constructor(
 
         val preferencesArray = json.getJSONArray("preferences")
         currentCoroutineContext().ensureActive()
-        database.withTransaction {
-            // Cancellation at any point before this transaction completes rolls back the
-            // existing library and reading state instead of leaving a partially restored DB.
-            currentCoroutineContext().ensureActive()
-            database.bookTagDao().deleteAll()
-            database.bookNoteDao().deleteAll()
-            database.readingSessionDao().deleteAll()
-            database.bookmarkDao().deleteAll()
-            database.progressDao().deleteAll()
-            database.replacementRuleDao().deleteAll()
-            database.voiceConfigDao().deleteAll()
-            database.bookDao().deleteAll()
-            database.bookDao().insertAll(books)
-            database.progressDao().insertAll(progress)
-            database.bookmarkDao().insertAll(bookmarks)
-            database.replacementRuleDao().insertAll(rules)
-            database.voiceConfigDao().insertAll(voices)
-            database.bookTagDao().insertAll(tags)
-            database.bookNoteDao().insertAll(notes)
-            database.readingSessionDao().insertAll(sessions)
-            // Apply preferences before the Room transaction commits. A DataStore failure
-            // therefore aborts the DB restore rather than leaving DB and settings split.
-            currentCoroutineContext().ensureActive()
-            restorePreferences(preferencesArray)
-            currentCoroutineContext().ensureActive()
+        // Room and DataStore are separate stores. Snapshot the current preferences so a
+        // failed/cancelled Room transaction can compensate if the DataStore write succeeded.
+        val previousPreferences = encodePreferences(dataStore.data.first())
+        try {
+            database.withTransaction {
+                currentCoroutineContext().ensureActive()
+                database.bookTagDao().deleteAll()
+                database.bookNoteDao().deleteAll()
+                database.readingSessionDao().deleteAll()
+                database.bookmarkDao().deleteAll()
+                database.progressDao().deleteAll()
+                database.replacementRuleDao().deleteAll()
+                database.voiceConfigDao().deleteAll()
+                database.bookDao().deleteAll()
+                database.bookDao().insertAll(books)
+                database.progressDao().insertAll(progress)
+                database.bookmarkDao().insertAll(bookmarks)
+                database.replacementRuleDao().insertAll(rules)
+                database.voiceConfigDao().insertAll(voices)
+                database.bookTagDao().insertAll(tags)
+                database.bookNoteDao().insertAll(notes)
+                database.readingSessionDao().insertAll(sessions)
+                // Apply preferences as the final operation in the DB transaction. If the
+                // Room transaction fails after this point, the catch below restores the snapshot.
+                currentCoroutineContext().ensureActive()
+                restorePreferences(preferencesArray)
+            }
+        } catch (failure: Throwable) {
+            withContext(NonCancellable) {
+                restorePreferences(previousPreferences)
+            }
+            throw failure
         }
         PortableBackupSummary(books.size, progress.size, bookmarks.size, rules.size, voices.size, tags.size, notes.size, sessions.size, latestBackup.absolutePath)
     }
