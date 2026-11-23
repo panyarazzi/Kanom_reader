@@ -261,11 +261,20 @@ class PortableDataManager @Inject constructor(
         // decompressed, copied, or extracted during restore.
         ZipFile(latestBackup).use { zip ->
             val zipEntries = zip.entries()
+            var totalRestoredBytes = 0L
             while (zipEntries.hasMoreElements()) {
                 val entry = zipEntries.nextElement()
                 if (entry.isDirectory || !isRestorablePortableEntry(entry.name)) continue
+                require(entry.size >= 0L && entry.size <= MAX_ENTRY_BYTES) {
+                    "ไฟล์ในชุดสำรองมีขนาดใหญ่เกินกำหนดหรือไม่ทราบขนาด"
+                }
+                require(entry.name !in entries) { "ไฟล์สำรองมีรายการซ้ำ: ${entry.name}" }
+                totalRestoredBytes += entry.size
+                require(totalRestoredBytes <= MAX_TOTAL_RESTORE_BYTES) {
+                    "ข้อมูลที่ต้องกู้คืนมีขนาดรวมเกินกำหนด"
+                }
                 val bytes = zip.getInputStream(entry).use { it.readBytes() }
-                require(bytes.size <= MAX_ENTRY_BYTES) { "ไฟล์ในชุดสำรองมีขนาดใหญ่เกินกำหนด" }
+                require(bytes.size.toLong() == entry.size) { "ข้อมูลใน ZIP ไม่สมบูรณ์: ${entry.name}" }
                 entries[entry.name] = bytes
             }
         }
@@ -472,5 +481,6 @@ class PortableDataManager @Inject constructor(
     companion object {
         private const val FORMAT_VERSION = 1
         private const val MAX_ENTRY_BYTES = 512 * 1024 * 1024
+        private const val MAX_TOTAL_RESTORE_BYTES = 768L * 1024L * 1024L
     }
 }
