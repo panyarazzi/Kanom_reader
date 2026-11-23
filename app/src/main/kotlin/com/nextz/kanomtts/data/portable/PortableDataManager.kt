@@ -3,6 +3,7 @@ package com.nextz.kanomtts.data.portable
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import androidx.core.content.ContextCompat
@@ -209,7 +210,48 @@ class PortableDataManager @Inject constructor(
         PortableBackupSummary(books.size, progress.size, bookmarks.size, rules.size, voices.size, tags.size, notes.size, sessions.size, latestBackup.absolutePath)
     }
 
-    suspend fun restoreLatestBackup(): PortableBackupSummary = withContext(Dispatchers.IO) {
+    /**
+     * Reads only backup metadata and returns the books that need source reconciliation.
+     * This is a read-only preflight: it does not touch the database, preferences, or EPUB files.
+     */
+    suspend fun previewBackupBooks(): List<BookEntity> = withContext(Dispatchers.IO) {
+        requireStorageAccess()
+        check(latestBackup.isFile) { "ไม่พบไฟล์สำรอง Kanom" }
+        val json = readBackupJson()
+        val bookArray = json.getJSONArray("books")
+        (0 until bookArray.length()).map { index ->
+            val item = bookArray.getJSONObject(index)
+            BookEntity(
+                id = item.getString("id"),
+                uri = item.getString("uri"),
+                title = item.getString("title"),
+                author = item.optNullableString("author"),
+                lang = item.optNullableString("lang"),
+                coverPath = null,
+                fileSize = item.getLong("fileSize"),
+                addedAt = item.getLong("addedAt"),
+                lastOpenedAt = item.optNullableLong("lastOpenedAt"),
+                sha256 = item.optNullableString("sha256"),
+                sourceFolder = item.optNullableString("sourceFolder"),
+                sourceFileName = item.optNullableString("sourceFileName"),
+            )
+        }
+    }
+
+    private fun readBackupJson(): JSONObject {
+        val metadata = ZipFile(latestBackup).use { zip ->
+            val entry = zip.getEntry("data.json") ?: error("ไฟล์สำรองไม่มี data.json")
+            require(entry.size <= MAX_ENTRY_BYTES) { "ไฟล์ข้อมูลสำรองมีขนาดใหญ่เกินกำหนด" }
+            zip.getInputStream(entry).use { it.readBytes() }
+        }
+        val json = JSONObject(String(metadata, Charsets.UTF_8))
+        require(json.optInt("formatVersion", -1) == FORMAT_VERSION) { "เวอร์ชันไฟล์สำรองนี้ไม่รองรับ" }
+        return json
+    }
+
+    suspend fun restoreLatestBackup(
+        sourceMappings: Map<String, RestoreSourceCandidate> = emptyMap(),
+    ): PortableBackupSummary = withContext(Dispatchers.IO) {
         requireStorageAccess()
         check(latestBackup.isFile) { "ไม่พบไฟล์สำรอง Kanom" }
         val entries = mutableMapOf<String, ByteArray>()
@@ -242,14 +284,22 @@ class PortableDataManager @Inject constructor(
                 check(dir.exists() || dir.mkdirs()) { "สร้างโฟลเดอร์ภาพปกไม่สำเร็จ" }
                 File(dir, "${safeName(id)}.bin").apply { writeBytes(bytes) }.absolutePath
             }
+            val source = sourceMappings[id]
+            if (source != null) {
+                // Validate every chosen SAF URI before the database transaction starts.
+                context.contentResolver.openFileDescriptor(Uri.parse(source.uri), "r")?.use { }
+                    ?: error("ไม่สามารถเปิดไฟล์ต้นฉบับที่เลือกได้: ${source.name}")
+            }
             BookEntity(
-                id = id, uri = restoredUri, title = o.getString("title"),
+                id = id,
+                uri = source?.uri ?: restoredUri,
+                title = o.getString("title"),
                 author = o.optNullableString("author"), lang = o.optNullableString("lang"),
                 coverPath = coverPath, fileSize = o.getLong("fileSize"),
                 addedAt = o.getLong("addedAt"), lastOpenedAt = o.optNullableLong("lastOpenedAt"),
-                sha256 = o.optNullableString("sha256"),
-                sourceFolder = o.optNullableString("sourceFolder"),
-                sourceFileName = o.optNullableString("sourceFileName"),
+                sha256 = source?.sha256 ?: o.optNullableString("sha256"),
+                sourceFolder = source?.sourceFolder ?: o.optNullableString("sourceFolder"),
+                sourceFileName = source?.name ?: o.optNullableString("sourceFileName"),
             )
         }
         val progressArray = json.getJSONArray("progress")
