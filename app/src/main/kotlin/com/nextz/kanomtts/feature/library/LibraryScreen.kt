@@ -19,8 +19,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -187,75 +185,75 @@ fun LibraryContent(
     var showConfirm by remember { mutableStateOf(false) }
     // Close a stale confirm dialog if selection is cleared externally (e.g. system back).
     LaunchedEffect(state.isSelectionMode) { if (!state.isSelectionMode) showConfirm = false }
-    Column(
+    val screenWidthDp = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp
+    val gridColumnCount = ((screenWidthDp - 32 + 12) / 152).coerceAtLeast(1)
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .padding(contentPadding)
             .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Spacer(Modifier.height(8.dp))
-
-        if (state.isSelectionMode) {
-            SelectionBar(
-                count = state.selectedIds.size,
-                onClose = onClearSelection,
-                onDelete = { showConfirm = true },
-            )
-        } else {
-            // Keep the Kanom brand at the far left; search and view controls use the
-            // open space on its right, leaving the former search row for statistics.
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                BrandHeader(modifier = Modifier.weight(1f))
-                Column(
-                    modifier = Modifier.weight(1.45f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+        item(key = "library-header") {
+            Spacer(Modifier.height(8.dp))
+            if (state.isSelectionMode) {
+                SelectionBar(
+                    count = state.selectedIds.size,
+                    onClose = onClearSelection,
+                    onDelete = { showConfirm = true },
+                )
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    LibrarySearchBar(
-                        query = state.query,
-                        onQueryChange = onQueryChange,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    ViewModeToggle(
-                        mode = state.viewMode,
-                        onSelect = onViewMode,
-                    )
+                    BrandHeader(modifier = Modifier.weight(1f))
+                    Column(
+                        modifier = Modifier.weight(1.45f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        LibrarySearchBar(
+                            query = state.query,
+                            onQueryChange = onQueryChange,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        ViewModeToggle(mode = state.viewMode, onSelect = onViewMode)
+                    }
                 }
-            }
-            TextButton(onClick = onImportFolder) { Text("นำเข้าหนังสือจากโฟลเดอร์") }
-        if (statistics != null) {
-                Spacer(Modifier.height(10.dp))
-                ReadingStatisticsCard(state = statistics, onMore = onOpenStatistics)
+                TextButton(onClick = onImportFolder) { Text("นำเข้าหนังสือจากโฟลเดอร์") }
+                if (statistics != null) {
+                    ReadingStatisticsCard(state = statistics, onMore = onOpenStatistics)
+                }
             }
         }
 
         if (!state.isSelectionMode && state.folders.isNotEmpty()) {
-            Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Card(Modifier.width(112.dp).clickable { onFolderFilter(null) }) {
-                    Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("ทั้งหมด", style = MaterialTheme.typography.titleSmall)
-                        Text("${state.totalBookCount} เล่ม", style = MaterialTheme.typography.labelSmall)
+            item(key = "library-folders") {
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Card(Modifier.width(112.dp).clickable { onFolderFilter(null) }) {
+                        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("ทั้งหมด", style = MaterialTheme.typography.titleSmall)
+                            Text("${state.totalBookCount} เล่ม", style = MaterialTheme.typography.labelSmall)
+                        }
                     }
-                }
-                state.folders.forEach { folder ->
-                    Card(Modifier.width(160.dp).clickable {
-                        onFolderFilter(if (state.selectedFolder == folder.name) null else folder.name)
-                    }) {
-                        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                                folder.sampleCovers.forEach { cover ->
-                                    CoverImage(cover, Modifier.width(25.dp).height(34.dp))
+                    state.folders.forEach { folder ->
+                        Card(Modifier.width(160.dp).clickable {
+                            onFolderFilter(if (state.selectedFolder == folder.name) null else folder.name)
+                        }) {
+                            Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    folder.sampleCovers.forEach { cover ->
+                                        CoverImage(cover, Modifier.width(25.dp).height(34.dp))
+                                    }
                                 }
+                                Text(folder.name, style = MaterialTheme.typography.titleSmall, maxLines = 1)
+                                Text("${folder.count} เล่ม", style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            Text(folder.name, style = MaterialTheme.typography.titleSmall, maxLines = 1)
-                            Text("${folder.count} เล่ม", style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -263,108 +261,106 @@ fun LibraryContent(
         }
 
         if (!state.isSelectionMode) {
-            Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                LibrarySortMode.entries.forEach { mode ->
-                    FilterChip(
-                        selected = state.sortMode == mode,
-                        onClick = { onSortMode(mode) },
-                        label = { Text(mode.label) },
-                    )
+            item(key = "library-sort") {
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    LibrarySortMode.entries.forEach { mode ->
+                        FilterChip(
+                            selected = state.sortMode == mode,
+                            onClick = { onSortMode(mode) },
+                            label = { Text(mode.label) },
+                        )
+                    }
                 }
             }
-        }
-        if (!state.isSelectionMode) {
-            FilterChip(
-                selected = state.showFilename,
-                onClick = { onShowFilename(!state.showFilename) },
-                label = { Text(if (state.showFilename) "แสดงชื่อไฟล์ต้นฉบับ" else "แสดงชื่อหนังสือ") },
-            )
-        }
-
-        if (!state.isSelectionMode && state.availableTags.isNotEmpty()) {
-            Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
+            item(key = "library-filename-toggle") {
                 FilterChip(
-                    selected = state.selectedTag == null,
-                    onClick = { onTagFilter(null) },
-                    label = { Text("ทั้งหมด") },
+                    selected = state.showFilename,
+                    onClick = { onShowFilename(!state.showFilename) },
+                    label = { Text(if (state.showFilename) "แสดงชื่อไฟล์ต้นฉบับ" else "แสดงชื่อหนังสือ") },
                 )
-                state.availableTags.forEach { tag ->
-                    FilterChip(
-                        selected = state.selectedTag == tag,
-                        onClick = { onTagFilter(if (state.selectedTag == tag) null else tag) },
-                        label = { Text(tag) },
-                    )
+            }
+            if (state.availableTags.isNotEmpty()) {
+                item(key = "library-tags") {
+                    Row(
+                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        FilterChip(
+                            selected = state.selectedTag == null,
+                            onClick = { onTagFilter(null) },
+                            label = { Text("ทั้งหมด") },
+                        )
+                        state.availableTags.forEach { tag ->
+                            FilterChip(
+                                selected = state.selectedTag == tag,
+                                onClick = { onTagFilter(if (state.selectedTag == tag) null else tag) },
+                                label = { Text(tag) },
+                            )
+                        }
+                    }
+                }
+            }
+            state.continueCard?.let { continueCard ->
+                item(key = "library-continue-reading") {
+                    ContinueHero(card = continueCard, onClick = { onOpenBook(continueCard.id) })
                 }
             }
         }
 
-        // Continue-listening hero (hidden in selection mode)
-        if (state.continueCard != null && !state.isSelectionMode) {
-            Spacer(Modifier.height(12.dp))
-            ContinueHero(
-                card = state.continueCard,
-                onClick = { onOpenBook(state.continueCard.id) },
-            )
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        // Books or empty state
-        if (state.books.isEmpty() && state.query.isBlank()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = 32.dp),
-                contentAlignment = Alignment.TopCenter,
-            ) {
-                Text(
-                    text = "ยังไม่มีหนังสือ — แตะ + เพื่อเพิ่ม",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+        if (state.books.isEmpty()) {
+            item(key = "library-empty") {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                    contentAlignment = Alignment.TopCenter,
+                ) {
+                    Text(
+                        text = if (state.query.isBlank()) "ยังไม่มีหนังสือ — แตะ + เพื่อเพิ่ม" else "ไม่พบหนังสือที่ค้นหา",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         } else {
             when (state.viewMode) {
                 LibraryViewMode.GRID -> {
-                    LazyVerticalGrid(
-                        columns = GridCells.Adaptive(140.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        items(state.books, key = { it.id }) { card ->
-                            BookGridItem(
-                                card = card,
-                                isSelectionMode = state.isSelectionMode,
-                                isSelected = card.id in state.selectedIds,
-                                onClick = { onOpenBook(card.id) },
-                                onToggle = { onToggleSelection(card.id) },
-                            )
+                    items(
+                        items = state.books.chunked(gridColumnCount),
+                        key = { row -> "grid-${row.first().id}" },
+                    ) { row ->
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            row.forEach { card ->
+                                Box(Modifier.weight(1f)) {
+                                    BookGridItem(
+                                        card = card,
+                                        isSelectionMode = state.isSelectionMode,
+                                        isSelected = card.id in state.selectedIds,
+                                        onClick = { onOpenBook(card.id) },
+                                        onToggle = { onToggleSelection(card.id) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                }
+                            }
+                            repeat((gridColumnCount - row.size).coerceAtLeast(0)) {
+                                Spacer(Modifier.weight(1f))
+                            }
                         }
                     }
                 }
-                LibraryViewMode.LIST,
-                LibraryViewMode.DETAIL,
-                -> {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        items(state.books, key = { it.id }) { card ->
-                            BookListItem(
-                                card = card,
-                                isSelectionMode = state.isSelectionMode,
-                                isSelected = card.id in state.selectedIds,
-                                onClick = { onOpenBook(card.id) },
-                                onToggle = { onToggleSelection(card.id) },
-                            )
-                        }
+                LibraryViewMode.LIST, LibraryViewMode.DETAIL -> {
+                    items(state.books, key = { it.id }) { card ->
+                        BookListItem(
+                            card = card,
+                            isSelectionMode = state.isSelectionMode,
+                            isSelected = card.id in state.selectedIds,
+                            onClick = { onOpenBook(card.id) },
+                            onToggle = { onToggleSelection(card.id) },
+                        )
                     }
                 }
             }
