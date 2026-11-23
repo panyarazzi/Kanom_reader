@@ -199,7 +199,78 @@ fun LibraryContent(
             }
         }
 
-        if (!state.isSelectionMode && state.folders.isNotEmpty()) {
+            state.continueCard?.let { continueCard ->
+                item(key = "library-continue-reading") {
+                    ContinueHero(card = continueCard, onClick = { onOpenBook(continueCard.id) })
+                }
+            }
+            item(key = "library-shelves") {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("ชั้นหนังสือ", style = MaterialTheme.typography.titleMedium)
+                    Row(
+                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                    ShelfCard("กำลังอ่าน", state.readingCount, state.selectedShelf == LibraryShelf.READING) {
+                        onShelfFilter(LibraryShelf.READING)
+                    }
+                    ShelfCard("รออ่าน", state.toReadCount, state.selectedShelf == LibraryShelf.TO_READ) {
+                        onShelfFilter(LibraryShelf.TO_READ)
+                    }
+                    ShelfCard("ซีรีส์/ชุด", state.seriesCount, state.selectedShelf == LibraryShelf.SERIES) {
+                        onShelfFilter(LibraryShelf.SERIES)
+                    }
+                    ShelfCard("อ่านจบแล้ว", state.finishedCount, state.selectedShelf == LibraryShelf.FINISHED) {
+                        onShelfFilter(LibraryShelf.FINISHED)
+                    }
+                    }
+                }
+            }
+            if (state.recentlyOpened.isNotEmpty()) {
+                item(key = "library-from-your-reading") {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("จากหนังสือที่คุณอ่าน", style = MaterialTheme.typography.titleMedium)
+                        Row(
+                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            state.recentlyOpened.forEach { card ->
+                                BookGridItem(
+                                    card = card,
+                                    isSelectionMode = false,
+                                    isSelected = false,
+                                    onClick = { onOpenBook(card.id) },
+                                    onToggle = { onToggleSelection(card.id) },
+                                    modifier = Modifier.width(116.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            if (state.newestBooks.isNotEmpty()) {
+                item(key = "library-new-on-shelf") {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("ใหม่บนชั้นหนังสือ", style = MaterialTheme.typography.titleMedium)
+                        Row(
+                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            state.newestBooks.forEach { card ->
+                                BookGridItem(
+                                    card = card,
+                                    isSelectionMode = false,
+                                    isSelected = false,
+                                    onClick = { onOpenBook(card.id) },
+                                    onToggle = { onToggleSelection(card.id) },
+                                    modifier = Modifier.width(116.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            if (state.folders.isNotEmpty()) {
             item(key = "library-folders") {
                 Row(
                     Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -274,77 +345,7 @@ fun LibraryContent(
                     }
                 }
             }
-            state.continueCard?.let { continueCard ->
-                item(key = "library-continue-reading") {
-                    ContinueHero(card = continueCard, onClick = { onOpenBook(continueCard.id) })
-                }
-            }
-            item(key = "library-shelves") {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("ชั้นหนังสือ", style = MaterialTheme.typography.titleMedium)
-                    Row(
-                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                    ShelfCard("กำลังอ่าน", state.readingCount, state.selectedShelf == LibraryShelf.READING) {
-                        onShelfFilter(LibraryShelf.READING)
-                    }
-                    ShelfCard("รออ่าน", state.toReadCount, state.selectedShelf == LibraryShelf.TO_READ) {
-                        onShelfFilter(LibraryShelf.TO_READ)
-                    }
-                    ShelfCard("ซีรีส์/ชุด", state.seriesCount, state.selectedShelf == LibraryShelf.SERIES) {
-                        onShelfFilter(LibraryShelf.SERIES)
-                    }
-                    ShelfCard("อ่านจบแล้ว", state.finishedCount, state.selectedShelf == LibraryShelf.FINISHED) {
-                        onShelfFilter(LibraryShelf.FINISHED)
-                    }
-                    }
-                }
-            }
-            if (state.recentlyOpened.isNotEmpty()) {
-                item(key = "library-from-your-reading") {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("จากหนังสือที่คุณอ่าน", style = MaterialTheme.typography.titleMedium)
-                        Row(
-                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            state.recentlyOpened.forEach { card ->
-                                BookGridItem(
-                                    card = card,
-                                    isSelectionMode = false,
-                                    isSelected = false,
-                                    onClick = { onOpenBook(card.id) },
-                                    onToggle = { onToggleSelection(card.id) },
-                                    modifier = Modifier.width(116.dp),
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-            if (state.newestBooks.isNotEmpty()) {
-                item(key = "library-new-on-shelf") {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("ใหม่บนชั้นหนังสือ", style = MaterialTheme.typography.titleMedium)
-                        Row(
-                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            state.newestBooks.forEach { card ->
-                                BookGridItem(
-                                    card = card,
-                                    isSelectionMode = false,
-                                    isSelected = false,
-                                    onClick = { onOpenBook(card.id) },
-                                    onToggle = { onToggleSelection(card.id) },
-                                    modifier = Modifier.width(116.dp),
-                                )
-                            }
-                        }
-                    }
-                }
-            }
+
         }
 
         if (state.books.isEmpty()) {
