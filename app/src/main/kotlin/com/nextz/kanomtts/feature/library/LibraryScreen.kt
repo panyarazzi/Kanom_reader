@@ -261,16 +261,6 @@ fun LibraryContent(
         }
 
         if (!state.isSelectionMode) {
-            item(key = "library-search") {
-                LibrarySearchBar(
-                    query = state.query,
-                    onQueryChange = onQueryChange,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
-
-        if (!state.isSelectionMode) {
             if (statistics != null) {
                 item(key = "library-reading-statistics-and-listening") {
                     androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -315,7 +305,14 @@ fun LibraryContent(
                     }
                 }
             }
-                        if (state.continueCards.isNotEmpty() || state.continueCard != null) {
+            item(key = "library-search") {
+                LibrarySearchBar(
+                    query = state.query,
+                    onQueryChange = onQueryChange,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            if (state.continueCards.isNotEmpty() || state.continueCard != null) {
                 item(key = "library-continue-reading") {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("อ่านต่อ", style = MaterialTheme.typography.titleMedium)
