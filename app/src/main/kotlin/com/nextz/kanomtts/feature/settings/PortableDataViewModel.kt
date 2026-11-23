@@ -158,21 +158,10 @@ class PortableDataViewModel @Inject constructor(
         )
     }
 
-    fun isCandidateAlreadyAssigned(candidate: RestoreSourceCandidate): Boolean =
-        selectedSources.values.any { it.uri == candidate.uri }
-
     fun chooseAmbiguousCandidate(candidate: RestoreSourceCandidate) {
         val plan = _uiState.value.restorePlan ?: return
         val item = plan.ambiguousMatches.getOrNull(_uiState.value.ambiguousIndex) ?: return
-        // A single source EPUB must never be assigned to more than one restored book.
-        if (isCandidateAlreadyAssigned(candidate)) {
-            _uiState.value = _uiState.value.copy(
-                message = "ไฟล์นี้ถูกจับคู่กับหนังสือเล่มอื่นแล้ว กรุณาเลือกไฟล์อื่นหรือข้ามรายการนี้",
-            )
-            return
-        }
         selectedSources[item.book.id] = candidate
-        _uiState.value = _uiState.value.copy(message = null)
         advanceAmbiguous(plan)
     }
 
