@@ -161,7 +161,7 @@ fun ReaderScreen(
 
     if (state is ReaderUiState.Error && relinkState.candidates.isNotEmpty()) {
         AlertDialog(
-            onDismissRequest = { relinkViewModel.clearResults() },
+            onDismissRequest = { if (!relinkState.busy) relinkViewModel.clearResults() },
             title = { Text("เลือกไฟล์ที่ตรงกับหนังสือเดิม") },
             text = {
                 Column {
@@ -175,7 +175,7 @@ fun ReaderScreen(
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { relinkViewModel.clearResults() }) { Text("ยกเลิก") } },
+            confirmButton = { TextButton(onClick = { relinkViewModel.clearResults() }, enabled = !relinkState.busy) { Text("ยกเลิก") } },
         )
     }
 
