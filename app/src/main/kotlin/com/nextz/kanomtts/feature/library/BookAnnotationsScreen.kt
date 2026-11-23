@@ -26,6 +26,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +43,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 fun BookAnnotationsScreen(
     onBack: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(),
+    initialBookId: String? = null,
     viewModel: BookAnnotationsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -52,6 +54,17 @@ fun BookAnnotationsScreen(
     var noteText by remember { mutableStateOf("") }
     var csvContent by remember { mutableStateOf("") }
     var exportError by remember { mutableStateOf<String?>(null) }
+    var openedInitialBook by remember { mutableStateOf(false) }
+    LaunchedEffect(initialBookId, state.allBooks) {
+        if (!openedInitialBook && initialBookId != null) {
+            state.allBooks.firstOrNull { it.id == initialBookId }?.let { book ->
+                editing = book
+                tagsText = book.tags.joinToString(", ")
+                noteText = book.note
+                openedInitialBook = true
+            }
+        }
+    }
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/csv"),
     ) { uri ->
