@@ -1,5 +1,7 @@
 package com.nextz.kanomtts.feature.library
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +22,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -32,6 +36,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,59 +64,137 @@ fun ReadingStatisticsCard(
     onMore: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+
     Card(
-        modifier = modifier.fillMaxWidth().border(1.dp, StatsGold, RoundedCornerShape(16.dp)),
+        modifier = modifier
+            .fillMaxWidth()
+            .animateContentSize()
+            .border(1.dp, StatsGold, RoundedCornerShape(16.dp)),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = StatsCream),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
-        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Column(
+            Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.AutoStories, contentDescription = null, tint = StatsBrown)
                 Spacer(Modifier.width(8.dp))
-                Text("สถิติการอ่าน", color = StatsBrown, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Text(
+                    "สถิติการอ่าน",
+                    color = StatsBrown,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                )
                 Spacer(Modifier.weight(1f))
                 TextButton(onClick = onMore) {
                     Text("ดูข้อมูลเพิ่มเติม", color = StatsBrown)
-                    Icon(Icons.Filled.ArrowForward, contentDescription = null, tint = StatsBrown, modifier = Modifier.size(16.dp))
+                    Icon(
+                        Icons.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = StatsBrown,
+                        modifier = Modifier.size(16.dp),
+                    )
                 }
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (state.latestBook?.coverPath != null) {
-                    AsyncImage(
-                        model = state.latestBook.coverPath,
-                        contentDescription = "ปกหนังสือเล่มล่าสุด",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.size(width = 40.dp, height = 54.dp).clip(RoundedCornerShape(5.dp)),
-                    )
-                } else {
-                    Box(Modifier.size(width = 40.dp, height = 54.dp).clip(RoundedCornerShape(5.dp)).background(StatsTrack), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Filled.AutoStories, contentDescription = null, tint = StatsBrown)
-                    }
-                }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text("เล่มล่าสุดที่เปิดอ่าน", color = StatsBrown.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall)
-                    Text(state.latestBook?.title ?: "ยังไม่มีประวัติการเปิดหนังสือ", color = StatsBrown, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    if (state.latestBook != null) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            LinearProgressIndicator(
-                                progress = { state.latestBook.percent },
-                                modifier = Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(4.dp)),
-                                color = StatsGold,
-                                trackColor = StatsTrack,
+
+            // Keep the seven-day chart visible in both states; it is the compact card's
+            // primary preview and remains the first data section when expanded.
+            ReadingDaysChart(
+                days = (0..6).mapNotNull { index -> state.chartDays.takeLast(7).getOrNull(index) },
+                compact = true,
+            )
+
+            AnimatedVisibility(visible = expanded) {
+                Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        if (state.latestBook?.coverPath != null) {
+                            AsyncImage(
+                                model = state.latestBook.coverPath,
+                                contentDescription = "ปกหนังสือเล่มล่าสุด",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(width = 40.dp, height = 54.dp)
+                                    .clip(RoundedCornerShape(5.dp)),
                             )
-                            Spacer(Modifier.width(8.dp))
-                            Text("${(state.latestBook.percent * 100).toInt()}%", color = StatsBrown, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        } else {
+                            Box(
+                                Modifier
+                                    .size(width = 40.dp, height = 54.dp)
+                                    .clip(RoundedCornerShape(5.dp))
+                                    .background(StatsTrack),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(Icons.Filled.AutoStories, contentDescription = null, tint = StatsBrown)
+                            }
+                        }
+                        Column(
+                            Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(3.dp),
+                        ) {
+                            Text(
+                                "เล่มล่าสุดที่เปิดอ่าน",
+                                color = StatsBrown.copy(alpha = 0.8f),
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                            Text(
+                                state.latestBook?.title ?: "ยังไม่มีประวัติการเปิดหนังสือ",
+                                color = StatsBrown,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            if (state.latestBook != null) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    LinearProgressIndicator(
+                                        progress = { state.latestBook.percent },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(5.dp)
+                                            .clip(RoundedCornerShape(4.dp)),
+                                        color = StatsGold,
+                                        trackColor = StatsTrack,
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        "${(state.latestBook.percent * 100).toInt()}%",
+                                        color = StatsBrown,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
+                            }
                         }
                     }
+
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                        MetricText("วันนี้", formatReadingDuration(state.todayReadingMs))
+                        MetricText("สัปดาห์นี้", "${state.daysReadThisWeek}/7 วัน")
+                        MetricText("อ่านจบแล้ว", "${state.completedCount} เล่ม")
+                    }
                 }
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                MetricText("วันนี้", formatReadingDuration(state.todayReadingMs))
-                MetricText("สัปดาห์นี้", "${state.daysReadThisWeek}/7 วัน")
-                MetricText("อ่านจบแล้ว", "${state.completedCount} เล่ม")
+
+            // Centered bottom affordance communicates that the card can expand/collapse.
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                IconButton(
+                    onClick = { expanded = !expanded },
+                    modifier = Modifier.size(width = 64.dp, height = 32.dp),
+                ) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        contentDescription = if (expanded) "ย่อกล่องสถิติ" else "ขยายกล่องสถิติ",
+                        tint = StatsBrown,
+                        modifier = Modifier.size(28.dp),
+                    )
+                }
             }
-            ReadingDaysChart(days = (0..6).mapNotNull { index -> state.chartDays.takeLast(7).getOrNull(index) }, compact = true)
         }
     }
 }
