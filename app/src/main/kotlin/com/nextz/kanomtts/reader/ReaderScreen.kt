@@ -380,7 +380,6 @@ private fun ReaderContent(
             bottom = state.prefs.bottomMarginDp.dp + progressFooterSafeSpace,
         ).pointerInput(Unit) {
             var accumulatedScale = 1f
-            var gestureSize = pinchFontSize
             awaitEachGesture {
                 var previousSpan: Float? = null
                 do {
@@ -395,19 +394,19 @@ private fun ReaderContent(
                             val zoomChange = span / previous
                             if (zoomChange != 1f) {
                                 showPinchFontSize = true
-                                if (accumulatedScale == 1f) gestureSize = pinchFontSize
                                 accumulatedScale *= zoomChange
-                                while (accumulatedScale >= 1.08f && gestureSize < 72) {
-                                    gestureSize += 1
+                                var nextSize = pinchFontSize
+                                while (accumulatedScale >= 1.08f && nextSize < 72) {
+                                    nextSize += 1
                                     accumulatedScale /= 1.08f
-                                    pinchFontSize = gestureSize
-                                    viewModel.onFontSize(gestureSize)
                                 }
-                                while (accumulatedScale <= 0.925f && gestureSize > 12) {
-                                    gestureSize -= 1
+                                while (accumulatedScale <= 0.925f && nextSize > 12) {
+                                    nextSize -= 1
                                     accumulatedScale /= 0.925f
-                                    pinchFontSize = gestureSize
-                                    viewModel.onFontSize(gestureSize)
+                                }
+                                if (nextSize != pinchFontSize) {
+                                    pinchFontSize = nextSize
+                                    viewModel.onFontSize(nextSize)
                                 }
                             }
                         }
