@@ -37,6 +37,7 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.nio.file.Files
+import java.security.MessageDigest
 import java.nio.file.StandardCopyOption
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
@@ -272,6 +273,37 @@ class PortableDataManager @Inject constructor(
         require(json.optInt("formatVersion", -1) == FORMAT_VERSION) { "เวอร์ชันไฟล์สำรองนี้ไม่รองรับ" }
 
         val bookArray = json.getJSONArray("books")
+        val backupBookIds = (0 until bookArray.length())
+            .map { bookArray.getJSONObject(it).getString("id") }
+            .toSet()
+        require(sourceMappings.keys.all { it in backupBookIds }) {
+            "มีการจับคู่ไฟล์กับ Book ID ที่ไม่มีอยู่ในชุดสำรอง"
+        }
+        require(sourceMappings.values.map { it.uri }.distinct().size == sourceMappings.size) {
+            "ไม่สามารถใช้ไฟล์ EPUB ต้นฉบับเดียวกันกับหนังสือหลายเล่มได้"
+        }
+        // Revalidate every selected source immediately before staging the restored rows.
+        // This catches changed/replaced files between folder scan and final confirmation.
+        sourceMappings.forEach { (bookId, source) ->
+            val bookIndex = (0 until bookArray.length()).first { bookArray.getJSONObject(it).getString("id") == bookId }
+            val savedHash = bookArray.getJSONObject(bookIndex).optNullableString("sha256")
+            val actualHash = context.contentResolver.openInputStream(Uri.parse(source.uri))?.use { input ->
+                val digest = MessageDigest.getInstance("SHA-256")
+                val buffer = ByteArray(64 * 1024)
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    if (count > 0) digest.update(buffer, 0, count)
+                }
+                digest.digest().joinToString("") { "%02x".format(it) }
+            } ?: error("ไม่สามารถอ่านไฟล์ต้นฉบับที่เลือกได้: ${source.name}")
+            require(source.sha256.isNullOrBlank() || actualHash.equals(source.sha256, ignoreCase = true)) {
+                "ไฟล์ต้นฉบับเปลี่ยนแปลงหลังจากสแกน: ${source.name}"
+            }
+            require(savedHash.isNullOrBlank() || actualHash.equals(savedHash, ignoreCase = true)) {
+                "SHA-256 ของไฟล์ไม่ตรงกับหนังสือ ${bookArray.getJSONObject(bookIndex).getString("title")}"
+            }
+        }
         val books = (0 until bookArray.length()).map { i ->
             val o = bookArray.getJSONObject(i)
             val id = o.getString("id")

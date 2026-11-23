@@ -300,14 +300,12 @@ fun SettingsScreen(
                     Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
                         Text(item?.book?.title.orEmpty(), style = MaterialTheme.typography.titleMedium)
                         item?.candidates?.forEach { candidate ->
-                            val alreadyAssigned = portableVm.isCandidateAlreadyAssigned(candidate)
                             OutlinedButton(
                                 onClick = { portableVm.chooseAmbiguousCandidate(candidate) },
-                                enabled = !alreadyAssigned,
                                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                             ) {
                                 Column {
-                                    Text(if (alreadyAssigned) "${candidate.name} (จับคู่แล้ว)" else candidate.name)
+                                    Text(candidate.name)
                                     Text(candidate.sourceFolder.orEmpty(), style = MaterialTheme.typography.bodySmall)
                                 }
                             }
