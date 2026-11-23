@@ -21,6 +21,7 @@ import com.nextz.kanomtts.feature.library.ImportViewModel
 import com.nextz.kanomtts.feature.settings.FirstLaunchRecoveryStatus
 import com.nextz.kanomtts.feature.settings.FirstLaunchRecoveryViewModel
 import com.nextz.kanomtts.feature.library.LibraryScreen
+import com.nextz.kanomtts.feature.library.BookAnnotationsScreen
 import com.nextz.kanomtts.feature.library.ReadingStatisticsScreen
 import com.nextz.kanomtts.feature.replacement.ReplacementEditorScreen
 import com.nextz.kanomtts.playback.ui.MiniPlayer
@@ -28,6 +29,7 @@ import com.nextz.kanomtts.reader.ReaderScreen
 import com.nextz.kanomtts.reader.ReaderViewModel
 import com.nextz.kanomtts.ui.screens.NowPlayingScreen
 import com.nextz.kanomtts.ui.screens.SettingsScreen
+import com.nextz.kanomtts.ui.screens.AdvancedSettingsScreen
 
 @Composable
 fun KanomApp(
@@ -54,7 +56,7 @@ fun KanomApp(
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
-    val showBottomBar = currentRoute?.startsWith("reader/") != true && currentRoute != "reading_statistics"
+    val showBottomBar = currentRoute?.startsWith("reader/") != true && currentRoute !in setOf("reading_statistics", "advanced_settings", "book_annotations")
     val onNowPlaying = currentRoute == KanomDestination.NOW_PLAYING.route
 
     Scaffold(
@@ -112,11 +114,30 @@ fun KanomApp(
                 )
             }
             composable("reading_statistics") {
-                ReadingStatisticsScreen(onBack = { navController.popBackStack() }, contentPadding = padding)
+                ReadingStatisticsScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenAnnotations = { navController.navigate("book_annotations") },
+                    contentPadding = padding,
+                )
+            }
+            composable("book_annotations") {
+                BookAnnotationsScreen(onBack = { navController.popBackStack() })
             }
             composable(KanomDestination.NOW_PLAYING.route) { NowPlayingScreen(Modifier, padding) }
             composable(KanomDestination.SETTINGS.route) {
-                SettingsScreen(Modifier, padding, onOpenReplacements = { navController.navigate("replacements") })
+                SettingsScreen(
+                    modifier = Modifier,
+                    contentPadding = padding,
+                    onOpenReplacements = { navController.navigate("replacements") },
+                    onOpenAdvanced = { navController.navigate("advanced_settings") },
+                )
+            }
+            composable("advanced_settings") {
+                AdvancedSettingsScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenReplacements = { navController.navigate("replacements") },
+                    contentPadding = padding,
+                )
             }
             composable("replacements") {
                 ReplacementEditorScreen(onBack = { navController.popBackStack() }, contentPadding = padding)

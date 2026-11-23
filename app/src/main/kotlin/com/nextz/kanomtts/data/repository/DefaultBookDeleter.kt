@@ -7,6 +7,7 @@ import com.nextz.kanomtts.data.db.BookDao
 import com.nextz.kanomtts.data.db.BookmarkDao
 import com.nextz.kanomtts.data.db.ProgressDao
 import com.nextz.kanomtts.data.db.ReplacementRuleDao
+import com.nextz.kanomtts.data.db.ReadingSessionDao
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject
@@ -16,6 +17,7 @@ class DefaultBookDeleter @Inject constructor(
     private val progressDao: ProgressDao,
     private val bookmarkDao: BookmarkDao,
     private val replacementRuleDao: ReplacementRuleDao,
+    private val readingSessionDao: ReadingSessionDao,
     @ApplicationContext private val context: Context,
 ) : BookDeleter {
     override suspend fun delete(bookId: String) {
@@ -29,6 +31,7 @@ class DefaultBookDeleter @Inject constructor(
         progressDao.deleteByBook(bookId)
         bookmarkDao.deleteByBook(bookId)
         replacementRuleDao.deleteByBook(bookId)
+        readingSessionDao.deleteForBook(bookId)
         bookDao.delete(bookId)
     }
 }

@@ -296,6 +296,11 @@ class ReaderViewModel @Inject constructor(
         }
     }
 
+    fun retryLoad() {
+        _uiState.value = ReaderUiState.Loading
+        load()
+    }
+
     private fun load() = viewModelScope.launch {
         val book = source.book(bookId)
         if (book == null) { _uiState.value = ReaderUiState.Error("Book not found"); return@launch }

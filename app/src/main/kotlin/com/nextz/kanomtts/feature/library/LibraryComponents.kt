@@ -151,7 +151,7 @@ fun ContinueHero(
                     color = Color.White.copy(alpha = 0.8f),
                 )
                 Text(
-                    text = card.title,
+                    text = card.displayTitle,
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = Color.White,
                     maxLines = 2,
@@ -263,7 +263,7 @@ fun BookGridItem(
         }
         Column(modifier = Modifier.padding(horizontal = 4.dp)) {
             Text(
-                text = card.title,
+                text = card.displayTitle,
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -323,7 +323,7 @@ fun BookListItem(
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = card.title,
+                text = card.displayTitle,
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,

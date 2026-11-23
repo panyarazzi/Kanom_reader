@@ -205,6 +205,38 @@ class LibraryViewModelTest {
         assertEquals("1", vm.uiState.value.books.first().id)
     }
 
+
+    @Test
+    fun `folder cards group imported books and folder filter narrows library`() = runTest {
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        fakeBooks.books.value = listOf(
+            book("1", "Alpha").copy(sourceFolder = "Series/One"),
+            book("2", "Beta").copy(sourceFolder = "Series/One"),
+            book("3", "Gamma").copy(sourceFolder = "Series/Two"),
+        )
+        runCurrent()
+        assertEquals(2, vm.uiState.value.folders.size)
+        assertEquals(2, vm.uiState.value.folders.first { it.name == "Series/One" }.count)
+        vm.setFolderFilter("Series/One")
+        runCurrent()
+        assertEquals(listOf("1", "2"), vm.uiState.value.books.map { it.id })
+    }
+
+    @Test
+    fun `filename sorting and source filename display can be selected`() = runTest {
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        fakeBooks.books.value = listOf(
+            book("1", "Zulu").copy(sourceFileName = "a.epub"),
+            book("2", "Alpha").copy(sourceFileName = "z.epub"),
+        )
+        runCurrent()
+        vm.setSortMode(LibrarySortMode.FILENAME_ASC)
+        vm.setShowFilename(true)
+        runCurrent()
+        assertEquals(listOf("1", "2"), vm.uiState.value.books.map { it.id })
+        assertEquals("a.epub", vm.uiState.value.books.first().displayTitle)
+    }
+
     // ── Task 3: selection + delete ────────────────────────────────────────────
 
     @Test

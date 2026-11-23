@@ -29,6 +29,8 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nextz.kanomtts.R
 import com.nextz.kanomtts.data.prefs.ReadingUnit
+import com.nextz.kanomtts.data.prefs.ReadingFont
+import com.nextz.kanomtts.ui.theme.ReaderTheme
 import com.nextz.kanomtts.feature.settings.PlaybackSettingsViewModel
 import com.nextz.kanomtts.feature.settings.PortableDataViewModel
 import com.nextz.kanomtts.feature.settings.VoiceLanguageEditor
@@ -40,6 +42,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
     onOpenReplacements: () -> Unit = {},
+    onOpenAdvanced: () -> Unit = {},
     playbackVm: PlaybackSettingsViewModel = hiltViewModel(),
     portableVm: PortableDataViewModel = hiltViewModel(),
 ) {
@@ -56,13 +59,57 @@ fun SettingsScreen(
         ActivityResultContracts.RequestPermission(),
     ) { portableVm.refresh() }
 
-    Column(
-        modifier
-            .fillMaxSize()
-            .padding(contentPadding)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp),
+    Box(
+        modifier.fillMaxSize().padding(contentPadding),
+        contentAlignment = Alignment.TopCenter,
     ) {
+    Column(Modifier.fillMaxWidth().widthIn(max = 520.dp)) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("ตั้งค่า", style = MaterialTheme.typography.titleLarge)
+        }
+        Column(
+            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+        ) {
+        Text("การอ่าน", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(vertical = 12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            ReaderTheme.entries.forEach { theme ->
+                FilterChip(
+                    selected = prefs.readerTheme == theme,
+                    onClick = { playbackVm.setReaderTheme(theme) },
+                    label = { Text(when (theme) { ReaderTheme.LIGHT -> "สว่าง"; ReaderTheme.SEPIA -> "เซเปีย"; ReaderTheme.DARK -> "มืด"; ReaderTheme.TRUE_BLACK -> "ดำ" }) },
+                )
+            }
+        }
+        Text("แบบอักษร", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            ReadingFont.entries.forEach { font ->
+                FilterChip(
+                    selected = prefs.readingFont == font,
+                    onClick = { playbackVm.setReadingFont(font) },
+                    label = { Text(when (font) { ReadingFont.SARABUN -> "Sarabun"; ReadingFont.SERIF -> "Serif"; ReadingFont.SYSTEM -> "ระบบ" }) },
+                )
+            }
+        }
+        Text("ขนาดตัวอักษร: ${prefs.fontSizeSp} sp", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 8.dp))
+        Slider(value = prefs.fontSizeSp.toFloat(), onValueChange = { playbackVm.setFontSizeSp(it.toInt()) },
+            valueRange = 12f..72f, steps = 59)
+        ToggleRow("ตัวอักษรหนา", prefs.boldText, playbackVm::setBoldText)
+        ToggleRow("แตะทั้งหน้าจอเพื่อไปหน้าถัดไป", prefs.tapAnywhereToNext, playbackVm::setTapAnywhereToNext)
+        Card(Modifier.fillMaxWidth().clickable(onClick = onOpenAdvanced)) {
+            Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("การตั้งค่าขั้นสูง", style = MaterialTheme.typography.titleMedium)
+                    Text("Progress, ระยะบรรทัด, ระยะขอบ และตัวเลือกเพิ่มเติม", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+            }
+        }
+        HorizontalDivider(Modifier.padding(vertical = 12.dp))
+
         Text("เสียงพากย์", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(vertical = 12.dp))
         Row {
             Lang.entries.forEach { l ->
@@ -111,7 +158,7 @@ fun SettingsScreen(
         HorizontalDivider(Modifier.padding(vertical = 16.dp))
         Text("ข้อมูลถาวรของ Kanom", style = MaterialTheme.typography.titleLarge)
         Text(
-            "สำรองและกู้คืนข้อมูลผ่านโฟลเดอร์ Internal Storage/Kanom เพื่อเก็บข้อมูลไว้เมื่อติดตั้งแอปใหม่ หากไม่คัดลอก EPUB ต้องคงไฟล์ต้นฉบับและอาจต้องเลือกไฟล์ใหม่หลังติดตั้งแอป",
+            "สำรองและกู้คืนข้อมูลผ่านโฟลเดอร์ Internal Storage/Kanom ระบบจะไม่คัดลอกไฟล์ EPUB จึงควรเก็บไฟล์ต้นฉบับไว้ และอาจต้องเชื่อมไฟล์ใหม่หลังติดตั้งแอปหรือย้ายอุปกรณ์",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 6.dp, bottom = 8.dp),
@@ -122,23 +169,12 @@ fun SettingsScreen(
         )
         Text("ตำแหน่ง: Internal Storage/Kanom", style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
-        if (portable.hasAccess) {
-            Row(
-                Modifier.fillMaxWidth().padding(top = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f).padding(end = 8.dp)) {
-                    Text("คัดลอกไฟล์ EPUB ไปไว้ใน Kanom/books", style = MaterialTheme.typography.bodyMedium)
-                    Text("ปิดไว้โดยค่าเริ่มต้น — เปิดเฉพาะเมื่อต้องการสำรองไฟล์หนังสือด้วย จะใช้พื้นที่เพิ่มตามขนาดหนังสือทั้งหมด",
-                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Checkbox(
-                    checked = portable.includeEpubFiles,
-                    onCheckedChange = portableVm::setIncludeEpubFiles,
-                    enabled = !portable.busy,
-                )
-            }
-        }
+        Text(
+            "ระบบสำรองเฉพาะข้อมูลหนังสือ ตำแหน่งอ่าน Bookmark ปก Tags Notes สถิติการอ่าน และการตั้งค่าเท่านั้น จะไม่มีการคัดลอกไฟล์ EPUB ไม่ว่ากรณีใด",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 8.dp),
+        )
         if (!portable.hasAccess) {
             Button(
                 onClick = {
@@ -185,13 +221,15 @@ fun SettingsScreen(
             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(vertical = 8.dp))
         Spacer(Modifier.height(24.dp))
+        }
+    }
     }
 
     if (confirmRestore) {
         AlertDialog(
             onDismissRequest = { confirmRestore = false },
             title = { Text("กู้คืนข้อมูลจากไฟล์สำรอง?") },
-            text = { Text("ข้อมูลหนังสือ ตำแหน่งอ่าน Bookmark กฎแทนที่ เสียงพากย์ และค่าตั้งปัจจุบันจะถูกแทนที่ด้วยข้อมูลในไฟล์สำรอง Kanom ล่าสุด ควรสำรองข้อมูลปัจจุบันก่อนดำเนินการ") },
+            text = { Text("ข้อมูลหนังสือ ตำแหน่งอ่าน Bookmark Tags Notes สถิติการอ่าน กฎแทนที่ เสียงพากย์ และค่าตั้งปัจจุบันจะถูกแทนที่ด้วยข้อมูลในไฟล์สำรอง Kanom ล่าสุด ควรสำรองข้อมูลปัจจุบันก่อนดำเนินการ") },
             confirmButton = {
                 TextButton(onClick = { confirmRestore = false; portableVm.restoreBackup() }) { Text("กู้คืน") }
             },

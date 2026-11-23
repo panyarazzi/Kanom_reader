@@ -15,7 +15,6 @@ data class PortableDataUiState(
     val hasAccess: Boolean = false,
     val backupExists: Boolean = false,
     val busy: Boolean = false,
-    val includeEpubFiles: Boolean = false,
     val message: String? = null,
 )
 
@@ -37,18 +36,14 @@ class PortableDataViewModel @Inject constructor(
         )
     }
 
-    fun setIncludeEpubFiles(enabled: Boolean) {
-        _uiState.value = _uiState.value.copy(includeEpubFiles = enabled)
-    }
-
     fun createBackup() = runOperation {
-        val result = manager.createBackup(includeEpubFiles = _uiState.value.includeEpubFiles)
-        "สำรองข้อมูลสำเร็จ — หนังสือ ${result.books} เล่ม, ตำแหน่งอ่าน ${result.progress} รายการ, Bookmark ${result.bookmarks} รายการ, กฎแทนที่ ${result.replacementRules} รายการ, เสียงพากย์ ${result.voiceConfigs} รายการ, คัดลอก EPUB ${result.epubCopies} ไฟล์, คัดลอกไม่สำเร็จ ${result.epubCopyFailures} ไฟล์"
+        val result = manager.createBackup()
+        "สำรองข้อมูลสำเร็จ — หนังสือ ${result.books} เล่ม, ตำแหน่งอ่าน ${result.progress} รายการ, Bookmark ${result.bookmarks} รายการ, กฎแทนที่ ${result.replacementRules} รายการ, เสียงพากย์ ${result.voiceConfigs} รายการ, Tags ${result.tags} รายการ, Notes ${result.notes} รายการ, Reading Sessions ${result.readingSessions} รายการ"
     }
 
     fun restoreBackup() = runOperation {
         val result = manager.restoreLatestBackup()
-        "กู้คืนข้อมูลสำเร็จ — หนังสือ ${result.books} เล่ม, ตำแหน่งอ่าน ${result.progress} รายการ, Bookmark ${result.bookmarks} รายการ, กฎแทนที่ ${result.replacementRules} รายการ, เสียงพากย์ ${result.voiceConfigs} รายการ, ใช้ไฟล์ EPUB ใน Kanom ${result.epubCopies} ไฟล์"
+        "กู้คืนข้อมูลสำเร็จ — หนังสือ ${result.books} เล่ม, ตำแหน่งอ่าน ${result.progress} รายการ, Bookmark ${result.bookmarks} รายการ, กฎแทนที่ ${result.replacementRules} รายการ, เสียงพากย์ ${result.voiceConfigs} รายการ, Tags ${result.tags} รายการ, Notes ${result.notes} รายการ, Reading Sessions ${result.readingSessions} รายการ"
     }
 
     private fun runOperation(block: suspend () -> String) {

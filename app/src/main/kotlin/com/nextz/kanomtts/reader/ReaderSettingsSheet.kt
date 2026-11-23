@@ -363,7 +363,7 @@ internal fun ReaderSettingsSheetContent(
         // Capture the constraints-scope value before entering nested layout scopes.
         // Give large e-reader settings panels ~12.5% more width so slider tracks
         // are easier to manipulate without changing compact phone layouts.
-        val panelWidth = (maxWidth / 3 * 1.125f).coerceIn(315.dp, 472.dp)
+        val panelWidth = (maxWidth / 3 * 1.125f).coerceIn(315.dp, 520.dp)
         if (maxWidth >= 600.dp) {
             // Wide reading surfaces use a persistent right-side settings panel.
             // The EPUB remains visible at full height in the remaining area.

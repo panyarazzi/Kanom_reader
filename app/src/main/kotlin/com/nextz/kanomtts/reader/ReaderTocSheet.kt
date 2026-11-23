@@ -26,6 +26,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -76,6 +77,7 @@ fun ReaderTocSheet(
     val currentIndex = ReaderTocFocus.currentIndex(toc, currentHref)
     val currentEntry = currentIndex?.let { flattened.getOrNull(it) }
 
+    var searchQuery by remember(toc) { mutableStateOf("") }
     var expandedPaths by remember(toc, currentIndex) {
         mutableStateOf(ReaderTocFocus.expandedAncestors(toc, currentHref))
     }
@@ -96,10 +98,16 @@ fun ReaderTocSheet(
             ?.key
     }
 
+    val displayedEntries = remember(entries, flattened, searchQuery) {
+        if (searchQuery.isBlank()) entries
+        else flattened.filter { (it.link.title ?: it.link.href.toString()).contains(searchQuery, ignoreCase = true) }
+    }
     val listState = rememberLazyListState()
-    val focusedVisibleIndex = entries.indexOfFirst { it.key == focusedVisibleKey }
+    val displayFocusKey = if (searchQuery.isBlank()) focusedVisibleKey
+        else currentEntry?.key?.takeIf { key -> displayedEntries.any { it.key == key } }
+    val focusedVisibleIndex = displayedEntries.indexOfFirst { it.key == displayFocusKey }
 
-    LaunchedEffect(focusedVisibleKey, entries) {
+    LaunchedEffect(displayFocusKey, displayedEntries) {
         if (focusedVisibleIndex >= 0) listState.scrollToItem(focusedVisibleIndex)
     }
 
@@ -170,8 +178,15 @@ fun ReaderTocSheet(
                     }
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+                        singleLine = true,
+                        placeholder = { Text("ค้นหาในสารบัญทุกระดับ") },
+                    )
 
-                    if (entries.isEmpty()) {
+                    if (displayedEntries.isEmpty()) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -180,7 +195,7 @@ fun ReaderTocSheet(
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
-                                text = "ไม่มีสารบัญ",
+                                text = if (searchQuery.isBlank()) "ไม่มีสารบัญ" else "ไม่พบหัวข้อที่ค้นหา",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -190,20 +205,23 @@ fun ReaderTocSheet(
                             state = listState,
                             modifier = Modifier.weight(1f),
                         ) {
-                            itemsIndexed(entries, key = { _, entry -> entry.key }) { _, entry ->
+                            itemsIndexed(displayedEntries, key = { _, entry -> entry.key }) { _, originalEntry ->
+                                val isSearching = searchQuery.isNotBlank()
+                                val entry = if (isSearching) originalEntry.copy(depth = 0, hasChildren = false) else originalEntry
                                 TocRow(
                                     entry = entry,
-                                    isCurrent = entry.key == focusedVisibleKey,
-                                    expanded = entry.key in expandedPaths,
+                                    isCurrent = originalEntry.key == displayFocusKey,
+                                    expanded = originalEntry.key in expandedPaths,
+                                    context = if (isSearching) ReaderTocFocus.parentContext(toc, originalEntry.path).joinToString(" › ") else null,
                                     onToggle = {
-                                        expandedPaths = if (entry.key in expandedPaths) {
-                                            expandedPaths - entry.key
+                                        expandedPaths = if (originalEntry.key in expandedPaths) {
+                                            expandedPaths - originalEntry.key
                                         } else {
-                                            expandedPaths + entry.key
+                                            expandedPaths + originalEntry.key
                                         }
                                     },
                                     onClick = {
-                                        onNavigate(entry.link)
+                                        onNavigate(originalEntry.link)
                                         onDismiss()
                                     },
                                 )
@@ -225,6 +243,7 @@ private fun TocRow(
     expanded: Boolean,
     onToggle: () -> Unit,
     onClick: () -> Unit,
+    context: String? = null,
 ) {
     val accent = MaterialTheme.colorScheme.primary
     Row(
@@ -264,17 +283,21 @@ private fun TocRow(
             Spacer(Modifier.width(14.dp))
         }
 
-        Text(
-            text = entry.link.title ?: entry.link.href.toString(),
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (isCurrent) accent else MaterialTheme.colorScheme.onSurface,
-            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
-            modifier = Modifier
-                .weight(1f)
-                .padding(top = 3.dp),
-            // Intentionally no maxLines and no Ellipsis: long Thai chapter titles wrap
-            // onto as many lines as needed within the narrow side panel.
-        )
+        Column(Modifier.weight(1f).padding(top = 3.dp)) {
+            Text(
+                text = entry.link.title ?: entry.link.href.toString(),
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (isCurrent) accent else MaterialTheme.colorScheme.onSurface,
+                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+            )
+            if (!context.isNullOrBlank()) {
+                Text(
+                    text = context,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 

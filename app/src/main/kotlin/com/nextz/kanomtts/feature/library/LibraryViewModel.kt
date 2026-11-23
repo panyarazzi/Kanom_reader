@@ -3,6 +3,8 @@ package com.nextz.kanomtts.feature.library
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nextz.kanomtts.data.db.BookEntity
+import com.nextz.kanomtts.data.db.BookTagDao
+import com.nextz.kanomtts.data.db.BookTagEntity
 import com.nextz.kanomtts.data.db.ProgressEntity
 import com.nextz.kanomtts.data.repository.BookDeleter
 import com.nextz.kanomtts.data.repository.BookReader
@@ -34,11 +36,16 @@ class LibraryViewModel @Inject constructor(
     progressReader: ProgressReader,
     private val bookDeleter: BookDeleter,
     private val playbackStopper: PlaybackStopper,
+    private val bookTagDao: BookTagDao? = null,
 ) : ViewModel() {
 
     private val _viewMode = MutableStateFlow(LibraryViewMode.GRID)
     private val _query = MutableStateFlow("")
     private val _selectedIds = MutableStateFlow(emptySet<String>())
+    private val _selectedTag = MutableStateFlow<String?>(null)
+    private val _selectedFolder = MutableStateFlow<String?>(null)
+    private val _sortMode = MutableStateFlow(LibrarySortMode.TITLE_ASC)
+    private val _showFilename = MutableStateFlow(false)
 
     private val booksWithProgress = bookReader.observeLibrary()
         .flatMapLatest { books ->
@@ -53,28 +60,60 @@ class LibraryViewModel @Inject constructor(
             }
         }
 
-    val uiState: StateFlow<LibraryUiState> = combine(
+    private val booksWithTags = combine(
         booksWithProgress,
-        _viewMode,
-        _query,
-        _selectedIds,
-    ) { pairs, viewMode, query, selectedIds ->
-        val bookById = pairs.associate { (b, _) -> b.id to b }
-        val allCards = pairs.map { (book, progress) ->
-            book.toBookCard(progress)
+        bookTagDao?.observeAll() ?: flowOf<List<BookTagEntity>>(emptyList()),
+    ) { pairs, tags ->
+        val tagsByBook = tags.groupBy { it.bookId }.mapValues { (_, values) -> values.map { it.tag }.sorted() }
+        pairs.map { (book, progress) -> Triple(book, progress, tagsByBook[book.id].orEmpty()) }
+    }
+
+    private val basicControls = combine(_viewMode, _query, _selectedIds) { mode, query, ids ->
+        Triple(mode, query, ids)
+    }
+    private val filterControls = combine(_selectedTag, _selectedFolder, _sortMode, _showFilename) { tag, folder, sort, showFilename ->
+        listOf(tag, folder, sort, showFilename)
+    }
+    private val libraryControls = combine(basicControls, filterControls) { basic, filters ->
+        basic to filters
+    }
+
+    val uiState: StateFlow<LibraryUiState> = combine(booksWithTags, libraryControls) { pairs, controls ->
+        val (viewMode, query, selectedIds) = controls.first
+        val selectedTag = controls.second[0] as String?
+        val selectedFolder = controls.second[1] as String?
+        val sortMode = controls.second[2] as LibrarySortMode
+        val showFilename = controls.second[3] as Boolean
+        val allCards = pairs.map { (book, progress, tags) ->
+            book.toBookCard(progress).copy(tags = tags, sourceFolder = book.sourceFolder, filename = book.sourceFileName ?: uriFilename(book.uri), displayFilename = showFilename)
         }
-        val filteredCards = if (query.isBlank()) allCards else {
+        val queryFiltered = if (query.isBlank()) allCards else {
             allCards.filter { card ->
                 card.title.contains(query, ignoreCase = true) ||
-                    uriFilename(bookById[card.id]?.uri).contains(query, ignoreCase = true)
+                    card.filename.contains(query, ignoreCase = true)
             }
         }
+        val filteredCards = queryFiltered
+            .filter { card -> selectedTag == null || selectedTag in card.tags }
+            .filter { card -> selectedFolder == null || card.sourceFolder == selectedFolder }
+            .let { cards ->
+                when (sortMode) {
+                    LibrarySortMode.TITLE_ASC -> cards.sortedBy { it.title.lowercase() }
+                    LibrarySortMode.TITLE_DESC -> cards.sortedByDescending { it.title.lowercase() }
+                    LibrarySortMode.FILENAME_ASC -> cards.sortedBy { it.filename.lowercase() }
+                    LibrarySortMode.FILENAME_DESC -> cards.sortedByDescending { it.filename.lowercase() }
+                }
+            }
+        val folders = allCards.filter { !it.sourceFolder.isNullOrBlank() }
+            .groupBy { it.sourceFolder!! }
+            .toSortedMap(String.CASE_INSENSITIVE_ORDER)
+            .map { (name, cards) -> LibraryFolderCard(name, cards.size, cards.take(4).map { it.coverPath }) }
         val continueCard = pairs
-            .filter { (_, progress) ->
+            .filter { (_, progress, _) ->
                 val percent = progress?.percent ?: 0f
                 percent > 0f && percent < 1f
             }
-            .mapNotNull { (book, _) -> book.lastOpenedAt?.let { book } }
+            .mapNotNull { (book, _, _) -> book.lastOpenedAt?.let { book } }
             .maxByOrNull { it.lastOpenedAt!! }
             ?.let { book -> allCards.find { it.id == book.id } }
         LibraryUiState(
@@ -83,6 +122,13 @@ class LibraryViewModel @Inject constructor(
             viewMode = viewMode,
             query = query,
             selectedIds = selectedIds,
+            availableTags = allCards.flatMap { it.tags }.distinct().sorted(),
+            selectedTag = selectedTag,
+            folders = folders,
+            selectedFolder = selectedFolder,
+            sortMode = sortMode,
+            showFilename = showFilename,
+            totalBookCount = allCards.size,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -92,6 +138,10 @@ class LibraryViewModel @Inject constructor(
 
     fun setViewMode(mode: LibraryViewMode) { _viewMode.value = mode }
     fun setQuery(query: String) { _query.value = query }
+    fun setTagFilter(tag: String?) { _selectedTag.value = tag }
+    fun setFolderFilter(folder: String?) { _selectedFolder.value = folder }
+    fun setSortMode(mode: LibrarySortMode) { _sortMode.value = mode }
+    fun setShowFilename(show: Boolean) { _showFilename.value = show }
 
     fun toggleSelection(bookId: String) {
         _selectedIds.value = _selectedIds.value.let { if (bookId in it) it - bookId else it + bookId }
@@ -123,8 +173,7 @@ class LibraryViewModel @Inject constructor(
 
     private fun uriFilename(uri: String?): String {
         if (uri == null) return ""
-        return uri.substringAfterLast('/').substringAfterLast('%').let {
-            try { java.net.URLDecoder.decode(it, "UTF-8") } catch (_: Exception) { it }
-        }
+        val filename = uri.substringAfterLast('/')
+        return try { java.net.URLDecoder.decode(filename, "UTF-8") } catch (_: Exception) { filename }
     }
 }

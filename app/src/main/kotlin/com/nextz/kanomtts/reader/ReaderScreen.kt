@@ -3,13 +3,20 @@ package com.nextz.kanomtts.reader
 import android.os.Bundle
 import android.view.View
 import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -29,8 +36,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.FragmentActivity
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -77,6 +86,26 @@ fun ReaderScreen(
     }
 
     val state by viewModel.uiState.collectAsState()
+    val relinkViewModel: com.nextz.kanomtts.feature.library.RelinkViewModel = hiltViewModel()
+    val relinkState by relinkViewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val relinkFilePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            runCatching { context.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+            relinkViewModel.searchFile(bookId, uri)
+        }
+    }
+    val relinkFolderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                )
+            }
+            relinkViewModel.searchFolder(bookId, uri)
+        }
+    }
     val quickAdd by viewModel.quickAddText.collectAsState()
     val footnoteBubble by viewModel.footnoteBubble.collectAsState()
     var measuredTopProgressHeight by remember { mutableStateOf(0.dp) }
@@ -88,7 +117,19 @@ fun ReaderScreen(
     ) {
         when (val s = state) {
             is ReaderUiState.Loading -> CircularProgressIndicator()
-            is ReaderUiState.Error -> Text(s.message, style = MaterialTheme.typography.titleMedium)
+            is ReaderUiState.Error -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(s.message, style = MaterialTheme.typography.titleMedium)
+                Text("หากย้ายไฟล์ EPUB ไปแล้ว สามารถเลือกไฟล์เดิมหรือค้นหาในโฟลเดอร์เพื่อเชื่อมกลับได้",
+                    style = MaterialTheme.typography.bodySmall)
+                Button(onClick = { relinkFilePicker.launch(arrayOf("application/epub+zip", "application/octet-stream")) }) {
+                    Text("เลือกไฟล์ EPUB")
+                }
+                OutlinedButton(onClick = { relinkFolderPicker.launch(null) }) {
+                    Text("ค้นหาในโฟลเดอร์")
+                }
+                if (relinkState.busy) CircularProgressIndicator()
+                relinkState.message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+            }
             is ReaderUiState.Ready -> {
                 // Fragment layer (bottom)
                 ReaderContent(
@@ -113,6 +154,25 @@ fun ReaderScreen(
                 }
             }
         }
+    }
+
+    if (state is ReaderUiState.Error && relinkState.candidates.isNotEmpty()) {
+        AlertDialog(
+            onDismissRequest = { relinkViewModel.clearResults() },
+            title = { Text("เลือกไฟล์ที่ตรงกับหนังสือเดิม") },
+            text = {
+                Column {
+                    relinkState.candidates.forEach { candidate ->
+                        TextButton(onClick = {
+                            relinkViewModel.confirm(candidate) { viewModel.retryLoad() }
+                        }) {
+                            Text("${candidate.name} · ${candidate.size} bytes")
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { relinkViewModel.clearResults() }) { Text("ยกเลิก") } },
+        )
     }
 
     // Quick-add replacement sheet: shown when user taps Add-Replacement on a selection.

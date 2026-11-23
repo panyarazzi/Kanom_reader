@@ -32,6 +32,18 @@ object ReaderTocFocus {
         toc.forEachIndexed { index, link -> append(link, 0, listOf(index)) }
     }
 
+    /** Parent title chain for a depth-first tree path, used as search-result context. */
+    fun parentContext(toc: List<Link>, path: List<Int>): List<String> {
+        val result = mutableListOf<String>()
+        var siblings = toc
+        for (depth in 0 until path.lastIndex) {
+            val parent = siblings.getOrNull(path[depth]) ?: break
+            result += parent.title ?: parent.href.toString()
+            siblings = parent.children
+        }
+        return result
+    }
+
     /** Paths for every row that can be expanded, used by the global Expand all action. */
     fun expandablePaths(toc: List<Link>): Set<String> =
         flatten(toc).filter { it.hasChildren }.mapTo(linkedSetOf()) { it.key }

@@ -109,6 +109,25 @@ class ReaderTocFocusTest {
         assertEquals(setOf("0", "0/0"), ReaderTocFocus.expandedAncestors(toc, Url("chapter.xhtml")!!))
     }
 
+
+    @Test fun `search results include descendants even when every branch is collapsed`() {
+        val toc = listOf(link("volume.xhtml", children = listOf(
+            link("part.xhtml", children = listOf(link("target-chapter.xhtml"))),
+            link("appendix.xhtml"),
+        )))
+        val flattened = ReaderTocFocus.flatten(toc)
+        val results = flattened.filter { it.link.href.toString().contains("target", ignoreCase = true) }
+        assertEquals(listOf("target-chapter.xhtml"), results.map { it.link.href.toString() })
+    }
+
+    @Test fun `search result context includes all parent titles`() {
+        val toc = listOf(link("volume.xhtml", children = listOf(
+            link("part.xhtml", children = listOf(link("chapter.xhtml"))),
+        )))
+        val chapter = ReaderTocFocus.flatten(toc).last()
+        assertEquals(listOf("volume.xhtml", "part.xhtml"), ReaderTocFocus.parentContext(toc, chapter.path))
+    }
+
     @Test fun `matches a top-level entry in flattened rows`() {
         val toc = listOf(link("ch1.xhtml"), link("ch2.xhtml"), link("ch3.xhtml"))
         assertEquals(1, ReaderTocFocus.currentIndex(toc, Url("ch2.xhtml")!!))

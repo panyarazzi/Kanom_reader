@@ -3,6 +3,7 @@ package com.nextz.kanomtts.feature.library
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -69,6 +70,7 @@ fun ReadingStatisticsCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .clickable { expanded = !expanded }
             .animateContentSize()
             .border(1.dp, StatsGold, RoundedCornerShape(16.dp)),
         shape = RoundedCornerShape(16.dp),
@@ -76,8 +78,8 @@ fun ReadingStatisticsCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(
-            Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.AutoStories, contentDescription = null, tint = StatsBrown)
@@ -89,15 +91,12 @@ fun ReadingStatisticsCard(
                     fontWeight = FontWeight.Bold,
                 )
                 Spacer(Modifier.weight(1f))
-                TextButton(onClick = onMore) {
-                    Text("ดูข้อมูลเพิ่มเติม", color = StatsBrown)
-                    Icon(
-                        Icons.Filled.ArrowForward,
-                        contentDescription = null,
-                        tint = StatsBrown,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
+                Text(
+                    "ดูข้อมูลเพิ่มเติม →",
+                    color = StatsBrown,
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.clickable(onClick = onMore).padding(6.dp),
+                )
             }
 
             // Keep the seven-day chart visible in both states; it is the compact card's
@@ -181,20 +180,6 @@ fun ReadingStatisticsCard(
                 }
             }
 
-            // Centered bottom affordance communicates that the card can expand/collapse.
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                IconButton(
-                    onClick = { expanded = !expanded },
-                    modifier = Modifier.size(width = 64.dp, height = 32.dp),
-                ) {
-                    Icon(
-                        imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                        contentDescription = if (expanded) "ย่อกล่องสถิติ" else "ขยายกล่องสถิติ",
-                        tint = StatsBrown,
-                        modifier = Modifier.size(28.dp),
-                    )
-                }
-            }
         }
     }
 }
@@ -210,6 +195,7 @@ private fun MetricText(label: String, value: String) {
 @Composable
 fun ReadingStatisticsScreen(
     onBack: () -> Unit,
+    onOpenAnnotations: () -> Unit = {},
     contentPadding: androidx.compose.foundation.layout.PaddingValues = androidx.compose.foundation.layout.PaddingValues(),
     viewModel: ReadingStatisticsViewModel = hiltViewModel(),
 ) {
@@ -220,6 +206,8 @@ fun ReadingStatisticsScreen(
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "กลับ") }
             Text("สถิติการอ่าน", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.weight(1f))
+            TextButton(onClick = onOpenAnnotations) { Text("Tags / Notes / CSV") }
         }
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -234,6 +222,20 @@ fun ReadingStatisticsScreen(
                             onClick = { viewModel.setRange(range) },
                             label = { Text(range.label) },
                         )
+                    }
+                }
+            }
+            item {
+                Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = StatsCream)) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("รีวิวและคำกำกับหนังสือ", color = StatsBrown, fontWeight = FontWeight.Bold)
+                        val tagSummary = state.tagCounts.entries.take(8).joinToString(" · ") { "${it.key} (${it.value})" }.ifBlank { "ยังไม่มี Tags" }
+                        Text("Tags: $tagSummary", color = StatsBrown)
+                        Text("หนังสือที่มี Notes: ${state.noteCount} เล่ม", color = StatsBrown)
+                        state.notePreviews.take(2).forEach { (title, note) ->
+                            Text("$title — $note", color = StatsBrown, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        }
+                        TextButton(onClick = onOpenAnnotations) { Text("จัดการ Tags / Notes และส่งออก CSV") }
                     }
                 }
             }
@@ -303,7 +305,7 @@ private fun ReadingDaysChart(days: List<ReadingDay>, compact: Boolean) {
     Row(
         Modifier
             .then(if (compact) Modifier.fillMaxWidth() else Modifier.horizontalScroll(rememberScrollState()))
-            .height(if (compact) 42.dp else 130.dp)
+            .height(if (compact) 32.dp else 130.dp)
             .padding(top = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(if (compact) 5.dp else 8.dp),
         verticalAlignment = Alignment.Bottom,
@@ -311,20 +313,20 @@ private fun ReadingDaysChart(days: List<ReadingDay>, compact: Boolean) {
         days.forEach { day ->
             val fraction = day.durationMs.toFloat() / maxDuration.toFloat()
             Column(
-                Modifier.width(if (compact) 30.dp else 32.dp).height(if (compact) 42.dp else 126.dp),
+                Modifier.width(if (compact) 30.dp else 32.dp).height(if (compact) 32.dp else 126.dp),
                 verticalArrangement = Arrangement.Bottom,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Box(
                     Modifier.fillMaxWidth(if (compact) 0.72f else 0.58f)
-                        .height((if (compact) 22f else 92f).times(fraction.coerceAtLeast(if (day.durationMs > 0) 0.08f else 0f)).dp)
+                        .height((if (compact) 16f else 92f).times(fraction.coerceAtLeast(if (day.durationMs > 0) 0.08f else 0f)).dp)
                         .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
                         .background(if (day.durationMs > 0) StatsGold else StatsTrack),
                 )
                 Text(
                     text = if (compact) day.date.dayOfMonth.toString() else formatReadingDay(day.date),
                     color = StatsBrown,
-                    fontSize = if (compact) 8.sp else 10.sp,
+                    fontSize = if (compact) 7.sp else 10.sp,
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }

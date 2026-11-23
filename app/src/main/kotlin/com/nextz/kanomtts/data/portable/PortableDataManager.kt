@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
-import android.net.Uri
 import androidx.core.content.ContextCompat
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -20,9 +19,12 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.room.withTransaction
 import com.nextz.kanomtts.data.db.BookEntity
 import com.nextz.kanomtts.data.db.BookmarkEntity
+import com.nextz.kanomtts.data.db.BookTagEntity
+import com.nextz.kanomtts.data.db.BookNoteEntity
 import com.nextz.kanomtts.data.db.KanomDatabase
 import com.nextz.kanomtts.data.db.ProgressEntity
 import com.nextz.kanomtts.data.db.ReplacementRuleEntity
+import com.nextz.kanomtts.data.db.ReadingSessionEntity
 import com.nextz.kanomtts.data.db.VoiceConfigEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -41,14 +43,17 @@ import java.util.zip.ZipOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
+internal fun isRestorablePortableEntry(name: String): Boolean = name == "data.json" || name.startsWith("covers/")
+
 data class PortableBackupSummary(
     val books: Int,
     val progress: Int,
     val bookmarks: Int,
     val replacementRules: Int,
     val voiceConfigs: Int,
-    val epubCopies: Int,
-    val epubCopyFailures: Int,
+    val tags: Int,
+    val notes: Int,
+    val readingSessions: Int,
     val backupFile: String,
 )
 
@@ -68,6 +73,9 @@ class PortableDataManager @Inject constructor(
         val bookmarks: List<BookmarkEntity>,
         val rules: List<ReplacementRuleEntity>,
         val voices: List<VoiceConfigEntity>,
+        val tags: List<BookTagEntity>,
+        val notes: List<BookNoteEntity>,
+        val sessions: List<ReadingSessionEntity>,
     )
 
     fun hasStorageAccess(): Boolean = when {
@@ -87,16 +95,21 @@ class PortableDataManager @Inject constructor(
 
     fun latestBackupExists(): Boolean = hasStorageAccess() && latestBackup.isFile
 
-    suspend fun createBackup(includeEpubFiles: Boolean = false): PortableBackupSummary = withContext(Dispatchers.IO) {
+    suspend fun createBackup(): PortableBackupSummary = withContext(Dispatchers.IO) {
         requireStorageAccess()
         check(ensurePortableFolders()) { "สร้างโฟลเดอร์ Kanom ไม่สำเร็จ" }
         val snapshot = database.withTransaction {
+            val books = database.bookDao().getAllForBackup()
+            val bookIds = books.map { it.id }.toSet()
             DbSnapshot(
-                books = database.bookDao().getAllForBackup(),
+                books = books,
                 progress = database.progressDao().getAllForBackup(),
                 bookmarks = database.bookmarkDao().getAllForBackup(),
                 rules = database.replacementRuleDao().getAllForBackup(),
                 voices = database.voiceConfigDao().getAllForBackup(),
+                tags = database.bookTagDao().getAllForBackup(),
+                notes = database.bookNoteDao().getAllForBackup(),
+                sessions = database.readingSessionDao().getAllForBackup().filter { it.bookId in bookIds },
             )
         }
         val books = snapshot.books
@@ -104,24 +117,10 @@ class PortableDataManager @Inject constructor(
         val bookmarks = snapshot.bookmarks
         val rules = snapshot.rules
         val voices = snapshot.voices
+        val tags = snapshot.tags
+        val notes = snapshot.notes
+        val sessions = snapshot.sessions
         val prefs = dataStore.data.first()
-        val portableEpubs = mutableMapOf<String, File>()
-        if (includeEpubFiles) {
-            val booksDir = File(root, "books")
-            check(booksDir.exists() || booksDir.mkdirs()) { "สร้างโฟลเดอร์ Kanom/books ไม่สำเร็จ" }
-            books.forEach { book ->
-                val target = File(booksDir, "${safeName(book.id)}.epub")
-                val tempBook = File(booksDir, "${safeName(book.id)}.epub.tmp")
-                val copied = runCatching {
-                    val input = context.contentResolver.openInputStream(Uri.parse(book.uri))
-                        ?: error("ไม่สามารถอ่านไฟล์ต้นฉบับ")
-                    input.use { source -> tempBook.outputStream().buffered().use { source.copyTo(it) } }
-                    check(tempBook.renameTo(target) || run { target.delete(); tempBook.renameTo(target) })
-                    target
-                }.getOrNull()
-                if (copied != null) portableEpubs[book.id] = copied else tempBook.delete()
-            }
-        }
         val payload = JSONObject().apply {
             put("formatVersion", FORMAT_VERSION)
             put("createdAt", System.currentTimeMillis())
@@ -133,9 +132,10 @@ class PortableDataManager @Inject constructor(
                         put("id", book.id); put("uri", book.uri); put("title", book.title)
                         putNullable("author", book.author); putNullable("lang", book.lang)
                         putNullable("coverEntry", coverEntry)
-                        putNullable("portableEpub", if (portableEpubs.containsKey(book.id)) "books/${safeName(book.id)}.epub" else null)
                         put("fileSize", book.fileSize)
+                        putNullable("sha256", book.sha256)
                         put("addedAt", book.addedAt); putNullable("lastOpenedAt", book.lastOpenedAt)
+                        putNullable("sourceFolder", book.sourceFolder); putNullable("sourceFileName", book.sourceFileName)
                     })
                 }
             })
@@ -167,6 +167,18 @@ class PortableDataManager @Inject constructor(
                     put("pitch", v.pitch.toDouble())
                 }) }
             })
+            put("bookTags", JSONArray().apply {
+                tags.forEach { tag -> put(JSONObject().put("bookId", tag.bookId).put("tag", tag.tag)) }
+            })
+            put("bookNotes", JSONArray().apply {
+                notes.forEach { note -> put(JSONObject().put("bookId", note.bookId)
+                    .put("note", note.note).put("updatedAt", note.updatedAt)) }
+            })
+            put("readingSessions", JSONArray().apply {
+                sessions.forEach { session -> put(JSONObject().put("id", session.id)
+                    .put("bookId", session.bookId).put("startedAt", session.startedAt)
+                    .put("durationMs", session.durationMs)) }
+            })
             put("preferences", encodePreferences(prefs))
         }
 
@@ -194,8 +206,7 @@ class PortableDataManager @Inject constructor(
                 .put("latestBackup", "backup/kanom-latest.zip").toString(2),
             Charsets.UTF_8,
         )
-        PortableBackupSummary(books.size, progress.size, bookmarks.size, rules.size, voices.size, portableEpubs.size,
-            if (includeEpubFiles) books.size - portableEpubs.size else 0, latestBackup.absolutePath)
+        PortableBackupSummary(books.size, progress.size, bookmarks.size, rules.size, voices.size, tags.size, notes.size, sessions.size, latestBackup.absolutePath)
     }
 
     suspend fun restoreLatestBackup(): PortableBackupSummary = withContext(Dispatchers.IO) {
@@ -206,12 +217,12 @@ class PortableDataManager @Inject constructor(
             while (true) {
                 val entry = zip.nextEntry ?: break
                 if (!entry.isDirectory) {
-                    require(entry.name == "data.json" || entry.name.startsWith("covers/")) {
-                        "ไฟล์สำรองมีรายการที่ไม่รองรับ"
+                    // Legacy ZIPs may contain EPUB payloads. Never extract or read them.
+                    if (isRestorablePortableEntry(entry.name)) {
+                        val bytes = zip.readBytes()
+                        require(bytes.size <= MAX_ENTRY_BYTES) { "ไฟล์ในชุดสำรองมีขนาดใหญ่เกินกำหนด" }
+                        entries[entry.name] = bytes
                     }
-                    val bytes = zip.readBytes()
-                    require(bytes.size <= MAX_ENTRY_BYTES) { "ไฟล์ในชุดสำรองมีขนาดใหญ่เกินกำหนด" }
-                    entries[entry.name] = bytes
                 }
                 zip.closeEntry()
             }
@@ -225,13 +236,8 @@ class PortableDataManager @Inject constructor(
             val id = o.getString("id")
             val coverEntry = o.optString("coverEntry").takeIf { it.isNotBlank() && it != "null" }
             val coverBytes = coverEntry?.let(entries::get)
-            val portableEpubName = o.optNullableString("portableEpub")
-            val portableEpub = portableEpubName?.let { name ->
-                if (name.startsWith("books/") && name.substringAfter("books/").contains('/') .not()) {
-                    File(root, name).takeIf { it.isFile }
-                } else null
-            }
-            val restoredUri = portableEpub?.let { Uri.fromFile(it).toString() } ?: o.getString("uri")
+            // Ignore legacy portableEpub pointers. Preserve the original URI for explicit relinking.
+            val restoredUri = o.getString("uri")
             val coverPath = coverBytes?.let { bytes ->
                 val dir = File(context.filesDir, "covers")
                 check(dir.exists() || dir.mkdirs()) { "สร้างโฟลเดอร์ภาพปกไม่สำเร็จ" }
@@ -242,6 +248,9 @@ class PortableDataManager @Inject constructor(
                 author = o.optNullableString("author"), lang = o.optNullableString("lang"),
                 coverPath = coverPath, fileSize = o.getLong("fileSize"),
                 addedAt = o.getLong("addedAt"), lastOpenedAt = o.optNullableLong("lastOpenedAt"),
+                sha256 = o.optNullableString("sha256"),
+                sourceFolder = o.optNullableString("sourceFolder"),
+                sourceFileName = o.optNullableString("sourceFileName"),
             )
         }
         val progressArray = json.getJSONArray("progress")
@@ -269,6 +278,25 @@ class PortableDataManager @Inject constructor(
             VoiceConfigEntity(o.getString("lang"), o.getString("providerId"), o.optNullableString("voiceId"),
                 o.getDouble("speed").toFloat(), o.getDouble("pitch").toFloat())
         }
+        val tagArray = json.optJSONArray("bookTags")
+        val tags = (0 until (tagArray?.length() ?: 0)).map { i ->
+            val o = tagArray!!.getJSONObject(i)
+            BookTagEntity(o.getString("bookId"), o.getString("tag"))
+        }
+        val noteArray = json.optJSONArray("bookNotes")
+        val notes = (0 until (noteArray?.length() ?: 0)).map { i ->
+            val o = noteArray!!.getJSONObject(i)
+            BookNoteEntity(o.getString("bookId"), o.getString("note"), o.getLong("updatedAt"))
+        }
+        val sessionArray = json.optJSONArray("readingSessions")
+        val sessions = (0 until (sessionArray?.length() ?: 0)).map { i ->
+            val o = sessionArray!!.getJSONObject(i)
+            ReadingSessionEntity(o.optLong("id", 0L), o.getString("bookId"),
+                o.getLong("startedAt"), o.getLong("durationMs"))
+        }
+        require(tags.all { tag -> books.any { it.id == tag.bookId } }) { "ข้อมูล Tag อ้างถึงหนังสือที่ไม่มีในชุดสำรอง" }
+        require(notes.all { note -> books.any { it.id == note.bookId } }) { "ข้อมูล Note อ้างถึงหนังสือที่ไม่มีในชุดสำรอง" }
+        require(sessions.all { session -> books.any { it.id == session.bookId } }) { "ข้อมูล Reading Statistics อ้างถึงหนังสือที่ไม่มีในชุดสำรอง" }
         require(progress.all { p -> books.any { it.id == p.bookId } }) { "ข้อมูลตำแหน่งอ่านอ้างถึงหนังสือที่ไม่มีในชุดสำรอง" }
         require(bookmarks.all { b -> books.any { it.id == b.bookId } }) { "ข้อมูล Bookmark อ้างถึงหนังสือที่ไม่มีในชุดสำรอง" }
         require(rules.filter { it.scope == "book" }.all { r -> r.bookId != null && books.any { it.id == r.bookId } }) {
@@ -276,6 +304,9 @@ class PortableDataManager @Inject constructor(
         }
 
         database.withTransaction {
+            database.bookTagDao().deleteAll()
+            database.bookNoteDao().deleteAll()
+            database.readingSessionDao().deleteAll()
             database.bookmarkDao().deleteAll()
             database.progressDao().deleteAll()
             database.replacementRuleDao().deleteAll()
@@ -286,11 +317,12 @@ class PortableDataManager @Inject constructor(
             database.bookmarkDao().insertAll(bookmarks)
             database.replacementRuleDao().insertAll(rules)
             database.voiceConfigDao().insertAll(voices)
+            database.bookTagDao().insertAll(tags)
+            database.bookNoteDao().insertAll(notes)
+            database.readingSessionDao().insertAll(sessions)
         }
         restorePreferences(json.getJSONArray("preferences"))
-        val portableCount = books.count { it.uri.startsWith("file:") && it.uri.contains("/Kanom/books/") }
-        PortableBackupSummary(books.size, progress.size, bookmarks.size, rules.size, voices.size,
-            portableCount, 0, latestBackup.absolutePath)
+        PortableBackupSummary(books.size, progress.size, bookmarks.size, rules.size, voices.size, tags.size, notes.size, sessions.size, latestBackup.absolutePath)
     }
 
     private fun requireStorageAccess() {

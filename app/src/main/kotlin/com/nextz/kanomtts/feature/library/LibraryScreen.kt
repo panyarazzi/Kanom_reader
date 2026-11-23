@@ -5,6 +5,9 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -22,7 +26,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -67,6 +73,20 @@ fun LibraryScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     BackHandler(enabled = uiState.isSelectionMode) { viewModel.clearSelection() }
+
+    val folderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree(),
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                )
+            }
+            importViewModel.importFolder(uri)
+        }
+    }
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -126,6 +146,11 @@ fun LibraryScreen(
             onToggleSelection = viewModel::toggleSelection,
             onClearSelection = viewModel::clearSelection,
             onDeleteSelected = viewModel::deleteSelected,
+            onTagFilter = viewModel::setTagFilter,
+            onFolderFilter = viewModel::setFolderFilter,
+            onSortMode = viewModel::setSortMode,
+            onShowFilename = viewModel::setShowFilename,
+            onImportFolder = { folderLauncher.launch(null) },
             statistics = statisticsState,
             onOpenStatistics = onOpenStatistics,
             contentPadding = combinedPadding,
@@ -149,6 +174,11 @@ fun LibraryContent(
     onToggleSelection: (String) -> Unit,
     onClearSelection: () -> Unit,
     onDeleteSelected: () -> Unit,
+    onTagFilter: (String?) -> Unit = {},
+    onFolderFilter: (String?) -> Unit = {},
+    onSortMode: (LibrarySortMode) -> Unit = {},
+    onShowFilename: (Boolean) -> Unit = {},
+    onImportFolder: () -> Unit = {},
     statistics: ReadingStatisticsUiState? = null,
     onOpenStatistics: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(),
@@ -195,9 +225,82 @@ fun LibraryContent(
                     )
                 }
             }
-            if (statistics != null) {
+            TextButton(onClick = onImportFolder) { Text("นำเข้าหนังสือจากโฟลเดอร์") }
+        if (statistics != null) {
                 Spacer(Modifier.height(10.dp))
                 ReadingStatisticsCard(state = statistics, onMore = onOpenStatistics)
+            }
+        }
+
+        if (!state.isSelectionMode && state.folders.isNotEmpty()) {
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Card(Modifier.width(112.dp).clickable { onFolderFilter(null) }) {
+                    Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("ทั้งหมด", style = MaterialTheme.typography.titleSmall)
+                        Text("${state.totalBookCount} เล่ม", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+                state.folders.forEach { folder ->
+                    Card(Modifier.width(160.dp).clickable {
+                        onFolderFilter(if (state.selectedFolder == folder.name) null else folder.name)
+                    }) {
+                        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                folder.sampleCovers.forEach { cover ->
+                                    CoverImage(cover, Modifier.width(25.dp).height(34.dp))
+                                }
+                            }
+                            Text(folder.name, style = MaterialTheme.typography.titleSmall, maxLines = 1)
+                            Text("${folder.count} เล่ม", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!state.isSelectionMode) {
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                LibrarySortMode.entries.forEach { mode ->
+                    FilterChip(
+                        selected = state.sortMode == mode,
+                        onClick = { onSortMode(mode) },
+                        label = { Text(mode.label) },
+                    )
+                }
+            }
+        }
+        if (!state.isSelectionMode) {
+            FilterChip(
+                selected = state.showFilename,
+                onClick = { onShowFilename(!state.showFilename) },
+                label = { Text(if (state.showFilename) "แสดงชื่อไฟล์ต้นฉบับ" else "แสดงชื่อหนังสือ") },
+            )
+        }
+
+        if (!state.isSelectionMode && state.availableTags.isNotEmpty()) {
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                FilterChip(
+                    selected = state.selectedTag == null,
+                    onClick = { onTagFilter(null) },
+                    label = { Text("ทั้งหมด") },
+                )
+                state.availableTags.forEach { tag ->
+                    FilterChip(
+                        selected = state.selectedTag == tag,
+                        onClick = { onTagFilter(if (state.selectedTag == tag) null else tag) },
+                        label = { Text(tag) },
+                    )
+                }
             }
         }
 

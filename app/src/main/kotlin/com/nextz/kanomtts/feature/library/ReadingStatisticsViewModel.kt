@@ -3,6 +3,8 @@ package com.nextz.kanomtts.feature.library
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nextz.kanomtts.data.db.BookEntity
+import com.nextz.kanomtts.data.db.BookTagDao
+import com.nextz.kanomtts.data.db.BookNoteDao
 import com.nextz.kanomtts.data.db.ProgressEntity
 import com.nextz.kanomtts.data.db.ReadingSessionDao
 import com.nextz.kanomtts.data.db.ReadingSessionEntity
@@ -46,6 +48,9 @@ data class ReadingStatisticsUiState(
     val completedCount: Int = 0,
     val chartDays: List<ReadingDay> = emptyList(),
     val range: StatisticsRange = StatisticsRange.WEEK,
+    val tagCounts: Map<String, Int> = emptyMap(),
+    val noteCount: Int = 0,
+    val notePreviews: List<Pair<String, String>> = emptyList(),
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -54,6 +59,8 @@ class ReadingStatisticsViewModel @Inject constructor(
     bookReader: BookReader,
     progressReader: ProgressReader,
     sessionDao: ReadingSessionDao,
+    tagDao: BookTagDao,
+    noteDao: BookNoteDao,
 ) : ViewModel() {
     private val selectedRange = MutableStateFlow(StatisticsRange.WEEK)
 
@@ -68,12 +75,26 @@ class ReadingStatisticsViewModel @Inject constructor(
         }
     }
 
-    val uiState: StateFlow<ReadingStatisticsUiState> = combine(
+    private val baseStatistics = combine(
         booksWithProgress,
         sessionDao.observeAll(),
         selectedRange,
     ) { pairs, sessions, range ->
-        buildStatistics(pairs, sessions, range)
+        Triple(pairs, sessions, range)
+    }
+
+    val uiState: StateFlow<ReadingStatisticsUiState> = combine(
+        baseStatistics,
+        tagDao.observeAll(),
+        noteDao.observeAll(),
+    ) { base, tags, notes ->
+        buildStatistics(base.first, base.second, base.third).copy(
+            tagCounts = tags.groupingBy { it.tag }.eachCount().toSortedMap(String.CASE_INSENSITIVE_ORDER),
+            noteCount = notes.count { it.note.isNotBlank() },
+            notePreviews = notes.sortedByDescending { it.updatedAt }.take(3).mapNotNull { note ->
+                base.first.firstOrNull { it.first.id == note.bookId }?.first?.title?.let { title -> title to note.note }
+            },
+        )
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),

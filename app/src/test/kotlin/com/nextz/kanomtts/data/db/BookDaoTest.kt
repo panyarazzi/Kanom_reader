@@ -23,11 +23,11 @@ class BookDaoTest : RoomTestBase() {
         assertEquals(2, db.bookDao().observeAll().first().size)
     }
 
-    @Test fun duplicate_detection_by_uri_or_title_and_size() = runTest {
+    @Test fun duplicate_detection_uses_source_uri_only() = runTest {
         db.bookDao().upsert(book("a", uri = "uri://x", title = "Same", size = 50))
-        assertTrue(db.bookDao().existsDuplicate("uri://x", "other", 999))     // uri match
-        assertTrue(db.bookDao().existsDuplicate("uri://other", "Same", 50))   // title+size match
-        assertFalse(db.bookDao().existsDuplicate("uri://other", "other", 999))
+        assertTrue(db.bookDao().existsUri("uri://x"))
+        // A matching title and size is not enough to suppress another source file.
+        assertFalse(db.bookDao().existsUri("uri://other"))
     }
 
     @Test fun delete_removes_book() = runTest {
@@ -39,8 +39,8 @@ class BookDaoTest : RoomTestBase() {
     @Test fun blank_title_or_zero_size_does_not_false_positive() = runTest {
         db.bookDao().upsert(book("a", uri = "uri://a", title = "", size = 0))
         // a different book with blank title + zero size must NOT be flagged via the heuristic
-        assertFalse(db.bookDao().existsDuplicate("uri://b", "", 0))
+        assertFalse(db.bookDao().existsUri("uri://b"))
         // but a same-uri re-add is still a duplicate
-        assertTrue(db.bookDao().existsDuplicate("uri://a", "whatever", 999))
+        assertTrue(db.bookDao().existsUri("uri://a"))
     }
 }

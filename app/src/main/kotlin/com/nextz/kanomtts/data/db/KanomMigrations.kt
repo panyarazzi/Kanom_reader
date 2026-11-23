@@ -18,3 +18,33 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
         )
     }
 }
+
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE books ADD COLUMN sha256 TEXT")
+    }
+}
+
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE books ADD COLUMN sourceFolder TEXT")
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS book_tags (" +
+                "bookId TEXT NOT NULL, tag TEXT NOT NULL, " +
+                "PRIMARY KEY(bookId, tag), " +
+                "FOREIGN KEY(bookId) REFERENCES books(id) ON DELETE CASCADE)"
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_book_tags_bookId ON book_tags(bookId)")
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS book_notes (" +
+                "bookId TEXT NOT NULL PRIMARY KEY, note TEXT NOT NULL, updatedAt INTEGER NOT NULL, " +
+                "FOREIGN KEY(bookId) REFERENCES books(id) ON DELETE CASCADE)"
+        )
+    }
+}
+
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE books ADD COLUMN sourceFileName TEXT")
+    }
+}

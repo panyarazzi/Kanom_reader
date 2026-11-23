@@ -128,6 +128,9 @@ dependencies {
     // Jetpack Navigation for Compose (not in BOM — explicit version in catalog)
     implementation(libs.androidx.navigation.compose)
 
+    // SAF tree traversal for folder import and explicit EPUB relinking; source EPUBs are never copied.
+    implementation("androidx.documentfile:documentfile:1.0.1")
+
     // Plan 05 library-import deps
     // Coil 3 — async image loading in Compose (cover art thumbnails)
     implementation(libs.coil.compose)

@@ -5,13 +5,16 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "books")
 data class BookEntity(
-    @PrimaryKey val id: String,          // stable id (e.g. content uri hash or uuid)
+    @PrimaryKey val id: String,
     val uri: String,
     val title: String,
     val author: String?,
-    val lang: String?,                   // BCP-47 primary language hint
+    val lang: String?,
     val coverPath: String?,
     val fileSize: Long,
-    val addedAt: Long,                   // epoch millis
+    val addedAt: Long,
     val lastOpenedAt: Long?,
+    val sha256: String? = null,
+    val sourceFolder: String? = null,
+    val sourceFileName: String? = null,
 )

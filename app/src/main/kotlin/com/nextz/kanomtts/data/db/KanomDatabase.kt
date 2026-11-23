@@ -1,14 +1,11 @@
 package com.nextz.kanomtts.data.db
-
 import androidx.room.Database
 import androidx.room.RoomDatabase
-
 @Database(
-    entities = [
-        BookEntity::class, ProgressEntity::class, BookmarkEntity::class,
+    entities = [BookEntity::class, ProgressEntity::class, BookmarkEntity::class,
         ReplacementRuleEntity::class, VoiceConfigEntity::class, ReadingSessionEntity::class,
-    ],
-    version = 3,
+        BookTagEntity::class, BookNoteEntity::class],
+    version = 6,
     exportSchema = false,
 )
 abstract class KanomDatabase : RoomDatabase() {
@@ -18,4 +15,6 @@ abstract class KanomDatabase : RoomDatabase() {
     abstract fun replacementRuleDao(): ReplacementRuleDao
     abstract fun voiceConfigDao(): VoiceConfigDao
     abstract fun readingSessionDao(): ReadingSessionDao
+    abstract fun bookTagDao(): BookTagDao
+    abstract fun bookNoteDao(): BookNoteDao
 }

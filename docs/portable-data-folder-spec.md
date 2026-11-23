@@ -1,26 +1,32 @@
 # Portable Data Folder — Kanom
 
-Branch: `feature/portable-data-folder-apk1`
-Base: `feature/reader-improvements-apk2`
-
 ## Goal
 
 Keep Kanom's recoverable user data outside the app sandbox at
 `/storage/emulated/0/Kanom`, so uninstalling/reinstalling the APK does not
-remove the library metadata, reading positions, bookmarks, reader settings,
-voice configuration, replacement rules, or (when selected) portable EPUB
-source copies.
+remove library metadata, reading positions, bookmarks, reading statistics,
+tags, notes, reader settings, voice configuration, or replacement rules.
+
+**EPUB source files are never copied, moved, renamed, extracted, or deleted by
+Backup / Restore.** The app stores only metadata and the original source URI.
+If that URI permission expires after reinstall or a move, the user explicitly
+relinks the existing book to the original EPUB.
 
 ## Existing data inventory
 
-- Room database `kanom.db`, schema v2:
-  - `books`: stable ID, source URI, metadata, cover path, file size, timestamps
+- Room database `kanom.db`, schema v6:
+  - `books`: stable ID, source URI, metadata, cover path, file size,
+    SHA-256 fingerprint, original source filename, source-folder path
   - `progress`: exact Readium locator JSON, TTS locator JSON, percent, updatedAt
   - `bookmarks`: stable IDs, bookId, locator JSON, snippet, createdAt
   - `replacement_rules`: global and per-book replacement rules
   - `voice_config`: per-language provider, voice, speed, pitch
-- Preferences DataStore `kanom_prefs`: reader and playback settings.
-- Cover images currently live in the app's private files directory.
+  - `reading_sessions`: persisted reading-time segments for statistics
+  - `book_tags`: per-book tags
+  - `book_notes`: per-book notes/reviews
+- Preferences DataStore `kanom_prefs`: reader and playback settings, including
+  custom typography and tap-to-turn behavior.
+- Cover images live in the app's private files directory.
 - EPUBs are referenced by persisted `content://` URIs. Their persisted grants
   cannot be assumed to survive uninstall.
 
@@ -31,42 +37,51 @@ Internal storage/
   Kanom/
     manifest.json
     backup/
-    books/                 # created only when EPUB copying is explicitly enabled
       kanom-latest.zip
-      kanom-<timestamp>.zip
 ```
 
 The live Room database and DataStore remain in private app storage. Their
-portable export (including settings and reading progress) is stored together in
-`data.json` inside the ZIP; the folders `settings/`, `progress/`,
-`bookmarks/`, and `covers/` are not created as empty placeholders. Cover
-images are included inside the ZIP, never as a live SQLite file. The optional
-EPUB copies are stored in `Kanom/books` only when explicitly enabled; copy the
-entire `Kanom` folder when moving the library to another device.
+portable export (including settings, reading statistics, tags, notes, folder
+metadata, and reading progress) is stored together in `data.json` inside the
+ZIP. Cover images are included inside the ZIP and restored to the app's private
+covers directory. There is no `Kanom/books` directory and no EPUB payload.
 
 ## Backup payload
 
-- All five Room tables, preserving stable IDs and Readium locator JSON exactly.
+- All eight Room tables, preserving stable IDs and Readium locator JSON exactly.
+- Book SHA-256 fingerprints, original source filenames, and source-folder paths.
 - DataStore preferences with their original primitive types. The local
   `premium_unlocked` entitlement flag is deliberately excluded.
 - Cover images copied into the ZIP and restored to the app's private covers dir.
 - A versioned JSON manifest and timestamp.
-- EPUB source copies are disabled by default. Only when explicitly enabled,
-  accessible source EPUBs are copied to `Kanom/books`; failed copies are counted
-  in the result. The original EPUB files are never deleted.
+- Reading-session records so reading statistics survive reinstall.
+- Tags and notes/reviews so user annotations survive reinstall.
+
+**EPUB source bytes are never included in a new backup.** The backup operation
+does not open EPUBs for copying and does not create EPUB copy counters or an
+`includeEpubFiles` option.
 
 ## Restore behavior
 
 - The user must confirm before current app data is replaced.
-- Validate the ZIP entries, JSON structure, references, and format version.
-- Restore all five Room tables inside one Room transaction.
+- Validate the ZIP metadata entries, JSON structure, references, and format
+  version.
+- Restore all Room tables inside one Room transaction.
 - Restore DataStore preferences and cover images.
-- If a portable EPUB copy exists, reconnect the book to its stable
-  `Kanom/books/<book-id>.epub` path.
-- If no EPUB copy exists, restore the saved source URI. If its old permission
-  grant has expired, the user can select the same EPUB again from the library
-  import action; matching title and file size relinks the existing stable book
-  record instead of creating a new ID, preserving progress and bookmarks.
+- Only `data.json` and `covers/` entries are restored. Unknown ZIP entries are
+  ignored. This intentionally supports legacy archives that may contain
+  `portableEpub` pointers or `Kanom/books` EPUB payloads: those EPUB entries
+  are never extracted or copied.
+- Restore the saved original source URI. If its permission has expired, the
+  reader error screen offers explicit file or folder selection to relink.
+- Folder relinking searches recursively. SHA-256 is authoritative when the
+  saved fingerprint exists; legacy records fall back to metadata/title and file
+  size. Every candidate is shown for explicit user selection. Ambiguous matches
+  are never selected automatically.
+- Relinking updates only the existing book's source URI and source metadata
+  after validation. It preserves Book ID, progress, bookmarks, tags, notes,
+  cover, and reading statistics. It never copies, moves, renames, or deletes an
+  EPUB.
 - Preserve exact locator JSON and percentage; never reconstruct the locator
   from percentage alone.
 - Restoring the same backup again replaces the same records; it does not append
@@ -77,7 +92,7 @@ entire `Kanom` folder when moving the library to another device.
 The folder is directly under internal storage root, not inside Documents,
 Download, or Android/data. On Android 11+, the app uses Android's special
 All files access settings screen because SAF cannot select the storage root.
-The app checks the permission before reading/writing and creates the folder
+The app checks permission before reading/writing and creates the folder
 structure only after permission is granted. If permission is denied, the app
 remains usable and portable backup actions stay unavailable.
 
@@ -90,45 +105,54 @@ to Play Store.
 - Build the ZIP in a temporary file and atomically replace the latest archive
   only after the export completes.
 - Keep one current archive, `backup/kanom-latest.zip`, to avoid duplicating
-  the same backup payload in a timestamped copy.
-- Never delete source EPUBs during backup or restore.
+  the same backup payload in timestamped copies.
+- Never copy, extract, move, rename, or delete source EPUBs during backup,
+  restore, folder import, or relinking.
 - Restore database tables transactionally and ask before replacing user data.
-- Report record totals and EPUB copy successes/failures.
+- Report record totals for books, progress, bookmarks, rules, voices, tags,
+  notes, and reading sessions.
 
 ## Acceptance checks
 
-1. Grant All files access; app creates `Internal storage/Kanom` and subfolders.
+1. Grant All files access; app creates `Internal storage/Kanom/backup`.
 2. Back up multiple books with reading locators, TTS locators, bookmarks,
-   settings, voice configs, and global/per-book replacement rules.
+   settings, voice configs, global/per-book replacement rules, tags, notes,
+   reading sessions, SHA-256 values, and folder/source filename metadata.
 3. Verify exact locator strings and percentages round-trip.
 4. Verify covers are restored and display after app reinstall.
-5. With EPUB copying enabled, verify copied files remain in `Kanom/books`,
-   and that the app opens them after reinstall/restore.
-6. With EPUB copying disabled, reselect a source EPUB and verify the existing
-   stable book ID, progress, and bookmarks are retained.
-7. Copy the entire `Kanom` folder to another device, install Kanom, grant
-   access, restore, and verify data and portable EPUB paths.
-8. Import the same backup twice; verify no duplicates or corrupt records.
-9. Deny All files access; verify the rest of the app remains usable and the
-   portable feature explains why it is unavailable.
-
+5. Inspect the ZIP: it contains `data.json` and cover entries, but no EPUB
+   entries or `Kanom/books` payload.
+6. Restore a legacy ZIP containing `portableEpub` or `Kanom/books` entries;
+   verify EPUB entries are ignored and never extracted.
+7. After reinstall, verify an inaccessible original URI shows file/folder
+   relinking. Verify SHA-256 matches first and legacy title/size fallback works.
+8. Put multiple matching candidates in a selected folder; verify all are shown
+   and none is selected automatically.
+9. Confirm a candidate; verify the original stable Book ID, progress,
+   bookmarks, tags, notes, and reading statistics remain unchanged.
+10. Copy the entire `Kanom` folder to another device, install Kanom, grant
+    access, restore, and verify metadata and settings. Relink source EPUBs only
+    when the original URI permission is unavailable.
+11. Import the same backup twice; verify no duplicates or corrupt records.
+12. Deny All files access; verify the rest of the app remains usable and the
+    portable feature explains why it is unavailable.
 
 ## First-launch automatic recovery
 
-On the first launch after a fresh install, the startup gate requests All files access
-before entering the library. After permission is granted, it checks
+On the first launch after a fresh install, the startup gate requests All files
+access before entering the library. After permission is granted, it checks
 `Kanom/backup/kanom-latest.zip` and invokes the existing restore operation
 automatically when a valid backup is present. The user does not need to open
 Settings or press Restore.
 
-The startup markers are stored under Android's `noBackupFilesDir`: they survive
-app updates but are not copied back by Android Auto Backup after a reinstall.
-The gate distinguishes a fresh install from an in-place update using package
-installation timestamps, then persists a pending-recovery marker before asking
-for permission. This prevents Android-restored private data from suppressing
-the newer portable backup. An interrupted restore is retried on the next launch.
-A failed restore is reported with retry and continue actions; it must not
-silently enter the library as though recovery succeeded.
+The startup markers are stored under Android's `noBackupFilesDir`: they
+survive app updates but are not copied back by Android Auto Backup after a
+reinstall. The gate distinguishes a fresh install from an in-place update using
+package installation timestamps, then persists a pending-recovery marker before
+asking for permission. This prevents Android-restored private data from
+suppressing the newer portable backup. An interrupted restore is retried on
+the next launch. A failed restore is reported with retry and continue actions;
+it must not silently enter the library as though recovery succeeded.
 
 For app updates, the gate checks for existing local Room or DataStore user data
 before attempting recovery. Existing installations are allowed into the app
@@ -141,13 +165,14 @@ flow is complete so that it cannot interrupt the first-launch permission step.
 
 Additional acceptance checks:
 
-10. Uninstall and reinstall while keeping `Internal storage/Kanom`; first launch
-    asks for storage access, then restores automatically without pressing Restore.
-11. Upgrade an installation that already contains local books or preferences;
-    verify that startup does not overwrite its current data with the portable ZIP.
-12. Kill the app during automatic restore and relaunch; verify the interrupted
+13. Uninstall and reinstall while keeping `Internal storage/Kanom`; first
+    launch asks for storage access, then restores automatically without
+    pressing Restore.
+14. Upgrade an installation that already contains local books or preferences;
+    verify startup does not overwrite current data with the portable ZIP.
+15. Kill the app during automatic restore and relaunch; verify interrupted
     restore is retried and completes.
-13. Use a corrupt or unsupported ZIP; verify the startup screen reports the
-    failure and offers retry or continue, without claiming success.
-14. Grant access when no backup exists; verify the app proceeds to the library
+16. Use a corrupt or unsupported ZIP; verify startup reports failure and offers
+    retry or continue, without claiming success.
+17. Grant access when no backup exists; verify the app proceeds to the library
     without getting stuck in the startup gate.
