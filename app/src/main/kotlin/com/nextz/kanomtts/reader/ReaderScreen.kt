@@ -8,7 +8,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -45,6 +46,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlin.math.sqrt
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
@@ -380,23 +382,42 @@ private fun ReaderContent(
         ).pointerInput(Unit) {
             var accumulatedScale = 1f
             var gestureSize = pinchFontSize
-            detectTransformGestures { _, _, zoomChange, _ ->
-                if (zoomChange != 1f) {
-                    showPinchFontSize = true
-                    accumulatedScale *= zoomChange
-                    while (accumulatedScale >= 1.08f && gestureSize < 72) {
-                        gestureSize += 1
-                        accumulatedScale /= 1.08f
-                        pinchFontSize = gestureSize
-                        viewModel.onFontSize(gestureSize)
+            awaitEachGesture {
+                var previousSpan: Float? = null
+                do {
+                    val event = awaitPointerEvent()
+                    val pressed = event.changes.filter { it.pressed }
+                    if (pressed.size >= 2) {
+                        val dx = pressed[0].position.x - pressed[1].position.x
+                        val dy = pressed[0].position.y - pressed[1].position.y
+                        val span = sqrt(dx * dx + dy * dy)
+                        val previous = previousSpan
+                        if (previous != null && previous > 0f) {
+                            val zoomChange = span / previous
+                            if (zoomChange != 1f) {
+                                showPinchFontSize = true
+                                if (accumulatedScale == 1f) gestureSize = pinchFontSize
+                                accumulatedScale *= zoomChange
+                                while (accumulatedScale >= 1.08f && gestureSize < 72) {
+                                    gestureSize += 1
+                                    accumulatedScale /= 1.08f
+                                    pinchFontSize = gestureSize
+                                    viewModel.onFontSize(gestureSize)
+                                }
+                                while (accumulatedScale <= 0.925f && gestureSize > 12) {
+                                    gestureSize -= 1
+                                    accumulatedScale /= 0.925f
+                                    pinchFontSize = gestureSize
+                                    viewModel.onFontSize(gestureSize)
+                                }
+                            }
+                        }
+                        previousSpan = span
+                        pressed.forEach { it.consume() }
+                    } else {
+                        previousSpan = null
                     }
-                    while (accumulatedScale <= 0.925f && gestureSize > 12) {
-                        gestureSize -= 1
-                        accumulatedScale /= 0.925f
-                        pinchFontSize = gestureSize
-                        viewModel.onFontSize(gestureSize)
-                    }
-                }
+                } while (event.changes.any { it.pressed })
             }
         },
     ) {
