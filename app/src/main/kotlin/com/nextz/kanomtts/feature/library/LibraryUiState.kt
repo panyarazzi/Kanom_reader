@@ -47,6 +47,7 @@ data class LibraryFolderCard(
 data class LibraryUiState(
     val books: List<BookCard> = emptyList(),
     val continueCard: BookCard? = null,
+    val continueCards: List<BookCard> = emptyList(),
     val viewMode: LibraryViewMode = LibraryViewMode.GRID,
     val query: String = "",
     val selectedIds: Set<String> = emptySet(),
