@@ -43,6 +43,7 @@ fun BookAnnotationsScreen(
     viewModel: BookAnnotationsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+    val saveState by viewModel.saveState.collectAsState()
     val context = LocalContext.current
     var editing by remember { mutableStateOf<BookAnnotationRow?>(null) }
     var tagsText by remember { mutableStateOf("") }
@@ -117,7 +118,8 @@ fun BookAnnotationsScreen(
                             if (book.tags.isNotEmpty()) Text("Tags: ${book.tags.joinToString(" · ")}")
                             if (book.note.isNotBlank()) Text("Note: ${book.note}")
                             TextButton(onClick = {
-                                editing = book
+                                viewModel.clearSaveError()
+                            editing = book
                                 tagsText = book.tags.joinToString(", ")
                                 noteText = book.note
                             }) { Text("แก้ไข Tags / Notes") }
@@ -130,7 +132,7 @@ fun BookAnnotationsScreen(
 
     editing?.let { book ->
         AlertDialog(
-            onDismissRequest = { editing = null },
+            onDismissRequest = { if (!saveState.saving) editing = null },
             title = { Text("แก้ไขข้อมูล: ${book.title}") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -142,12 +144,20 @@ fun BookAnnotationsScreen(
                         value = noteText, onValueChange = { noteText = it },
                         label = { Text("Notes / รีวิว") }, modifier = Modifier.fillMaxWidth(), minLines = 3,
                     )
+                    saveState.error?.let { error ->
+                        Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             },
             confirmButton = {
-                TextButton(onClick = { viewModel.save(book.id, tagsText, noteText); editing = null }) { Text("บันทึก") }
+                TextButton(
+                    enabled = !saveState.saving,
+                    onClick = { viewModel.save(book.id, tagsText, noteText) { editing = null } },
+                ) { Text(if (saveState.saving) "กำลังบันทึก…" else "บันทึก") }
             },
-            dismissButton = { TextButton(onClick = { editing = null }) { Text("ยกเลิก") } },
+            dismissButton = {
+                TextButton(enabled = !saveState.saving, onClick = { editing = null }) { Text("ยกเลิก") }
+            },
         )
     }
 }

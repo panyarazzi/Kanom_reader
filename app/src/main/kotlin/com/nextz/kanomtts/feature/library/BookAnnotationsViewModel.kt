@@ -10,6 +10,7 @@ import com.nextz.kanomtts.data.db.KanomDatabase
 import com.nextz.kanomtts.data.repository.BookReader
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -37,6 +38,11 @@ data class BookAnnotationsUiState(
     val notesOnly: Boolean = false,
 )
 
+data class AnnotationSaveUiState(
+    val saving: Boolean = false,
+    val error: String? = null,
+)
+
 @HiltViewModel
 class BookAnnotationsViewModel @Inject constructor(
     books: BookReader,
@@ -47,6 +53,8 @@ class BookAnnotationsViewModel @Inject constructor(
     private val query = MutableStateFlow("")
     private val selectedTag = MutableStateFlow<String?>(null)
     private val notesOnly = MutableStateFlow(false)
+    private val _saveState = MutableStateFlow(AnnotationSaveUiState())
+    val saveState: StateFlow<AnnotationSaveUiState> = _saveState
 
     private val allRows = combine(
         books.observeLibrary(),
@@ -81,19 +89,36 @@ class BookAnnotationsViewModel @Inject constructor(
     fun setTagFilter(value: String?) { selectedTag.value = if (selectedTag.value == value) null else value }
     fun setNotesOnly(value: Boolean) { notesOnly.value = value }
 
-    fun save(bookId: String, tagsText: String, noteText: String) {
+    fun clearSaveError() {
+        _saveState.value = AnnotationSaveUiState()
+    }
+
+    fun save(bookId: String, tagsText: String, noteText: String, onSaved: () -> Unit) {
+        if (_saveState.value.saving) return
+        _saveState.value = AnnotationSaveUiState(saving = true)
         viewModelScope.launch {
-            val tags = tagsText.split(',', ';', '\\n')
-                .map { it.trim() }
-                .filter { it.isNotEmpty() }
-                .distinctBy { it.lowercase() }
-                .map { BookTagEntity(bookId, it) }
-            database.withTransaction {
-                tagDao.deleteForBook(bookId)
-                if (tags.isNotEmpty()) tagDao.insertAll(tags)
-                val note = noteText.trim()
-                if (note.isEmpty()) noteDao.deleteForBook(bookId)
-                else noteDao.upsert(BookNoteEntity(bookId, note, System.currentTimeMillis()))
+            try {
+                val tags = tagsText.split(',', ';', '\\n')
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                    .distinctBy { it.lowercase() }
+                    .map { BookTagEntity(bookId, it) }
+                database.withTransaction {
+                    tagDao.deleteForBook(bookId)
+                    if (tags.isNotEmpty()) tagDao.insertAll(tags)
+                    val note = noteText.trim()
+                    if (note.isEmpty()) noteDao.deleteForBook(bookId)
+                    else noteDao.upsert(BookNoteEntity(bookId, note, System.currentTimeMillis()))
+                }
+                _saveState.value = AnnotationSaveUiState()
+                onSaved()
+            } catch (cancelled: CancellationException) {
+                _saveState.value = AnnotationSaveUiState()
+                throw cancelled
+            } catch (failure: Exception) {
+                _saveState.value = AnnotationSaveUiState(
+                    error = "บันทึก Tags / Notes ไม่สำเร็จ: ${failure.message ?: "เกิดข้อผิดพลาด"}",
+                )
             }
         }
     }
