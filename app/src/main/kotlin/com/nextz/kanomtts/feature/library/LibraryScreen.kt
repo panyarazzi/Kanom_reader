@@ -279,10 +279,12 @@ fun LibraryContent(
                 }
             }
             item(key = "library-shelves") {
-                Row(
-                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("ชั้นหนังสือ", style = MaterialTheme.typography.titleMedium)
+                    Row(
+                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
                     ShelfCard("กำลังอ่าน", state.readingCount, state.selectedShelf == LibraryShelf.READING) {
                         onShelfFilter(LibraryShelf.READING)
                     }
@@ -294,6 +296,7 @@ fun LibraryContent(
                     }
                     ShelfCard("อ่านจบแล้ว", state.finishedCount, state.selectedShelf == LibraryShelf.FINISHED) {
                         onShelfFilter(LibraryShelf.FINISHED)
+                    }
                     }
                 }
             }
