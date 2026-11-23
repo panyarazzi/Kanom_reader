@@ -1,6 +1,5 @@
 package com.nextz.kanomtts.feature.library
 
-import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,10 +20,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -51,8 +48,9 @@ import com.nextz.kanomtts.ui.theme.KanomTheme
 // ─── VM-bound entry point ───────────────────────────────────────────────────────
 
 /**
- * Hilt-bound library screen. Includes a "+" FAB that launches the EPUB file picker
- * and shows import-result snackbars. Delegates rendering to [LibraryContent].
+ * Folder Library test mode: imports recursively from a selected folder and shows
+ * import-result snackbars. Single-file Classic Library entry is intentionally not
+ * exposed in this test version; it remains a separate release-mode requirement.
  */
 @Composable
 fun LibraryScreen(
@@ -85,20 +83,6 @@ fun LibraryScreen(
         }
     }
 
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument(),
-    ) { uri ->
-        if (uri != null) {
-            try {
-                context.contentResolver.takePersistableUriPermission(uri, FLAG_GRANT_READ_URI_PERMISSION)
-            } catch (_: SecurityException) {
-                // Content providers that don't support persistable permissions are fine —
-                // we still attempt import with the transient permission we have.
-            }
-            importViewModel.importFrom(uri)
-        }
-    }
-
     LaunchedEffect(Unit) {
         importViewModel.events.collect { result ->
             val message = when (result) {
@@ -114,20 +98,6 @@ fun LibraryScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        floatingActionButton = {
-            if (!uiState.isSelectionMode) {
-                FloatingActionButton(
-                    onClick = { launcher.launch(arrayOf("application/epub+zip", "application/octet-stream")) },
-                    // This screen's Scaffold is nested inside KanomApp's Scaffold, whose NavHost is NOT
-                    // inset by the bottom NavigationBar. The list content re-applies that inset via
-                    // combinedPadding, but the FAB lives in the Scaffold slot outside it — so without this
-                    // padding the FAB renders behind the bottom nav bar and is invisible/unclickable.
-                    modifier = Modifier.padding(bottom = contentPadding.calculateBottomPadding()),
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = "เพิ่มหนังสือ")
-                }
-            }
-        },
     ) { innerPadding ->
         // Merge outer contentPadding (from app scaffold) with inner padding from this scaffold.
         val combinedPadding = PaddingValues(
