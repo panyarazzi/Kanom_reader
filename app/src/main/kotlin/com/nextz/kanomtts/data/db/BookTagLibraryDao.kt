@@ -14,8 +14,8 @@ interface BookTagLibraryDao {
     @Query("SELECT * FROM book_tag_library ORDER BY tag COLLATE NOCASE")
     suspend fun getAllForBackup(): List<BookTagLibraryEntity>
 
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insert(tag: BookTagLibraryEntity)
+    @Query("INSERT OR IGNORE INTO book_tag_library(tag) SELECT :tag WHERE NOT EXISTS (SELECT 1 FROM book_tag_library WHERE tag = :tag COLLATE NOCASE)")
+    suspend fun insertIfMissing(tag: String)
 
     @Query("DELETE FROM book_tag_library WHERE tag = :tag COLLATE NOCASE")
     suspend fun delete(tag: String)
