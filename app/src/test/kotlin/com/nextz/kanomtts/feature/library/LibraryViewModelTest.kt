@@ -316,6 +316,20 @@ class LibraryViewModelTest {
     }
 
     @Test
+    fun `series grouping exposes folder-imported books across the library`() = runTest {
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        fakeBooks.books.value = listOf(
+            book("one", "One").copy(sourceFolder = "Universe/Arc A", seriesName = "Saga", seriesPosition = 1.0),
+            book("two", "Two").copy(sourceFolder = "Universe/Arc B", seriesName = "Saga", seriesPosition = 2.0),
+        )
+        runCurrent()
+        assertTrue(vm.uiState.value.books.isEmpty())
+        vm.setGroupMode(LibraryGroupMode.SERIES)
+        runCurrent()
+        assertEquals(listOf("one", "two"), vm.uiState.value.books.map { it.id }.sorted())
+    }
+
+    @Test
     fun `recently opened and newest book rows use their respective timestamps`() = runTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         fakeBooks.books.value = listOf(
