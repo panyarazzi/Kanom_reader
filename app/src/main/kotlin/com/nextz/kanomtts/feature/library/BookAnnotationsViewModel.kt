@@ -64,8 +64,7 @@ class BookAnnotationsViewModel @Inject constructor(
         books.observeLibrary(),
         tagDao.observeAll(),
         noteDao.observeAll(),
-        tagLibraryDao.observeAll(),
-    ) { allBooks, allTags, allNotes, savedTags ->
+    ) { allBooks, allTags, allNotes ->
         val tagsByBook = allTags.groupBy { it.bookId }
             .mapValues { (_, values) -> values.map { it.tag }.sorted() }
         val notesByBook = allNotes.associate { it.bookId to it.note }
@@ -78,17 +77,18 @@ class BookAnnotationsViewModel @Inject constructor(
     }
 
     val uiState: StateFlow<BookAnnotationsUiState> = combine(
-        allRows, query, selectedTag, notesOnly, tagLibraryDao.observeAll(),
-    ) { rows, search, tag, onlyNotes, savedTags ->
+        allRows, query, selectedTag, notesOnly,
+    ) { rows, search, tag, onlyNotes ->
         BookAnnotationsUiState(
             books = filterBookAnnotationRows(rows, search, tag, onlyNotes),
             allBooks = rows,
             availableTags = rows.flatMap { it.tags }.distinctBy { it.lowercase() }.sortedBy { it.lowercase() },
-            savedTags = savedTags.map { it.tag },
             query = search,
             selectedTag = tag,
             notesOnly = onlyNotes,
         )
+    }.combine(tagLibraryDao.observeAll()) { state, savedTags ->
+        state.copy(savedTags = savedTags.map { it.tag })
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BookAnnotationsUiState())
 
     fun setQuery(value: String) { query.value = value }
