@@ -243,9 +243,24 @@ class PortableDataManager @Inject constructor(
 
     private fun readBackupJson(): JSONObject {
         val metadata = ZipFile(latestBackup).use { zip ->
-            val entry = zip.getEntry("data.json") ?: error("ไฟล์สำรองไม่มี data.json")
-            require(entry.size <= MAX_ENTRY_BYTES) { "ไฟล์ข้อมูลสำรองมีขนาดใหญ่เกินกำหนด" }
-            zip.getInputStream(entry).use { it.readBytes() }
+            val entries = zip.entries()
+            var metadataEntry: ZipEntry? = null
+            while (entries.hasMoreElements()) {
+                val candidate = entries.nextElement()
+                if (!candidate.isDirectory && candidate.name == "data.json") {
+                    require(metadataEntry == null) { "ไฟล์สำรองมี data.json ซ้ำ" }
+                    metadataEntry = candidate
+                }
+            }
+            val entry = metadataEntry ?: error("ไฟล์สำรองไม่มี data.json")
+            require(entry.size >= 0L && entry.size <= MAX_ENTRY_BYTES) {
+                "ไฟล์ข้อมูลสำรองมีขนาดใหญ่เกินกำหนดหรือไม่ทราบขนาด"
+            }
+            zip.getInputStream(entry).use { input ->
+                val bytes = input.readBytes()
+                require(bytes.size.toLong() == entry.size) { "ข้อมูล data.json ใน ZIP ไม่สมบูรณ์" }
+                bytes
+            }
         }
         val json = JSONObject(String(metadata, Charsets.UTF_8))
         require(json.optInt("formatVersion", -1) == FORMAT_VERSION) { "เวอร์ชันไฟล์สำรองนี้ไม่รองรับ" }
@@ -465,6 +480,8 @@ class PortableDataManager @Inject constructor(
             for (i in 0 until array.length()) {
                 val item = array.getJSONObject(i)
                 val name = item.getString("name")
+                // Portable backups never grant or revoke installation-local entitlements.
+                if (name == "premium_unlocked") continue
                 val value = item.get("value")
                 when (item.getString("type")) {
                     "boolean" -> prefs[booleanPreferencesKey(name)] = value as Boolean
