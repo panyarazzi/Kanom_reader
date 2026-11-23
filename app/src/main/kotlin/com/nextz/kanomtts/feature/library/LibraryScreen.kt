@@ -41,6 +41,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.nextz.kanomtts.playback.ui.MiniPlayerInline
 import com.nextz.kanomtts.ui.theme.KanomTheme
 
 // ─── VM-bound entry point ───────────────────────────────────────────────────────
@@ -58,6 +59,7 @@ fun LibraryScreen(
     viewModel: LibraryViewModel = hiltViewModel(),
     importViewModel: ImportViewModel,
     onOpenStatistics: () -> Unit = {},
+    onOpenNowPlaying: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val statisticsViewModel: ReadingStatisticsViewModel = hiltViewModel()
@@ -121,6 +123,7 @@ fun LibraryScreen(
             onImportFolder = { folderLauncher.launch(null) },
             statistics = statisticsState,
             onOpenStatistics = onOpenStatistics,
+            onOpenNowPlaying = onOpenNowPlaying,
             contentPadding = combinedPadding,
             modifier = modifier,
         )
@@ -150,6 +153,7 @@ fun LibraryContent(
     onImportFolder: () -> Unit = {},
     statistics: ReadingStatisticsUiState? = null,
     onOpenStatistics: () -> Unit = {},
+    onOpenNowPlaying: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(),
     modifier: Modifier = Modifier,
 ) {
@@ -269,8 +273,28 @@ fun LibraryContent(
                 }
             }
             if (statistics != null) {
-                item(key = "library-reading-statistics") {
-                    ReadingStatisticsCard(state = statistics, onMore = onOpenStatistics)
+                item(key = "library-reading-statistics-and-listening") {
+                    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
+                        if (maxWidth >= 600.dp) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Box(Modifier.weight(2f)) {
+                                    ReadingStatisticsCard(state = statistics, onMore = onOpenStatistics)
+                                }
+                                Box(Modifier.weight(1f)) {
+                                    MiniPlayerInline(onExpand = onOpenNowPlaying)
+                                }
+                            }
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                ReadingStatisticsCard(state = statistics, onMore = onOpenStatistics)
+                                MiniPlayerInline(onExpand = onOpenNowPlaying)
+                            }
+                        }
+                    }
                 }
             }
             if (state.folders.isNotEmpty()) {
