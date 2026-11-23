@@ -26,10 +26,11 @@ class EpubImporter(
     private val contentHasher: suspend (String) -> String? = { null },
 ) {
     suspend fun import(uri: String, fileSize: Long, displayName: String?, sourceFolder: String? = null): ImportResult {
+        // Re-importing a previously indexed SAF URI should not reopen or reparse the EPUB.
+        if (books.isDuplicate(uri)) return ImportResult.Duplicate
         val meta = extractor.extract(uri) ?: return ImportResult.Unreadable
         val title = meta.title.ifBlank { displayName?.removeSuffix(".epub") ?: "Untitled" }
         // Matching by title and size can collide. Relinking is always explicit and user-confirmed.
-        if (books.isDuplicate(uri)) return ImportResult.Duplicate
         val sha256 = try {
             contentHasher(uri)
         } catch (cancelled: CancellationException) {

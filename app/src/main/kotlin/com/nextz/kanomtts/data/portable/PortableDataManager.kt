@@ -239,6 +239,8 @@ class PortableDataManager @Inject constructor(
         check(latestBackup.isFile) { "ไม่พบไฟล์สำรอง Kanom" }
         val json = readBackupJson()
         val bookArray = json.getJSONArray("books")
+        val bookIds = (0 until bookArray.length()).map { bookArray.getJSONObject(it).getString("id") }
+        require(bookIds.distinct().size == bookIds.size) { "ไฟล์สำรองมี Book ID ซ้ำกัน" }
         (0 until bookArray.length()).map { index ->
             val item = bookArray.getJSONObject(index)
             BookEntity(
