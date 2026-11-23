@@ -383,7 +383,9 @@ fun LibraryContent(
                     }
                 }
             }
-            item(key = "library-folders") {
+            if (state.groupMode == LibraryGroupMode.FOLDER &&
+                state.query.isBlank() && state.selectedTag == null && state.selectedShelf == null
+            ) item(key = "library-folders") {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
                         Modifier.fillMaxWidth(),
