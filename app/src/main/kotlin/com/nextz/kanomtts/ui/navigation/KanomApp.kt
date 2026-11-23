@@ -121,7 +121,10 @@ fun KanomApp(
                 )
             }
             composable("book_annotations") {
-                BookAnnotationsScreen(onBack = { navController.popBackStack() })
+                BookAnnotationsScreen(
+                    onBack = { navController.popBackStack() },
+                    contentPadding = padding,
+                )
             }
             composable(KanomDestination.NOW_PLAYING.route) { NowPlayingScreen(Modifier, padding) }
             composable(KanomDestination.SETTINGS.route) {
