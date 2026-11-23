@@ -470,6 +470,13 @@ fun LibraryContent(
                                     }
                                 }
                             }
+                            if (state.groupMode == LibraryGroupMode.SERIES) {
+                                Text(
+                                    "การจัดกลุ่มซีรีส์ใช้แท็กที่ขึ้นต้นด้วย series: เช่น series:สามก๊ก",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 Text("Sort by", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
                                 Box {
