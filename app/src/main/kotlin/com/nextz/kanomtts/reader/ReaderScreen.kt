@@ -11,7 +11,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -164,7 +167,7 @@ fun ReaderScreen(
             onDismissRequest = { if (!relinkState.busy) relinkViewModel.clearResults() },
             title = { Text("เลือกไฟล์ที่ตรงกับหนังสือเดิม") },
             text = {
-                Column {
+                Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
                     relinkState.candidates.forEach { candidate ->
                         val sizeLabel = candidate.size.takeIf { it > 0L }?.let { "$it bytes" } ?: "ไม่ทราบขนาด"
                         TextButton(
