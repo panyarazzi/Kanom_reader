@@ -51,6 +51,24 @@ import javax.inject.Singleton
 
 internal fun isRestorablePortableEntry(name: String): Boolean = name == "data.json" || name.startsWith("covers/")
 
+internal suspend fun <Snapshot, Result> withCompensatingRollback(
+    snapshot: suspend () -> Snapshot,
+    operation: suspend () -> Result,
+    rollback: suspend (Snapshot) -> Unit,
+): Result {
+    val previous = snapshot()
+    try {
+        return operation()
+    } catch (failure: Exception) {
+        try {
+            withContext(NonCancellable) { rollback(previous) }
+        } catch (rollbackFailure: Exception) {
+            failure.addSuppressed(rollbackFailure)
+        }
+        throw failure
+    }
+}
+
 internal fun encodePortablePreferences(prefs: Preferences): JSONArray = JSONArray().apply {
     prefs.asMap().filterNot { it.key.name == "premium_unlocked" }.forEach { (key, value) ->
         val item = JSONObject().put("name", key.name)
@@ -517,45 +535,37 @@ class PortableDataManager @Inject constructor(
 
         val preferencesArray = json.getJSONArray("preferences")
         currentCoroutineContext().ensureActive()
-        // Room and DataStore are separate stores. Snapshot the current preferences so a
-        // failed/cancelled Room transaction can compensate if the DataStore write succeeded.
-        val previousPreferences = encodePortablePreferences(dataStore.data.first())
-        try {
-            database.withTransaction {
-                currentCoroutineContext().ensureActive()
-                database.bookTagDao().deleteAll()
-                database.bookTagLibraryDao().deleteAll()
-                database.bookNoteDao().deleteAll()
-                database.readingSessionDao().deleteAll()
-                database.bookmarkDao().deleteAll()
-                database.progressDao().deleteAll()
-                database.replacementRuleDao().deleteAll()
-                database.voiceConfigDao().deleteAll()
-                database.bookDao().deleteAll()
-                database.bookDao().insertAll(books)
-                database.progressDao().insertAll(progress)
-                database.bookmarkDao().insertAll(bookmarks)
-                database.replacementRuleDao().insertAll(rules)
-                database.voiceConfigDao().insertAll(voices)
-                database.bookTagDao().insertAll(tags)
-                database.bookTagLibraryDao().insertAll(savedTags)
-                database.bookNoteDao().insertAll(notes)
-                database.readingSessionDao().insertAll(sessions)
-                // Apply preferences as the final operation in the DB transaction. If the
-                // Room transaction fails after this point, the catch below restores the snapshot.
-                currentCoroutineContext().ensureActive()
-                restorePreferences(preferencesArray)
-            }
-        } catch (failure: Exception) {
-            try {
-                withContext(NonCancellable) {
-                    restorePreferences(previousPreferences)
+        // Room and DataStore are separate stores. If the transaction fails or is cancelled
+        // after the preference write, compensate with the exact pre-restore preference snapshot.
+        withCompensatingRollback(
+            snapshot = { encodePortablePreferences(dataStore.data.first()) },
+            operation = {
+                database.withTransaction {
+                    currentCoroutineContext().ensureActive()
+                    database.bookTagDao().deleteAll()
+                    database.bookTagLibraryDao().deleteAll()
+                    database.bookNoteDao().deleteAll()
+                    database.readingSessionDao().deleteAll()
+                    database.bookmarkDao().deleteAll()
+                    database.progressDao().deleteAll()
+                    database.replacementRuleDao().deleteAll()
+                    database.voiceConfigDao().deleteAll()
+                    database.bookDao().deleteAll()
+                    database.bookDao().insertAll(books)
+                    database.progressDao().insertAll(progress)
+                    database.bookmarkDao().insertAll(bookmarks)
+                    database.replacementRuleDao().insertAll(rules)
+                    database.voiceConfigDao().insertAll(voices)
+                    database.bookTagDao().insertAll(tags)
+                    database.bookTagLibraryDao().insertAll(savedTags)
+                    database.bookNoteDao().insertAll(notes)
+                    database.readingSessionDao().insertAll(sessions)
+                    currentCoroutineContext().ensureActive()
+                    restorePreferences(preferencesArray)
                 }
-            } catch (rollbackFailure: Exception) {
-                failure.addSuppressed(rollbackFailure)
-            }
-            throw failure
-        }
+            },
+            rollback = { previousPreferences -> restorePreferences(previousPreferences) },
+        )
         restoreSucceeded = true
         PortableBackupSummary(books.size, progress.size, bookmarks.size, rules.size, voices.size, tags.size, notes.size, sessions.size, latestBackup.absolutePath)
         } finally {
