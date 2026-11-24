@@ -39,6 +39,39 @@ class ReaderTapZoneTest {
             resolveReaderTapAction(500f, 500f, 1000f, 1000f, tapAnywhereToNext = true),
         )
     }
+    @Test fun anywhereToNextKeepsTheEntireCenterColumnForTheMenu() {
+        // A tap can land high or low within the central column; Y must not turn it into Next.
+        listOf(0f, 50f, 250f, 500f, 750f, 950f, 1000f).forEach { y ->
+            assertEquals(
+                "center-column tap at y=$y must open the menu",
+                ReaderTapAction.TOGGLE_CHROME,
+                resolveReaderTapAction(
+                    x = 500f, y = y, width = 1000f, height = 1000f,
+                    tapAnywhereToNext = true,
+                ),
+            )
+        }
+    }
+
+    @Test fun anywhereToNextStillAdvancesOutsideTheCenterColumnAtAnyHeight() {
+        listOf(0f, 250f, 500f, 750f, 1000f).forEach { y ->
+            assertEquals(
+                ReaderTapAction.NEXT_PAGE,
+                resolveReaderTapAction(
+                    x = 50f, y = y, width = 1000f, height = 1000f,
+                    tapAnywhereToNext = true,
+                ),
+            )
+            assertEquals(
+                ReaderTapAction.NEXT_PAGE,
+                resolveReaderTapAction(
+                    x = 950f, y = y, width = 1000f, height = 1000f,
+                    tapAnywhereToNext = true,
+                ),
+            )
+        }
+    }
+
     @Test fun originalZonesRemainScreenRelativeInLandscape() {
         assertEquals(
             ReaderTapAction.PREVIOUS_PAGE,
