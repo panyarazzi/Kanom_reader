@@ -25,13 +25,13 @@ class ReaderTapZoneTest {
 
     @Test fun eightOuterCellsMapToFourPreviousAndFourNextZones() {
         val previousCells = listOf(
-            150f to 150f, 450f to 150f, 750f to 150f,
+            150f to 150f, 450f to 150f,
             150f to 450f,
             150f to 750f,
         )
         val nextCells = listOf(
-            750f to 450f,
-            150f to 750f, 450f to 750f, 750f to 750f,
+            750f to 150f, 750f to 450f,
+            450f to 750f, 750f to 750f,
         )
         previousCells.forEach { (x, y) -> assertEquals("previous at ($x,$y)", ReaderTapAction.PREVIOUS_PAGE, action(x, y)) }
         nextCells.forEach { (x, y) -> assertEquals("next at ($x,$y)", ReaderTapAction.NEXT_PAGE, action(x, y)) }
