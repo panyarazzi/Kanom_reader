@@ -145,13 +145,7 @@ class PortableDataViewModel @Inject constructor(
                 buildRestoreSourcePlan(previewBooks, found)
             }
             result.onSuccess { plan ->
-                _uiState.value = _uiState.value.copy(
-                    busy = false,
-                    restorePlan = plan,
-                    unresolvedBooks = emptyList(),
-                    restoreStage = RestoreReconciliationStage.REVIEW_UNIQUE,
-                    message = "ตรวจพบ EPUB ที่จับคู่ได้แน่นอน ${plan.uniqueMatches.size} เล่ม, ต้องเลือกเอง ${plan.ambiguousMatches.size} เล่ม, ไม่พบ ${plan.notFound.size} เล่ม",
-                )
+                acceptRestorePlan(plan)
             }.onFailure {
                 val cancelled = it is CancellationException
                 _uiState.value = _uiState.value.copy(
@@ -164,6 +158,19 @@ class PortableDataViewModel @Inject constructor(
                 if (cancelled) activeRestoreJob = null
             }
         }
+    }
+
+    /** Apply a read-only matching plan; internal so the state machine can be tested without SAF. */
+    internal fun acceptRestorePlan(plan: RestoreSourcePlan) {
+        selectedSources.clear()
+        _uiState.value = _uiState.value.copy(
+            busy = false,
+            restorePlan = plan,
+            unresolvedBooks = emptyList(),
+            ambiguousIndex = 0,
+            restoreStage = RestoreReconciliationStage.REVIEW_UNIQUE,
+            message = "ตรวจพบ EPUB ที่จับคู่ได้แน่นอน ${plan.uniqueMatches.size} เล่ม, ต้องเลือกเอง ${plan.ambiguousMatches.size} เล่ม, ไม่พบ ${plan.notFound.size} เล่ม",
+        )
     }
 
     /** Confirm the entire unique-match batch before any ambiguous choice is requested. */
