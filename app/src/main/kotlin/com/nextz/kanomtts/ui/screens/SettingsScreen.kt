@@ -371,10 +371,23 @@ fun SettingsScreen(
                         missing.forEach { book ->
                             Text("• ${book.title}", modifier = Modifier.padding(top = 6.dp))
                         }
+                        if (portable.message?.startsWith("กู้คืนไม่สำเร็จ") == true) {
+                            Text(
+                                portable.message.orEmpty(),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(top = 12.dp),
+                            )
+                        }
                     }
                 },
                 confirmButton = {
-                    TextButton(onClick = portableVm::finishRestore, enabled = !portable.busy) { Text("กู้คืนต่อ") }
+                    TextButton(
+                        onClick = portableVm::finishRestore,
+                        enabled = !portable.busy,
+                    ) {
+                        Text(if (portable.message?.startsWith("กู้คืนไม่สำเร็จ") == true) "ลองอีกครั้ง" else "กู้คืนต่อ")
+                    }
                 },
                 dismissButton = {
                     TextButton(onClick = portableVm::cancelRestore) { Text("ยกเลิก Restore") }
