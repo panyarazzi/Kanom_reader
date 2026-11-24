@@ -43,6 +43,7 @@ class LibraryViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _viewMode = MutableStateFlow(LibraryViewMode.GRID)
+    private val _libraryMode = MutableStateFlow(LibraryPresentationMode.FOLDER)
     private val _query = MutableStateFlow("")
     private val _selectedIds = MutableStateFlow(emptySet<String>())
     private val _selectedTag = MutableStateFlow<String?>(null)
@@ -80,7 +81,7 @@ class LibraryViewModel @Inject constructor(
     }
     private val filterControls = combine(
         _selectedTag, _selectedFolder, _groupMode, _sortMode, _sortDescending,
-        _secondarySortMode, _showFilename, _selectedShelf,
+        _secondarySortMode, _showFilename, _selectedShelf, _libraryMode,
     ) { values -> values.toList() }
     private val libraryControls = combine(basicControls, filterControls) { basic, filters ->
         basic to filters
@@ -96,6 +97,7 @@ class LibraryViewModel @Inject constructor(
         val secondarySortMode = controls.second[5] as LibrarySecondarySortMode
         val showFilename = controls.second[6] as Boolean
         val selectedShelf = controls.second[7] as LibraryShelf?
+        val libraryMode = controls.second[8] as LibraryPresentationMode
         val allCards = pairs.map { (book, progress, tags) ->
             book.toBookCard(progress).copy(tags = tags, sourceFolder = book.sourceFolder, filename = book.sourceFileName ?: uriFilename(book.uri), displayFilename = showFilename, sha256 = book.sha256)
         }
@@ -154,7 +156,7 @@ class LibraryViewModel @Inject constructor(
                 path.substringBefore('/').takeIf(String::isNotBlank)
             }
         }.distinct().sortedWith(String.CASE_INSENSITIVE_ORDER)
-        val folders = childFolderPaths.map { path ->
+        val folders = if (libraryMode == LibraryPresentationMode.FOLDER) childFolderPaths.map { path ->
             val descendantBooks = allCards.filter { card ->
                 val source = card.sourceFolder.orEmpty()
                 source == path || source.startsWith("$path/")
@@ -165,7 +167,7 @@ class LibraryViewModel @Inject constructor(
                 count = descendantBooks.size,
                 sampleCovers = descendantBooks.take(4).map { it.coverPath },
             )
-        }
+        } else emptyList()
         val continueCards = filteredCards
             .filter { it.effectiveReadingShelf() == LibraryShelf.READING && it.percent > 0f && it.percent < 0.999f && it.lastOpenedAt != null }
             .sortedByDescending { it.lastOpenedAt }
@@ -184,7 +186,9 @@ class LibraryViewModel @Inject constructor(
             .sortedByDescending { it.lastOpenedAt }
             .take(8)
         val newestBooks = filteredCards.sortedByDescending { it.addedAt }.take(8)
-        val visibleBooks = if (selectedFolder == null && selectedShelf == null && selectedTag == null && query.isBlank() && groupMode == LibraryGroupMode.FOLDER) {
+        val visibleBooks = if (libraryMode == LibraryPresentationMode.CLASSIC) {
+            filteredCards
+        } else if (selectedFolder == null && selectedShelf == null && selectedTag == null && query.isBlank() && groupMode == LibraryGroupMode.FOLDER) {
             // Folder-imported books are reached through their real folder container.
             // In Folder mode, only books outside imported folders appear at root. Other grouping modes
             // intentionally operate over the full library so Series/Author groups span folders.
@@ -194,6 +198,7 @@ class LibraryViewModel @Inject constructor(
             filteredCards
         }
         LibraryUiState(
+            libraryMode = libraryMode,
             books = visibleBooks,
             continueCard = continueCard,
             continueCards = continueCards,
@@ -225,6 +230,7 @@ class LibraryViewModel @Inject constructor(
     )
 
     fun setViewMode(mode: LibraryViewMode) { _viewMode.value = mode }
+    fun setLibraryMode(mode: LibraryPresentationMode) { _libraryMode.value = mode; _selectedFolder.value = null }
     fun setQuery(query: String) { _query.value = query }
     fun setTagFilter(tag: String?) { _selectedTag.value = tag }
     fun setFolderFilter(folder: String?) { _selectedFolder.value = folder; _selectedShelf.value = null }
