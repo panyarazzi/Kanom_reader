@@ -313,8 +313,7 @@ fun LibraryContent(
                 )
             } else {
                 androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
-                    @Composable
-                    fun SearchAndControls() {
+                    val searchAndControls: @Composable () -> Unit = {
                         LibrarySearchBar(
                             query = state.query,
                             onQueryChange = onQueryChange,
@@ -360,13 +359,13 @@ fun LibraryContent(
                                 BrandHeader(modifier = Modifier.fillMaxWidth())
                             }
                             Column(Modifier.weight(1.45f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                SearchAndControls()
+                                searchAndControls()
                             }
                         }
                     } else {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             BrandHeader(modifier = Modifier.fillMaxWidth())
-                            SearchAndControls()
+                            searchAndControls()
                         }
                     }
                 }
