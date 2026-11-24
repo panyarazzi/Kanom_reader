@@ -79,6 +79,12 @@ data class PortableBackupSummary(
     val backupFile: String,
 )
 
+internal fun parsePortableReadingStatus(bookJson: JSONObject): String? {
+    if (!bookJson.has("readingStatus") || bookJson.isNull("readingStatus")) return null
+    return bookJson.getString("readingStatus").takeIf { it in setOf("READING", "TO_READ", "FINISHED") }
+        ?: error("สถานะการอ่านในไฟล์สำรองไม่ถูกต้อง")
+}
+
 internal fun parseSavedTagLibrary(json: JSONObject): List<BookTagLibraryEntity> {
     val savedTagArray = json.optJSONArray("savedTags")
     return (0 until (savedTagArray?.length() ?: 0)).map { index ->
@@ -413,7 +419,7 @@ class PortableDataManager @Inject constructor(
                 sourceFileName = source?.name ?: o.optNullableString("sourceFileName"),
                 seriesName = o.optNullableString("seriesName"),
                 seriesPosition = o.optNullableDouble("seriesPosition"),
-                readingStatus = o.optNullableString("readingStatus"),
+                readingStatus = parsePortableReadingStatus(o),
             )
         }
         val progressArray = json.getJSONArray("progress")
