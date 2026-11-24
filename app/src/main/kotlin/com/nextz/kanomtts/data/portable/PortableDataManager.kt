@@ -178,7 +178,7 @@ class PortableDataManager @Inject constructor(
                         put("addedAt", book.addedAt); putNullable("lastOpenedAt", book.lastOpenedAt)
                         putNullable("sourceFolder", book.sourceFolder); putNullable("sourceFileName", book.sourceFileName)
                         putNullable("seriesName", book.seriesName); putNullable("seriesPosition", book.seriesPosition)
-                         putNullable("readingStatus", book.readingStatus)
+                        putNullable("readingStatus", book.readingStatus); putNullable("description", book.description)
                     })
                 }
             })
@@ -281,6 +281,7 @@ class PortableDataManager @Inject constructor(
                 sourceFileName = item.optNullableString("sourceFileName"),
                 seriesName = item.optNullableString("seriesName"),
                 seriesPosition = item.optNullableDouble("seriesPosition"),
+                description = item.optNullableString("description"),
             )
         }
     }
@@ -460,6 +461,7 @@ class PortableDataManager @Inject constructor(
                 seriesName = o.optNullableString("seriesName"),
                 seriesPosition = o.optNullableDouble("seriesPosition"),
                 readingStatus = parsePortableReadingStatus(o),
+                description = o.optNullableString("description"),
             )
         }
         val progressArray = json.getJSONArray("progress")
