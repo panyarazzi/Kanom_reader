@@ -710,7 +710,7 @@ fun LibraryContent(
                 }
             },
             confirmButton = {
-                TextButton(enabled = metadataTitle.isNotBlank() && (metadataSeriesPosition.isBlank() || metadataSeriesPosition.toDoubleOrNull() != null), onClick = { onUpdateBookMetadata(book.id, metadataTitle, metadataAuthor, metadataSeriesName, metadataSeriesPosition.toDoubleOrNull()); metadataBook = null }) { Text("บันทึก") }
+                TextButton(enabled = metadataTitle.isNotBlank() && (metadataSeriesPosition.isBlank() || metadataSeriesPosition.toDoubleOrNull()?.isFinite() == true), onClick = { onUpdateBookMetadata(book.id, metadataTitle, metadataAuthor, metadataSeriesName, metadataSeriesPosition.toDoubleOrNull()); metadataBook = null }) { Text("บันทึก") }
             },
             dismissButton = { TextButton(onClick = { metadataBook = null }) { Text("ยกเลิก") } },
         )
