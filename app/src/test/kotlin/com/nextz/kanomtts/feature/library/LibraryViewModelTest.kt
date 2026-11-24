@@ -218,6 +218,34 @@ class LibraryViewModelTest {
     }
 
     @Test
+    fun `Classic and Folder modes show the intended library presentation`() = runTest {
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        fakeBooks.books.value = listOf(
+            book("one", "One").copy(sourceFolder = "Books/ePub Normal Style/ePub Normal"),
+            book("two", "Two").copy(sourceFolder = "Books/ePub Normal Style/OCR Normal"),
+            book("classic", "Classic only"),
+        )
+        runCurrent()
+
+        assertEquals(LibraryMode.FOLDER, vm.uiState.value.libraryMode)
+        assertTrue(vm.uiState.value.books.map { it.id }.contains("classic"))
+        assertEquals(listOf("Books"), vm.uiState.value.folders.map { it.path })
+
+        vm.setLibraryMode(LibraryMode.CLASSIC)
+        runCurrent()
+        assertEquals(LibraryMode.CLASSIC, vm.uiState.value.libraryMode)
+        assertEquals(setOf("one", "two", "classic"), vm.uiState.value.books.map { it.id }.toSet())
+        assertTrue(vm.uiState.value.folders.isEmpty())
+        assertEquals(LibraryGroupMode.NONE, vm.uiState.value.groupMode)
+
+        vm.setLibraryMode(LibraryMode.FOLDER)
+        runCurrent()
+        assertEquals(LibraryMode.FOLDER, vm.uiState.value.libraryMode)
+        assertTrue(vm.uiState.value.books.map { it.id }.contains("classic"))
+        assertEquals(listOf("Books"), vm.uiState.value.folders.map { it.path })
+    }
+
+    @Test
     fun setQuery_filters_by_uri_filename() = runTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         fakeBooks.books.value = listOf(
