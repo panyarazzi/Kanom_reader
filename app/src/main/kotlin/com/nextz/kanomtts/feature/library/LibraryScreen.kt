@@ -1147,6 +1147,6 @@ private fun plainBookDescription(source: String): String =
     android.text.Html.fromHtml(source, android.text.Html.FROM_HTML_MODE_LEGACY)
         .toString()
         .replace('\u00A0', ' ')
-        .replace(Regex("[ \\t]+\\n"), "\\n")
-        .replace(Regex("\\n{3,}"), "\\n\\n")
+        .replace(Regex("[ \\t]+\\n"), "\n")
+        .replace(Regex("\\n{3,}"), "\n\n")
         .trim()
