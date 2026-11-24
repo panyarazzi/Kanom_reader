@@ -43,6 +43,7 @@ class LibraryViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _viewMode = MutableStateFlow(LibraryViewMode.GRID)
+    private val _libraryMode = MutableStateFlow(LibraryMode.FOLDER)
     private val _query = MutableStateFlow("")
     private val _selectedIds = MutableStateFlow(emptySet<String>())
     private val _selectedTag = MutableStateFlow<String?>(null)
@@ -80,7 +81,7 @@ class LibraryViewModel @Inject constructor(
     }
     private val filterControls = combine(
         _selectedTag, _selectedFolder, _groupMode, _sortMode, _sortDescending,
-        _secondarySortMode, _showFilename, _selectedShelf,
+        _secondarySortMode, _showFilename, _selectedShelf, _libraryMode,
     ) { values -> values.toList() }
     private val libraryControls = combine(basicControls, filterControls) { basic, filters ->
         basic to filters
@@ -96,6 +97,7 @@ class LibraryViewModel @Inject constructor(
         val secondarySortMode = controls.second[5] as LibrarySecondarySortMode
         val showFilename = controls.second[6] as Boolean
         val selectedShelf = controls.second[7] as LibraryShelf?
+        val libraryMode = controls.second[8] as LibraryMode
         val allCards = pairs.map { (book, progress, tags) ->
             book.toBookCard(progress).copy(tags = tags, sourceFolder = book.sourceFolder, filename = book.sourceFileName ?: uriFilename(book.uri), displayFilename = showFilename, sha256 = book.sha256)
         }
@@ -184,7 +186,7 @@ class LibraryViewModel @Inject constructor(
             .sortedByDescending { it.lastOpenedAt }
             .take(8)
         val newestBooks = filteredCards.sortedByDescending { it.addedAt }.take(8)
-        val visibleBooks = if (selectedFolder == null && selectedShelf == null && selectedTag == null && query.isBlank() && groupMode == LibraryGroupMode.FOLDER) {
+        val visibleBooks = if (libraryMode == LibraryMode.FOLDER && selectedFolder == null && selectedShelf == null && selectedTag == null && query.isBlank() && groupMode == LibraryGroupMode.FOLDER) {
             // Folder-imported books are reached through their real folder container.
             // In Folder mode, only books outside imported folders appear at root. Other grouping modes
             // intentionally operate over the full library so Series/Author groups span folders.
@@ -194,6 +196,7 @@ class LibraryViewModel @Inject constructor(
             filteredCards
         }
         LibraryUiState(
+            libraryMode = libraryMode,
             books = visibleBooks,
             continueCard = continueCard,
             continueCards = continueCards,
@@ -202,7 +205,7 @@ class LibraryViewModel @Inject constructor(
             selectedIds = selectedIds,
             availableTags = allCards.flatMap { it.tags }.distinct().sorted(),
             selectedTag = selectedTag,
-            folders = folders,
+            folders = if (libraryMode == LibraryMode.FOLDER) folders else emptyList(),
             selectedFolder = selectedFolder,
             groupMode = groupMode,
             sortMode = sortMode,
@@ -225,6 +228,15 @@ class LibraryViewModel @Inject constructor(
     )
 
     fun setViewMode(mode: LibraryViewMode) { _viewMode.value = mode }
+    fun setLibraryMode(mode: LibraryMode) {
+        if (_libraryMode.value == mode) return
+        _libraryMode.value = mode
+        _selectedFolder.value = null
+        _selectedShelf.value = null
+        _selectedTag.value = null
+        _groupMode.value = if (mode == LibraryMode.FOLDER) LibraryGroupMode.FOLDER else LibraryGroupMode.NONE
+        _selectedIds.value = emptySet()
+    }
     fun setQuery(query: String) { _query.value = query }
     fun setTagFilter(tag: String?) { _selectedTag.value = tag }
     fun setFolderFilter(folder: String?) { _selectedFolder.value = folder; _selectedShelf.value = null }
