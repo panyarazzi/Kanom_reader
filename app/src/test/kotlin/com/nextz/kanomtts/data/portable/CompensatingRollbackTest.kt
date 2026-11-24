@@ -3,7 +3,6 @@ package com.nextz.kanomtts.data.portable
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
-import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class CompensatingRollbackTest {
@@ -12,17 +11,18 @@ class CompensatingRollbackTest {
         var storedValue = "before"
         val failure = IllegalStateException("database transaction failed")
 
-        val thrown = assertThrows(IllegalStateException::class.java) {
-            kotlinx.coroutines.runBlocking {
-                withCompensatingRollback(
-                    snapshot = { storedValue },
-                    operation = {
-                        storedValue = "restored"
-                        throw failure
-                    },
-                    rollback = { previous -> storedValue = previous },
-                )
-            }
+        val thrown = try {
+            withCompensatingRollback(
+                snapshot = { storedValue },
+                operation = {
+                    storedValue = "restored"
+                    throw failure
+                },
+                rollback = { previous -> storedValue = previous },
+            )
+            error("Expected restore failure")
+        } catch (caught: IllegalStateException) {
+            caught
         }
 
         assertSame(failure, thrown)
