@@ -186,8 +186,17 @@ class PortableDataViewModel @Inject constructor(
     fun chooseAmbiguousCandidate(candidate: RestoreSourceCandidate) {
         if (_uiState.value.busy || _uiState.value.restoreStage != RestoreReconciliationStage.AMBIGUOUS) return
         val plan = _uiState.value.restorePlan ?: return
-        val item = plan.ambiguousMatches.getOrNull(_uiState.value.ambiguousIndex) ?: return
-        if (item.candidates.none { it.uri == candidate.uri }) return
+        val item = plan.ambiguousMatches.getOrNull(_uiState.value.ambiguousIndex)
+        if (item == null) {
+            recoverInvalidAmbiguousCursor(plan)
+            return
+        }
+        if (item.candidates.none { it.uri == candidate.uri }) {
+            _uiState.value = _uiState.value.copy(
+                message = "ตัวเลือกไฟล์ไม่ตรงกับหนังสือรายการปัจจุบัน กรุณาเลือกใหม่",
+            )
+            return
+        }
         if (isCandidateAlreadyAssigned(candidate)) {
             _uiState.value = _uiState.value.copy(
                 message = "ไฟล์นี้ถูกจับคู่กับหนังสือเล่มอื่นแล้ว กรุณาเลือกไฟล์อื่นหรือข้ามรายการนี้",
@@ -201,11 +210,30 @@ class PortableDataViewModel @Inject constructor(
     fun skipAmbiguousBook() {
         if (_uiState.value.busy || _uiState.value.restoreStage != RestoreReconciliationStage.AMBIGUOUS) return
         val plan = _uiState.value.restorePlan ?: return
-        val item = plan.ambiguousMatches.getOrNull(_uiState.value.ambiguousIndex) ?: return
+        val item = plan.ambiguousMatches.getOrNull(_uiState.value.ambiguousIndex)
+        if (item == null) {
+            recoverInvalidAmbiguousCursor(plan)
+            return
+        }
         _uiState.value = _uiState.value.copy(
             unresolvedBooks = (_uiState.value.unresolvedBooks + item.book).distinctBy { it.id },
         )
         advanceAmbiguous(plan)
+    }
+
+    /**
+     * Defensive recovery for a stale/out-of-range dialog cursor. Keep every affected book in
+     * the unresolved list instead of leaving the user in a dialog with no selectable candidate.
+     */
+    private fun recoverInvalidAmbiguousCursor(plan: RestoreSourcePlan) {
+        val remaining = plan.ambiguousMatches
+            .drop(_uiState.value.ambiguousIndex.coerceAtLeast(0))
+            .map { it.book }
+        _uiState.value = _uiState.value.copy(
+            restoreStage = RestoreReconciliationStage.NOT_FOUND,
+            unresolvedBooks = (_uiState.value.unresolvedBooks + remaining).distinctBy { it.id },
+            message = "รายการเลือกไฟล์เปลี่ยนแปลงระหว่าง Restore หนังสือที่เหลือถูกเก็บไว้เป็นรายการที่ยังไม่เชื่อมไฟล์",
+        )
     }
 
     private fun advanceAmbiguous(plan: RestoreSourcePlan) {
