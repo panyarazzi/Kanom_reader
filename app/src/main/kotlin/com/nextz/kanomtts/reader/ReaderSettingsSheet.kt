@@ -179,8 +179,6 @@ internal fun ReaderSettingsSheetContent(
             }
 
             Spacer(Modifier.height(16.dp))
-
-                Spacer(Modifier.height(16.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
