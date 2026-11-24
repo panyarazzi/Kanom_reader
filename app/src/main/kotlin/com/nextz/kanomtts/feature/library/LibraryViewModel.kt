@@ -156,6 +156,7 @@ class LibraryViewModel @Inject constructor(
                 path.substringBefore('/').takeIf(String::isNotBlank)
             }
         }.distinct().sortedWith(String.CASE_INSENSITIVE_ORDER)
+            .let { paths -> if (sortDescending) paths.reversed() else paths }
         val folders = childFolderPaths.map { path ->
             val descendantBooks = allCards.filter { card ->
                 val source = card.sourceFolder.orEmpty()
