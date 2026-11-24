@@ -1,5 +1,9 @@
 package com.nextz.kanomtts.feature.library
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nextz.kanomtts.data.db.BookEntity
@@ -19,11 +23,14 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
+
+private val libraryPresentationModeKey = stringPreferencesKey("library_presentation_mode")
 
 fun playingBookIsSelected(state: PlaybackState, selected: Set<String>): Boolean = when (state) {
     is PlaybackState.Playing -> state.bookId in selected
@@ -40,7 +47,32 @@ class LibraryViewModel @Inject constructor(
     private val playbackStopper: PlaybackStopper,
     private val bookTagDao: BookTagDao? = null,
     private val bookDao: BookDao? = null,
+    private val dataStore: DataStore<Preferences>? = null,
 ) : ViewModel() {
+
+    private var libraryModeExplicitlyChanged = false
+
+    init {
+        dataStore?.let { store ->
+            viewModelScope.launch {
+                val storedMode = store.data.map { preferences ->
+                    preferences[libraryPresentationModeKey]
+                        ?.let { runCatching { LibraryPresentationMode.valueOf(it) }.getOrNull() }
+                        ?: LibraryPresentationMode.FOLDER
+                }.first()
+                if (!libraryModeExplicitlyChanged) {
+                    _libraryMode.value = storedMode
+                    _groupMode.value = if (storedMode == LibraryPresentationMode.FOLDER) {
+                        LibraryGroupMode.FOLDER
+                    } else if (_groupMode.value == LibraryGroupMode.FOLDER) {
+                        LibraryGroupMode.NONE
+                    } else {
+                        _groupMode.value
+                    }
+                }
+            }
+        }
+    }
 
     private val _viewMode = MutableStateFlow(LibraryViewMode.GRID)
     private val _libraryMode = MutableStateFlow(LibraryPresentationMode.FOLDER)
@@ -230,7 +262,11 @@ class LibraryViewModel @Inject constructor(
 
     fun setViewMode(mode: LibraryViewMode) { _viewMode.value = mode }
     fun setLibraryMode(mode: LibraryPresentationMode) {
+        libraryModeExplicitlyChanged = true
         _libraryMode.value = mode
+        dataStore?.let { store ->
+            viewModelScope.launch { store.edit { preferences -> preferences[libraryPresentationModeKey] = mode.name } }
+        }
         _selectedFolder.value = null
         if (mode == LibraryPresentationMode.FOLDER) {
             _groupMode.value = LibraryGroupMode.FOLDER
