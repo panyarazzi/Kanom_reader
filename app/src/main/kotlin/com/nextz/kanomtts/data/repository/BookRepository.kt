@@ -8,6 +8,7 @@ class BookRepository @Inject constructor(private val dao: BookDao) : BookWriter,
     override suspend fun get(id: String): BookEntity? = dao.getById(id)
     override suspend fun add(book: BookEntity) = dao.upsert(book)
     override suspend fun isDuplicate(uri: String): Boolean = dao.existsUri(uri)
+    override suspend fun findBySha256(sha256: String): BookEntity? = dao.getBySha256(sha256)
     override suspend fun updateSource(bookId: String, uri: String, sha256: String?, sourceFolder: String?, sourceFileName: String?): Boolean {
         if (dao.getById(bookId) == null) return false
         dao.updateSource(bookId, uri, sha256, sourceFolder, sourceFileName)
