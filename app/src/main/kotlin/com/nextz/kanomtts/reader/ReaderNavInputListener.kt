@@ -22,7 +22,6 @@ class ReaderNavInputListener(
     private val swipeThresholdPx: Float,
     private val viewportWidthPx: () -> Float,
     private val viewportHeightPx: () -> Float,
-    private val centerMenuFraction: Float = 0.34f,
     tapAnywhereToNext: Boolean = false,
 ) : InputListener {
     @Volatile
@@ -40,7 +39,6 @@ class ReaderNavInputListener(
             width = viewportWidthPx(),
             height = viewportHeightPx(),
             tapAnywhereToNext = tapAnywhereToNextEnabled,
-            centerMenuFraction = centerMenuFraction,
         )) {
             ReaderTapAction.TOGGLE_CHROME -> onToggleChrome()
             ReaderTapAction.PREVIOUS_PAGE -> onPrevPage()
@@ -60,25 +58,24 @@ class ReaderNavInputListener(
 }
 
 /**
- * Reserve a full-height vertical strip in the horizontal center for the reader menu.
- *
- * Do not constrain Y to a small center rectangle: with "tap anywhere to next" enabled,
- * a tap at the horizontal center but slightly above/below the geometric midpoint must
- * still open the menu, never turn the page.
+ * The center cell of a proportional 3×3 screen grid is reserved for the reader menu.
+ * Boundaries are half-open so a tap exactly on a grid line always resolves consistently.
  */
-internal fun isCenterMenuTap(x: Float, y: Float, width: Float, height: Float, fraction: Float = 0.34f): Boolean {
+internal fun isCenterMenuTap(x: Float, y: Float, width: Float, height: Float): Boolean {
     if (width <= 0f || height <= 0f) return true
-    val zone = fraction.coerceIn(0.05f, 0.8f)
-    val halfWidth = width * zone / 2f
-    return x in (width / 2f - halfWidth)..(width / 2f + halfWidth)
+    return x >= width / 3f && x < width * 2f / 3f &&
+        y >= height / 3f && y < height * 2f / 3f
 }
 
 /** Reader action for an unhandled tap after EPUB links/selections have been given priority. */
 internal enum class ReaderTapAction { TOGGLE_CHROME, PREVIOUS_PAGE, NEXT_PAGE }
 
 /**
- * The center menu zone is always reserved. With tap-anywhere enabled, every other
- * unhandled tap advances. Otherwise the left and right screen areas turn backward/forward.
+ * 3×3 navigation:
+ * - center cell: menu
+ * - left column + top-middle: Previous
+ * - right column + bottom-middle: Next
+ * When tap-anywhere is enabled, all eight outer cells advance.
  */
 internal fun resolveReaderTapAction(
     x: Float,
@@ -86,8 +83,15 @@ internal fun resolveReaderTapAction(
     width: Float,
     height: Float,
     tapAnywhereToNext: Boolean,
-    centerMenuFraction: Float = 0.34f,
-): ReaderTapAction =
+): ReaderTapAction = when {
+    isCenterMenuTap(x, y, width, height) -> ReaderTapAction.TOGGLE_CHROME
+    tapAnywhereToNext -> ReaderTapAction.NEXT_PAGE
+    width <= 0f || height <= 0f -> ReaderTapAction.TOGGLE_CHROME
+    x < width / 3f -> ReaderTapAction.PREVIOUS_PAGE
+    x >= width * 2f / 3f -> ReaderTapAction.NEXT_PAGE
+    y < height / 3f -> ReaderTapAction.PREVIOUS_PAGE
+    else -> ReaderTapAction.NEXT_PAGE
+}
     when {
         isCenterMenuTap(x, y, width, height, centerMenuFraction) -> ReaderTapAction.TOGGLE_CHROME
         tapAnywhereToNext -> ReaderTapAction.NEXT_PAGE
