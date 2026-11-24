@@ -328,6 +328,10 @@ fun SettingsScreen(
                                         else "${candidate.name} · $sizeLabel",
                                     )
                                     Text(candidate.sourceFolder.orEmpty(), style = MaterialTheme.typography.bodySmall)
+                                    if (!alreadyAssigned) {
+                                        Text("แตะเพื่อใช้ไฟล์นี้", style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.primary)
+                                    }
                                 }
                             }
                         }
