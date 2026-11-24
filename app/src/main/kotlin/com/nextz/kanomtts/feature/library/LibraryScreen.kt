@@ -4,6 +4,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.stickyHeader
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material.icons.Icons
@@ -214,6 +217,7 @@ fun LibraryScreen(
  * Pure-state library content: search bar / selection bar, view-mode toggle, continue-hero, book list.
  * No ViewModel reference — safe to use in @Preview.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LibraryContent(
     state: LibraryUiState,
@@ -354,8 +358,10 @@ fun LibraryContent(
 
         if (!state.isSelectionMode) {
             if (statistics != null) {
-                item(key = "library-reading-statistics-and-listening") {
-                    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
+                stickyHeader(key = "library-reading-statistics-and-listening") {
+                    androidx.compose.foundation.layout.BoxWithConstraints(
+                        Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(vertical = 4.dp),
+                    ) {
                         val listeningVisible = playbackState?.visible == true
                         if (listeningVisible && maxWidth >= 720.dp) {
                             Row(
