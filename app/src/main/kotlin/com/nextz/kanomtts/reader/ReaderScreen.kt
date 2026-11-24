@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlin.math.sqrt
+import java.util.concurrent.atomic.AtomicBoolean
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
@@ -349,13 +350,18 @@ private fun ReaderContent(
     val activity = LocalActivity.current as FragmentActivity
     val containerId = rememberSaveable { View.generateViewId() }
     val tag = "reader-$bookId"
+    // A posted AndroidView update may run after Compose has disposed this host.
+    // The guard prevents late fragment commits/bindings against a stale container.
+    val fragmentHostActive = remember(tag) { AtomicBoolean(true) }
 
     // Remove the fragment when this composable leaves composition (back-press, nav pop, etc.)
     // so that a re-entry always commits a fresh fragment into the new FragmentContainerView.
     // commitNowAllowingStateLoss is synchronous (no re-open race) and safe even when state is
     // saved (config change / process backgrounding).
     DisposableEffect(activity, tag) {
+        fragmentHostActive.set(true)
         onDispose {
+            fragmentHostActive.set(false)
             val fm = activity.supportFragmentManager
             fm.findFragmentByTag(tag)?.let { frag ->
                 (frag as? EpubNavigatorFragment)?.let { viewModel.unbindNavigator(it) }
@@ -423,12 +429,12 @@ private fun ReaderContent(
         modifier = Modifier.fillMaxSize(),
         factory = { ctx -> FragmentContainerView(ctx).apply { id = containerId } },
         update = { container ->
-            // View.post queues until the container is attached to the window, so the commit is
-            // safe pre-attach. commitNow() executes synchronously, so the fragment is immediately
-            // retrievable and the findFragmentByTag guard + commit are atomic on the main
-            // thread — this closes the latent double-commit race from Task 2.
+            // The posted update is asynchronous. Disposal can happen before it executes, so
+            // re-check the host token inside the runnable before touching FragmentManager.
             container.post {
+                if (!fragmentHostActive.get() || activity.isFinishing || activity.isDestroyed) return@post
                 val fm = activity.supportFragmentManager
+                if (fm.isDestroyed) return@post
                 if (fm.findFragmentByTag(tag) == null) {
                     fm.fragmentFactory = state.fragmentFactory
                     fm.beginTransaction()
@@ -438,7 +444,8 @@ private fun ReaderContent(
                 // Hand the navigator to the VM so it can collect currentLocator.
                 // Hard cast: the fragment was just committed under this unique tag via
                 // commitNow, so it is guaranteed present and of this type — fail loudly if not.
-                val nav = fm.findFragmentByTag(tag) as EpubNavigatorFragment
+                if (!fragmentHostActive.get()) return@post
+                val nav = fm.findFragmentByTag(tag) as? EpubNavigatorFragment ?: return@post
                 viewModel.bindNavigator(nav)
             }
         },
