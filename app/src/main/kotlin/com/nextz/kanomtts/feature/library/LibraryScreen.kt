@@ -65,8 +65,8 @@ import java.io.File
 // ─── VM-bound entry point ───────────────────────────────────────────────────────
 
 /**
- * Folder Library test mode: supports recursive folder import and individual EPUB import
- * through separate floating actions, while retaining the real source-folder hierarchy.
+ * Supports Classic Library (single-EPUB import) and Folder Library (recursive import)
+ * while retaining the real source-folder hierarchy and shared Library features.
  */
 @Composable
 fun LibraryScreen(
@@ -324,17 +324,13 @@ fun LibraryContent(
                             Box(Modifier.weight(1f)) {
                                 BrandHeader(modifier = Modifier.fillMaxWidth())
                             }
-                            Column(Modifier.weight(1.35f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Column(Modifier.weight(1.35f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 LibrarySearchBar(
                                     query = state.query,
                                     onQueryChange = onQueryChange,
                                     modifier = Modifier.fillMaxWidth(),
                                 )
-                                Row(
-                                    Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.End,
-                                ) {
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                     FilterChip(
                                         selected = state.libraryMode == LibraryMode.CLASSIC,
                                         onClick = { onLibraryMode(LibraryMode.CLASSIC) },
@@ -345,6 +341,8 @@ fun LibraryContent(
                                         onClick = { onLibraryMode(LibraryMode.FOLDER) },
                                         label = { Text("Folder") },
                                     )
+                                }
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                     Spacer(Modifier.weight(1f))
                                     ViewModeToggle(mode = state.viewMode, onSelect = onViewMode)
                                     TextButton(onClick = { showOrganizationControls = !showOrganizationControls }) {
@@ -361,10 +359,7 @@ fun LibraryContent(
                                 onQueryChange = onQueryChange,
                                 modifier = Modifier.fillMaxWidth(),
                             )
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 FilterChip(
                                     selected = state.libraryMode == LibraryMode.CLASSIC,
                                     onClick = { onLibraryMode(LibraryMode.CLASSIC) },
@@ -375,6 +370,8 @@ fun LibraryContent(
                                     onClick = { onLibraryMode(LibraryMode.FOLDER) },
                                     label = { Text("Folder") },
                                 )
+                            }
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 Spacer(Modifier.weight(1f))
                                 ViewModeToggle(mode = state.viewMode, onSelect = onViewMode)
                                 TextButton(onClick = { showOrganizationControls = !showOrganizationControls }) {
