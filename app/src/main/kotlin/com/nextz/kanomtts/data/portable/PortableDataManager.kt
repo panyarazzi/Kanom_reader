@@ -317,29 +317,64 @@ class PortableDataManager @Inject constructor(
         requireStorageAccess()
         currentCoroutineContext().ensureActive()
         check(latestBackup.isFile) { "ไม่พบไฟล์สำรอง Kanom" }
-        val entries = mutableMapOf<String, ByteArray>()
-        // Read only metadata and covers. Legacy EPUB payloads in older backups are never opened.
-        ZipFile(latestBackup).use { zip ->
-            val zipEntries = zip.entries()
-            var totalRestoredBytes = 0L
-            while (zipEntries.hasMoreElements()) {
-                currentCoroutineContext().ensureActive()
-                val entry = zipEntries.nextElement()
-                if (entry.isDirectory || !isRestorablePortableEntry(entry.name)) continue
-                require(entry.size >= 0L && entry.size <= MAX_ENTRY_BYTES) {
-                    "ไฟล์ในชุดสำรองมีขนาดใหญ่เกินกำหนดหรือไม่ทราบขนาด"
-                }
-                require(entry.name !in entries) { "ไฟล์สำรองมีรายการซ้ำ: ${entry.name}" }
-                totalRestoredBytes += entry.size
-                require(totalRestoredBytes <= MAX_TOTAL_RESTORE_BYTES) {
-                    "ข้อมูลที่ต้องกู้คืนมีขนาดรวมเกินกำหนด"
-                }
-                val bytes = zip.getInputStream(entry).use { it.readBytes() }
-                require(bytes.size.toLong() == entry.size) { "ข้อมูลใน ZIP ไม่สมบูรณ์: ${entry.name}" }
-                entries[entry.name] = bytes
-            }
+        val restoreTempDir = File(context.cacheDir, "restore-${System.nanoTime()}").apply {
+            check(mkdirs()) { "สร้างพื้นที่เตรียม Restore ไม่สำเร็จ" }
         }
-        val json = JSONObject(String(entries["data.json"] ?: error("ไฟล์สำรองไม่มี data.json"), Charsets.UTF_8))
+        val promotedCoverFiles = mutableListOf<File>()
+        var restoreSucceeded = false
+        try {
+            var dataJson: ByteArray? = null
+            val stagedCovers = mutableMapOf<String, File>()
+            val seenEntries = mutableSetOf<String>()
+            // Stream cover entries to temporary files instead of retaining every cover byte
+            // array in heap. Legacy EPUB payloads in older backups are never opened.
+            ZipFile(latestBackup).use { zip ->
+                val zipEntries = zip.entries()
+                var totalRestoredBytes = 0L
+                var coverIndex = 0
+                while (zipEntries.hasMoreElements()) {
+                    currentCoroutineContext().ensureActive()
+                    val entry = zipEntries.nextElement()
+                    if (entry.isDirectory || !isRestorablePortableEntry(entry.name)) continue
+                    val entryLimit = if (entry.name == "data.json") MAX_METADATA_BYTES else MAX_ENTRY_BYTES
+                    require(entry.size >= 0L && entry.size <= entryLimit) {
+                        "ไฟล์ในชุดสำรองมีขนาดใหญ่เกินกำหนดหรือไม่ทราบขนาด"
+                    }
+                    require(seenEntries.add(entry.name)) { "ไฟล์สำรองมีรายการซ้ำ: ${entry.name}" }
+                    totalRestoredBytes += entry.size
+                    require(totalRestoredBytes <= MAX_TOTAL_RESTORE_BYTES) {
+                        "ข้อมูลที่ต้องกู้คืนมีขนาดรวมเกินกำหนด"
+                    }
+                    zip.getInputStream(entry).use { input ->
+                        if (entry.name == "data.json") {
+                            val bytes = input.readBytes()
+                            require(bytes.size.toLong() == entry.size) { "ข้อมูลใน ZIP ไม่สมบูรณ์: ${entry.name}" }
+                            dataJson = bytes
+                        } else {
+                            val stagedFile = File(restoreTempDir, "cover-${coverIndex++}.tmp")
+                            var copied = 0L
+                            FileOutputStream(stagedFile).use { output ->
+                                val buffer = ByteArray(64 * 1024)
+                                while (true) {
+                                    currentCoroutineContext().ensureActive()
+                                    val count = input.read(buffer)
+                                    if (count < 0) break
+                                    if (count > 0) {
+                                        copied += count
+                                        require(copied <= entry.size && copied <= MAX_ENTRY_BYTES) {
+                                            "ข้อมูลใน ZIP มีขนาดเกินที่ระบุ: ${entry.name}"
+                                        }
+                                        output.write(buffer, 0, count)
+                                    }
+                                }
+                            }
+                            require(copied == entry.size) { "ข้อมูลใน ZIP ไม่สมบูรณ์: ${entry.name}" }
+                            stagedCovers[entry.name] = stagedFile
+                        }
+                    }
+                }
+            }
+            val json = JSONObject(String(dataJson ?: error("ไฟล์สำรองไม่มี data.json"), Charsets.UTF_8))
         require(json.optInt("formatVersion", -1) == FORMAT_VERSION) { "เวอร์ชันไฟล์สำรองนี้ไม่รองรับ" }
         val bookArray = json.getJSONArray("books")
         val backupBookObjects = (0 until bookArray.length()).map { bookArray.getJSONObject(it) }
@@ -395,13 +430,16 @@ class PortableDataManager @Inject constructor(
             val o = bookArray.getJSONObject(i)
             val id = o.getString("id")
             val coverEntry = o.optString("coverEntry").takeIf { it.isNotBlank() && it != "null" }
-            val coverBytes = coverEntry?.let(entries::get)
+            val stagedCover = coverEntry?.let(stagedCovers::get)
             // Ignore legacy portableEpub pointers. Preserve the original URI for explicit relinking.
             val restoredUri = o.getString("uri")
-            val coverPath = coverBytes?.let { bytes ->
+            val coverPath = stagedCover?.let { staged ->
                 val dir = File(context.filesDir, "covers")
                 check(dir.exists() || dir.mkdirs()) { "สร้างโฟลเดอร์ภาพปกไม่สำเร็จ" }
-                File(dir, "${safeName(id)}.bin").apply { writeBytes(bytes) }.absolutePath
+                val destination = File(dir, "restored-${safeName(id)}-${System.nanoTime()}.bin")
+                promotedCoverFiles += destination
+                Files.copy(staged.toPath(), destination.toPath())
+                destination.absolutePath
             }
             val source = sourceMappings[id]
             if (source != null) {
@@ -516,7 +554,12 @@ class PortableDataManager @Inject constructor(
             }
             throw failure
         }
+        restoreSucceeded = true
         PortableBackupSummary(books.size, progress.size, bookmarks.size, rules.size, voices.size, tags.size, notes.size, sessions.size, latestBackup.absolutePath)
+        } finally {
+            restoreTempDir.deleteRecursively()
+            if (!restoreSucceeded) promotedCoverFiles.forEach { file -> runCatching { file.delete() } }
+        }
     }
 
     private fun requireStorageAccess() {
@@ -575,6 +618,7 @@ class PortableDataManager @Inject constructor(
     companion object {
         private const val FORMAT_VERSION = 1
         private const val MAX_ENTRY_BYTES = 512 * 1024 * 1024
+        private const val MAX_METADATA_BYTES = 16 * 1024 * 1024
         private const val MAX_TOTAL_RESTORE_BYTES = 768L * 1024L * 1024L
     }
 }
