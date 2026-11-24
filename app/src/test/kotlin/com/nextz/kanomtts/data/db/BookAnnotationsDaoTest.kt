@@ -35,13 +35,13 @@ class BookAnnotationsDaoTest : RoomTestBase() {
     }
     @Test fun `manual reading status persists separately from reading locator progress`() = runTest {
         db.bookDao().upsert(book())
-        db.progressDao().upsert(ProgressEntity("b1", "{\\\"href\\\":\\\"chapter.xhtml\\\"}", null, 0.97f, 20L))
+        db.progressDao().upsert(ProgressEntity("b1", "locator-snapshot", null, 0.97f, 20L))
 
         db.bookDao().updateReadingStatus("b1", "TO_READ")
 
         assertEquals("TO_READ", db.bookDao().getById("b1")?.readingStatus)
         assertEquals(0.97f, db.progressDao().get("b1")?.percent ?: 0f)
-        assertEquals("{\\\"href\\\":\\\"chapter.xhtml\\\"}", db.progressDao().get("b1")?.locator)
+        assertEquals("locator-snapshot", db.progressDao().get("b1")?.locator)
     }
 
 
