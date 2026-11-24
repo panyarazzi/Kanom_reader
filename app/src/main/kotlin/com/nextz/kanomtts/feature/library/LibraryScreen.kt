@@ -256,6 +256,7 @@ fun LibraryContent(
     modifier: Modifier = Modifier,
 ) {
     var showConfirm by remember { mutableStateOf(false) }
+    var showContinueList by remember { mutableStateOf(false) }
     var contextBook by remember { mutableStateOf<BookCard?>(null) }
     var detailsBook by remember { mutableStateOf<BookCard?>(null) }
     var removeBook by remember { mutableStateOf<BookCard?>(null) }
@@ -438,6 +439,24 @@ fun LibraryContent(
                                         onLongPress = { if (state.isSelectionMode) onToggleSelection(card.id) else contextBook = card },
                                         modifier = Modifier.width(104.dp),
                                     )
+                                }
+                                if (state.continueCards.size > 4) {
+                                    Card(
+                                        modifier = Modifier.width(104.dp).clickable { showContinueList = true },
+                                    ) {
+                                        Column(
+                                            Modifier.fillMaxWidth().padding(8.dp),
+                                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                                        ) {
+                                            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                                                state.continueCards.take(4).forEach { card ->
+                                                    CoverImage(card.coverPath, Modifier.weight(1f).height(46.dp))
+                                                }
+                                            }
+                                            Text("อ่านต่อทั้งหมด", style = MaterialTheme.typography.labelMedium)
+                                            Text("${state.continueCards.size} เล่ม", style = MaterialTheme.typography.titleMedium)
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -687,6 +706,43 @@ fun LibraryContent(
         }
 
 
+    }
+
+    if (showContinueList) {
+        AlertDialog(
+            onDismissRequest = { showContinueList = false },
+            title = { Text("อ่านต่อทั้งหมด (${state.continueCards.size} เล่ม)") },
+            text = {
+                Column(
+                    Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    state.continueCards.forEach { card ->
+                        Row(
+                            Modifier.fillMaxWidth().clickable {
+                                showContinueList = false
+                                onOpenBook(card.id)
+                            }.padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            CoverImage(card.coverPath, Modifier.width(42.dp).height(58.dp))
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(card.title, style = MaterialTheme.typography.bodyMedium)
+                                card.author?.takeIf { it.isNotBlank() }?.let {
+                                    Text("ผู้แต่ง: $it", style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Text("${(card.percent * 100).toInt()}%",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showContinueList = false }) { Text("Done") } },
+        )
     }
 
     contextBook?.let { book ->
