@@ -142,6 +142,7 @@ fun KanomApp(
                     contentPadding = padding,
                     onOpenReplacements = { navController.navigate("replacements") },
                     onOpenAdvanced = { navController.navigate("advanced_settings") },
+                    onOpenBackupRestore = { navController.navigate("backup_restore") },
                 )
             }
             composable("backup_restore") {
