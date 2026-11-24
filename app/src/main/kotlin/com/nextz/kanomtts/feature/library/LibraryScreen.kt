@@ -304,7 +304,51 @@ fun LibraryContent(
                     onDelete = { showConfirm = true },
                 )
             } else {
-                BrandHeader(modifier = Modifier.fillMaxWidth())
+                androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
+                    @Composable
+                    fun SearchAndControls() {
+                        LibrarySearchBar(
+                            query = state.query,
+                            onQueryChange = onQueryChange,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            ViewModeToggle(mode = state.viewMode, onSelect = onViewMode)
+                            Spacer(Modifier.weight(1f))
+                            TextButton(onClick = { showOrganizationControls = !showOrganizationControls }) {
+                                Text(if (showOrganizationControls) "ปิดตัวกรอง" else "จัดกลุ่ม/เรียง")
+                            }
+                        }
+                        if (showOrganizationControls) {
+                            OrganizationControlsPanel(
+                                state, onGroupMode, onSortMode, onSortDescending,
+                                onSecondarySortMode, onShowFilename,
+                                groupMenuExpanded, { groupMenuExpanded = it },
+                                sortMenuExpanded, { sortMenuExpanded = it },
+                                secondarySortMenuExpanded, { secondarySortMenuExpanded = it },
+                            )
+                        }
+                    }
+                    if (maxWidth >= 560.dp) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(Modifier.weight(1f)) {
+                                BrandHeader(modifier = Modifier.fillMaxWidth())
+                            }
+                            Column(Modifier.weight(1.45f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                SearchAndControls()
+                            }
+                        }
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            BrandHeader(modifier = Modifier.fillMaxWidth())
+                            SearchAndControls()
+                        }
+                    }
+                }
             }
         }
 
@@ -350,33 +394,6 @@ fun LibraryContent(
                                 }
                             }
                         }
-                    }
-                }
-            }
-            item(key = "library-search") {
-                LibrarySearchBar(
-                    query = state.query,
-                    onQueryChange = onQueryChange,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            if (state.groupMode != LibraryGroupMode.FOLDER) {
-                item(key = "library-organization-toolbar") {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        ViewModeToggle(mode = state.viewMode, onSelect = onViewMode)
-                        Spacer(Modifier.weight(1f))
-                        TextButton(onClick = { showOrganizationControls = !showOrganizationControls }) {
-                            Text(if (showOrganizationControls) "ปิดตัวกรอง" else "จัดกลุ่ม/เรียง")
-                        }
-                    }
-                    if (showOrganizationControls) {
-                        OrganizationControlsPanel(
-                            state, onGroupMode, onSortMode, onSortDescending,
-                            onSecondarySortMode, onShowFilename,
-                            groupMenuExpanded, { groupMenuExpanded = it },
-                            sortMenuExpanded, { sortMenuExpanded = it },
-                            secondarySortMenuExpanded, { secondarySortMenuExpanded = it },
-                        )
                     }
                 }
             }
@@ -484,10 +501,6 @@ fun LibraryContent(
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.weight(1f),
                         )
-                        ViewModeToggle(mode = state.viewMode, onSelect = onViewMode)
-                        TextButton(onClick = { showOrganizationControls = !showOrganizationControls }) {
-                            Text(if (showOrganizationControls) "ปิดตัวกรอง" else "จัดกลุ่ม/เรียง")
-                        }
                         if (state.selectedFolder != null) {
                             TextButton(onClick = {
                                 onFolderFilter(state.selectedFolder.substringBeforeLast('/', "").ifBlank { null })
