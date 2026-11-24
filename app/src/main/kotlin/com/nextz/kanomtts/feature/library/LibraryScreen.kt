@@ -397,48 +397,56 @@ fun LibraryContent(
                     }
                 }
             }
-            if (state.continueCards.isNotEmpty() || state.continueCard != null) {
-                item(key = "library-continue-reading") {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("อ่านต่อ", style = MaterialTheme.typography.titleMedium)
-                        Row(
-                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            (state.continueCards.ifEmpty { listOfNotNull(state.continueCard) }).take(4).forEach { card ->
-                                BookGridItem(
-                                    card = card,
-                                    isSelectionMode = false,
-                                    isSelected = false,
-                                    onClick = { onOpenBook(card.id) },
-                                    onToggle = { onToggleSelection(card.id) },
-                                    onLongPress = { if (state.isSelectionMode) onToggleSelection(card.id) else contextBook = card },
-                                    modifier = Modifier.width(104.dp),
-                                )
+            item(key = "library-continue-and-shelves") {
+                androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
+                    val continueContent: @Composable () -> Unit = {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("อ่านต่อ", style = MaterialTheme.typography.titleMedium)
+                            Row(
+                                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                (state.continueCards.ifEmpty { listOfNotNull(state.continueCard) }).take(4).forEach { card ->
+                                    BookGridItem(
+                                        card = card,
+                                        isSelectionMode = false,
+                                        isSelected = false,
+                                        onClick = { onOpenBook(card.id) },
+                                        onToggle = { onToggleSelection(card.id) },
+                                        onLongPress = { if (state.isSelectionMode) onToggleSelection(card.id) else contextBook = card },
+                                        modifier = Modifier.width(104.dp),
+                                    )
+                                }
                             }
                         }
                     }
-                }
-            }
-            item(key = "library-shelves") {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("ชั้นหนังสือ", style = MaterialTheme.typography.titleMedium)
-                    Row(
-                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                    ShelfCard("กำลังอ่าน", state.readingCount, state.selectedShelf == LibraryShelf.READING) {
-                        onShelfFilter(LibraryShelf.READING)
+                    val shelvesContent: @Composable () -> Unit = {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("Shelves", style = MaterialTheme.typography.titleMedium)
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                ShelfCard("กำลังอ่าน", state.readingCount, state.selectedShelf == LibraryShelf.READING,
+                                    { onShelfFilter(LibraryShelf.READING) }, Modifier.weight(1f))
+                                ShelfCard("รออ่าน", state.toReadCount, state.selectedShelf == LibraryShelf.TO_READ,
+                                    { onShelfFilter(LibraryShelf.TO_READ) }, Modifier.weight(1f))
+                            }
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                ShelfCard("ซีรีส์ / ชุด", state.seriesCount, state.selectedShelf == LibraryShelf.SERIES,
+                                    { onShelfFilter(LibraryShelf.SERIES) }, Modifier.weight(1f))
+                                ShelfCard("อ่านจบแล้ว", state.finishedCount, state.selectedShelf == LibraryShelf.FINISHED,
+                                    { onShelfFilter(LibraryShelf.FINISHED) }, Modifier.weight(1f))
+                            }
+                        }
                     }
-                    ShelfCard("รออ่าน", state.toReadCount, state.selectedShelf == LibraryShelf.TO_READ) {
-                        onShelfFilter(LibraryShelf.TO_READ)
-                    }
-                    ShelfCard("ซีรีส์/ชุด", state.seriesCount, state.selectedShelf == LibraryShelf.SERIES) {
-                        onShelfFilter(LibraryShelf.SERIES)
-                    }
-                    ShelfCard("อ่านจบแล้ว", state.finishedCount, state.selectedShelf == LibraryShelf.FINISHED) {
-                        onShelfFilter(LibraryShelf.FINISHED)
-                    }
+                    if (maxWidth >= 720.dp) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Box(Modifier.weight(2f)) { continueContent() }
+                            Box(Modifier.weight(1f)) { shelvesContent() }
+                        }
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            continueContent()
+                            shelvesContent()
+                        }
                     }
                 }
             }
