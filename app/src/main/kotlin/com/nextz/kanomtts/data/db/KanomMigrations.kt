@@ -61,3 +61,9 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
         db.execSQL("CREATE TABLE IF NOT EXISTS book_tag_library (tag TEXT NOT NULL PRIMARY KEY)")
     }
 }
+
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE books ADD COLUMN readingStatus TEXT")
+    }
+}
