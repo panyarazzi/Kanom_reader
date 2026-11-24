@@ -1,0 +1,68 @@
+package com.nextz.kanomtts.data.portable
+
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
+import org.junit.Assert.assertThrows
+import org.junit.Test
+
+class CompensatingRollbackTest {
+    @Test
+    fun failureRestoresTheSnapshotBeforePropagating() = runTest {
+        var storedValue = "before"
+        val failure = IllegalStateException("database transaction failed")
+
+        val thrown = assertThrows(IllegalStateException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                withCompensatingRollback(
+                    snapshot = { storedValue },
+                    operation = {
+                        storedValue = "restored"
+                        throw failure
+                    },
+                    rollback = { previous -> storedValue = previous },
+                )
+            }
+        }
+
+        assertSame(failure, thrown)
+        assertEquals("before", storedValue)
+    }
+
+    @Test
+    fun successfulOperationDoesNotRunRollback() = runTest {
+        var storedValue = "before"
+        val result = withCompensatingRollback(
+            snapshot = { storedValue },
+            operation = {
+                storedValue = "restored"
+                "ok"
+            },
+            rollback = { previous -> storedValue = previous },
+        )
+
+        assertEquals("ok", result)
+        assertEquals("restored", storedValue)
+    }
+
+    @Test
+    fun rollbackFailureIsAttachedToOriginalFailure() = runTest {
+        var storedValue = "before"
+        val original = IllegalStateException("primary failure")
+        val rollbackFailure = IllegalArgumentException("rollback failure")
+
+        val thrown = try {
+            withCompensatingRollback(
+                snapshot = { storedValue },
+                operation = { storedValue = "changed"; throw original },
+                rollback = { throw rollbackFailure },
+            )
+            error("Expected restore failure")
+        } catch (failure: IllegalStateException) {
+            failure
+        }
+
+        assertSame(original, thrown)
+        assertEquals(listOf(rollbackFailure), thrown.suppressed.toList())
+    }
+}
