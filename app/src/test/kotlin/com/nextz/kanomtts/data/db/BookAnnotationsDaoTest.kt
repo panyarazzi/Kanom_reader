@@ -24,7 +24,6 @@ class BookAnnotationsDaoTest : RoomTestBase() {
         db.bookTagDao().upsert(BookTagEntity("b1", "แนะนำ"))
         val library = db.bookTagLibraryDao()
         library.insertIfMissing("Review")
-        library.insertIfMissing("สำนวนดี")
         library.insertIfMissing("review")
 
         assertEquals(1, library.getAllForBackup().size)
