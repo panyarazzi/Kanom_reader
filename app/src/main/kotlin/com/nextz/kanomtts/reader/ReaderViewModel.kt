@@ -225,7 +225,7 @@ class ReaderViewModel @Inject constructor(
 
     /** Mirrors KanomPreferences.reverseVolumeKeys; OFF keeps Up=Next and Down=Previous. */
     private var reverseVolumeKeys: Boolean = false
-    /** Live tap mode; false preserves the original centered menu activation zone. */
+    /** When enabled, all eight outer 3×3 cells advance; the center cell remains the menu. */
     private var tapAnywhereToNext: Boolean = false
 
     /** Buffer up to 1 pending locator; oldest dropped so tryEmit always keeps the latest value. */
@@ -581,12 +581,15 @@ class ReaderViewModel @Inject constructor(
         }
         if (!supported) return false
 
-        // Do not consume key-up or repeat events: G7S may use the long-press sequence
-        // for a device action (for example, front-light toggle). Only the initial down
-        // is a page-turn command, so holding a key cannot repeat page turns.
-        if (event.action == android.view.KeyEvent.ACTION_UP) return false
-        if (event.action != android.view.KeyEvent.ACTION_DOWN) return false
-        if (event.repeatCount > 0 || event.isLongPress) return false
+        // Consume repeated DOWN events without turning pages. Returning false here
+        // lets the same held key fall through to Readium/the platform's next dispatcher,
+        // which can repeat the page turn even though this ViewModel ignores the repeat.
+        // Keep UP unconsumed so device firmware can finish any key-release action.
+        when (hardwareKeyDisposition(event.action, event.repeatCount, event.isLongPress)) {
+            HardwareKeyDisposition.IGNORE -> return false
+            HardwareKeyDisposition.CONSUME -> return true
+            HardwareKeyDisposition.PAGE_TURN -> Unit
+        }
 
         return when (keyCode) {
             android.view.KeyEvent.KEYCODE_DPAD_LEFT,
@@ -976,3 +979,18 @@ class ReaderViewModel @Inject constructor(
 /** OFF: Volume Up advances and Volume Down goes back. ON: reverse those directions. */
 internal fun volumeKeyMovesForward(keyCode: Int, reversed: Boolean): Boolean =
     (keyCode == android.view.KeyEvent.KEYCODE_VOLUME_UP) xor reversed
+
+
+/** What the reader should do with a supported hardware key event. */
+internal enum class HardwareKeyDisposition { IGNORE, CONSUME, PAGE_TURN }
+
+/**
+ * A held key may generate repeated ACTION_DOWN events. Consume those events so they cannot
+ * fall through to Readium and trigger its own key-repeat page navigation.
+ */
+internal fun hardwareKeyDisposition(action: Int, repeatCount: Int, isLongPress: Boolean): HardwareKeyDisposition =
+    when {
+        action != android.view.KeyEvent.ACTION_DOWN -> HardwareKeyDisposition.IGNORE
+        repeatCount > 0 || isLongPress -> HardwareKeyDisposition.CONSUME
+        else -> HardwareKeyDisposition.PAGE_TURN
+    }

@@ -14,7 +14,7 @@ relinks the existing book to the original EPUB.
 
 ## Existing data inventory
 
-- Room database `kanom.db`, schema v6:
+- Room database `kanom.db`, schema v9:
   - `books`: stable ID, source URI, metadata, cover path, file size,
     SHA-256 fingerprint, original source filename, source-folder path
   - `progress`: exact Readium locator JSON, TTS locator JSON, percent, updatedAt
@@ -65,7 +65,10 @@ does not open EPUBs for copying and does not create EPUB copy counters or an
 
 - The user must confirm before current app data is replaced.
 - Validate the ZIP metadata entries, JSON structure, references, and format
-  version.
+  version. `data.json` is capped at 32 MiB before parsing.
+- Stream cover entries into a temporary cache staging directory; never retain
+  every decompressed cover image in the app heap at once. Promote covers using
+  unique filenames and remove newly promoted files if the database restore fails.
 - Restore all Room tables inside one Room transaction.
 - Restore DataStore preferences and cover images.
 - Only `data.json` and `covers/` entries are restored. Unknown ZIP entries are
@@ -119,7 +122,8 @@ to Play Store.
    settings, voice configs, global/per-book replacement rules, tags, notes,
    reading sessions, SHA-256 values, and folder/source filename metadata.
 3. Verify exact locator strings and percentages round-trip.
-4. Verify covers are restored and display after app reinstall.
+4. Verify covers are restored and display after app reinstall, including a backup
+   containing many or large cover images on a low-heap Android device.
 5. Inspect the ZIP: it contains `data.json` and cover entries, but no EPUB
    entries or `Kanom/books` payload.
 6. Restore a legacy ZIP containing `portableEpub` or `Kanom/books` entries;
@@ -173,7 +177,14 @@ Additional acceptance checks:
 15. Kill the app during automatic restore and relaunch; verify interrupted
     restore is retried and completes.
 16. Use a corrupt or unsupported ZIP; verify startup reports failure and offers
-    retry or continue, without claiming success.
+    retry or continue, without claiming success. Choosing Continue must stop the
+    same failed automatic recovery from repeating on every cold start; Retry
+    remains an explicit action.
+17. Cancel a manual restore during cover staging; verify temporary and newly
+    promoted cover files are cleaned up and current Room/DataStore data remains.
+18. When only one legacy candidate is plausible, show an explicit Use this file
+    action. If that candidate is already assigned to another book, explain why
+    it cannot be reused instead of silently ignoring the tap.
 17. Grant access when no backup exists; verify the app proceeds to the library
     without getting stuck in the startup gate.
 

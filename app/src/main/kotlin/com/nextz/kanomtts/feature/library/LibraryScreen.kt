@@ -3,12 +3,14 @@ package com.nextz.kanomtts.feature.library
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -20,13 +22,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.stickyHeader
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.FilterChip
@@ -34,6 +41,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -47,6 +55,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
@@ -61,8 +70,8 @@ import java.io.File
 // ─── VM-bound entry point ───────────────────────────────────────────────────────
 
 /**
- * Folder Library test mode: supports recursive folder import and individual EPUB import
- * through separate floating actions, while retaining the real source-folder hierarchy.
+ * Supports Classic Library (single-EPUB import) and Folder Library (recursive import)
+ * while retaining the real source-folder hierarchy and shared Library features.
  */
 @Composable
 fun LibraryScreen(
@@ -157,8 +166,10 @@ fun LibraryScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SmallFloatingActionButton(onClick = { folderLauncher.launch(null) }) {
-                    androidx.compose.material3.Icon(Icons.Filled.CreateNewFolder, contentDescription = "นำเข้าโฟลเดอร์")
+                if (uiState.libraryMode == LibraryMode.FOLDER) {
+                    SmallFloatingActionButton(onClick = { folderLauncher.launch(null) }) {
+                        androidx.compose.material3.Icon(Icons.Filled.CreateNewFolder, contentDescription = "นำเข้าโฟลเดอร์")
+                    }
                 }
                 FloatingActionButton(onClick = { singleBookLauncher.launch(arrayOf("application/epub+zip")) }) {
                     androidx.compose.material3.Icon(Icons.Filled.Add, contentDescription = "นำเข้า EPUB")
@@ -177,6 +188,7 @@ fun LibraryScreen(
             state = uiState,
             onQueryChange = viewModel::setQuery,
             onViewMode = viewModel::setViewMode,
+            onLibraryMode = viewModel::setLibraryMode,
             onOpenBook = onOpenBook,
             onToggleSelection = viewModel::toggleSelection,
             onClearSelection = viewModel::clearSelection,
@@ -214,11 +226,13 @@ fun LibraryScreen(
  * Pure-state library content: search bar / selection bar, view-mode toggle, continue-hero, book list.
  * No ViewModel reference — safe to use in @Preview.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LibraryContent(
     state: LibraryUiState,
     onQueryChange: (String) -> Unit,
     onViewMode: (LibraryViewMode) -> Unit,
+    onLibraryMode: (LibraryMode) -> Unit = {},
     onOpenBook: (String) -> Unit,
     onToggleSelection: (String) -> Unit,
     onClearSelection: () -> Unit,
@@ -304,16 +318,99 @@ fun LibraryContent(
                     onDelete = { showConfirm = true },
                 )
             } else {
-                BrandHeader(modifier = Modifier.fillMaxWidth())
+                BoxWithConstraints(Modifier.fillMaxWidth()) {
+                    val wide = maxWidth >= 600.dp
+                    if (wide) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(Modifier.weight(1f)) {
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    BrandHeader(modifier = Modifier.fillMaxWidth())
+                                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                        FilterChip(
+                                            selected = state.libraryMode == LibraryMode.CLASSIC,
+                                            onClick = { onLibraryMode(LibraryMode.CLASSIC) },
+                                            label = { Text("Classic") },
+                                        )
+                                        FilterChip(
+                                            selected = state.libraryMode == LibraryMode.FOLDER,
+                                            onClick = { onLibraryMode(LibraryMode.FOLDER) },
+                                            label = { Text("Folder") },
+                                        )
+                                    }
+                                }
+                            }
+                            Column(Modifier.weight(1.35f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                LibrarySearchBar(
+                                    query = state.query,
+                                    onQueryChange = onQueryChange,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                    Spacer(Modifier.weight(1f))
+                                    ViewModeToggle(mode = state.viewMode, onSelect = onViewMode)
+                                    TextButton(onClick = { showOrganizationControls = !showOrganizationControls }) {
+                                        Text(if (showOrganizationControls) "ปิดตัวกรอง" else "จัดกลุ่ม/เรียง")
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            BrandHeader(modifier = Modifier.fillMaxWidth())
+                            LibrarySearchBar(
+                                query = state.query,
+                                onQueryChange = onQueryChange,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                FilterChip(
+                                    selected = state.libraryMode == LibraryMode.CLASSIC,
+                                    onClick = { onLibraryMode(LibraryMode.CLASSIC) },
+                                    label = { Text("Classic") },
+                                )
+                                FilterChip(
+                                    selected = state.libraryMode == LibraryMode.FOLDER,
+                                    onClick = { onLibraryMode(LibraryMode.FOLDER) },
+                                    label = { Text("Folder") },
+                                )
+                            }
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Spacer(Modifier.weight(1f))
+                                ViewModeToggle(mode = state.viewMode, onSelect = onViewMode)
+                                TextButton(onClick = { showOrganizationControls = !showOrganizationControls }) {
+                                    Text(if (showOrganizationControls) "ปิดตัวกรอง" else "จัดกลุ่ม/เรียง")
+                                }
+                            }
+                        }
+                    }
+                }
+                if (showOrganizationControls) {
+                    OrganizationControlsPanel(
+                        state, onGroupMode, onSortMode, onSortDescending,
+                        onSecondarySortMode, onShowFilename,
+                        groupMenuExpanded, { groupMenuExpanded = it },
+                        sortMenuExpanded, { sortMenuExpanded = it },
+                        secondarySortMenuExpanded, { secondarySortMenuExpanded = it },
+                    )
+                }
             }
         }
 
-        if (!state.isSelectionMode) {
-            if (statistics != null) {
-                item(key = "library-reading-statistics-and-listening") {
-                    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
+        if (!state.isSelectionMode && statistics != null) {
+            stickyHeader(key = "library-sticky-statistics") {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.background,
+                ) {
+                    BoxWithConstraints(
+                        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    ) {
                         val listeningVisible = playbackState?.visible == true
-                        if (listeningVisible && maxWidth >= 720.dp) {
+                        if (maxWidth >= 600.dp) {
                             Row(
                                 Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -322,16 +419,16 @@ fun LibraryContent(
                                 Box(Modifier.weight(2f)) {
                                     ReadingStatisticsCard(state = statistics, onMore = onOpenStatistics)
                                 }
-                                Box(Modifier.weight(1f)) {
-                                    MiniPlayerBar(
-                                        state = playbackState!!,
-                                        onPlayPause = onPlaybackToggle,
-                                        onNext = onPlaybackNext,
-                                        onPrev = onPlaybackPrevious,
-                                        onSleep = onPlaybackSleep,
-                                        onExpand = onOpenNowPlaying,
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
+                                if (listeningVisible) {
+                                    Box(Modifier.weight(1f)) {
+                                        ContinueListeningCard(
+                                            state = playbackState!!,
+                                            onPlayPause = onPlaybackToggle,
+                                            onExpand = onOpenNowPlaying,
+                                        )
+                                    }
+                                } else {
+                                    Spacer(Modifier.weight(1f))
                                 }
                             }
                         } else {
@@ -353,75 +450,39 @@ fun LibraryContent(
                     }
                 }
             }
-            item(key = "library-search") {
-                LibrarySearchBar(
-                    query = state.query,
-                    onQueryChange = onQueryChange,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            if (state.groupMode != LibraryGroupMode.FOLDER) {
-                item(key = "library-organization-toolbar") {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        ViewModeToggle(mode = state.viewMode, onSelect = onViewMode)
-                        Spacer(Modifier.weight(1f))
-                        TextButton(onClick = { showOrganizationControls = !showOrganizationControls }) {
-                            Text(if (showOrganizationControls) "ปิดตัวกรอง" else "จัดกลุ่ม/เรียง")
-                        }
-                    }
-                    if (showOrganizationControls) {
-                        OrganizationControlsPanel(
-                            state, onGroupMode, onSortMode, onSortDescending,
-                            onSecondarySortMode, onShowFilename,
-                            groupMenuExpanded, { groupMenuExpanded = it },
-                            sortMenuExpanded, { sortMenuExpanded = it },
-                            secondarySortMenuExpanded, { secondarySortMenuExpanded = it },
-                        )
-                    }
-                }
-            }
-            if (state.continueCards.isNotEmpty() || state.continueCard != null) {
-                item(key = "library-continue-reading") {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("อ่านต่อ", style = MaterialTheme.typography.titleMedium)
+        }
+
+        if (!state.isSelectionMode) {
+            item(key = "library-continue-and-shelves") {
+                BoxWithConstraints(Modifier.fillMaxWidth()) {
+                    if (maxWidth >= 600.dp) {
                         Row(
-                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.Top,
                         ) {
-                            (state.continueCards.ifEmpty { listOfNotNull(state.continueCard) }).take(4).forEach { card ->
-                                BookGridItem(
-                                    card = card,
-                                    isSelectionMode = false,
-                                    isSelected = false,
-                                    onClick = { onOpenBook(card.id) },
-                                    onToggle = { onToggleSelection(card.id) },
-                                    onLongPress = { if (state.isSelectionMode) onToggleSelection(card.id) else contextBook = card },
-                                    modifier = Modifier.width(104.dp),
+                            Box(Modifier.weight(2f)) {
+                                ContinueReadingSection(
+                                    cards = state.continueCards,
+                                    fallback = state.continueCard,
+                                    onOpenBook = onOpenBook,
+                                    onLongPress = { contextBook = it },
                                 )
                             }
+                            Box(Modifier.weight(1f)) {
+                                ShelvesSection(state = state, onShelfFilter = onShelfFilter)
+                            }
                         }
-                    }
-                }
-            }
-            item(key = "library-shelves") {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("ชั้นหนังสือ", style = MaterialTheme.typography.titleMedium)
-                    Row(
-                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                    ShelfCard("กำลังอ่าน", state.readingCount, state.selectedShelf == LibraryShelf.READING) {
-                        onShelfFilter(LibraryShelf.READING)
-                    }
-                    ShelfCard("รออ่าน", state.toReadCount, state.selectedShelf == LibraryShelf.TO_READ) {
-                        onShelfFilter(LibraryShelf.TO_READ)
-                    }
-                    ShelfCard("ซีรีส์/ชุด", state.seriesCount, state.selectedShelf == LibraryShelf.SERIES) {
-                        onShelfFilter(LibraryShelf.SERIES)
-                    }
-                    ShelfCard("อ่านจบแล้ว", state.finishedCount, state.selectedShelf == LibraryShelf.FINISHED) {
-                        onShelfFilter(LibraryShelf.FINISHED)
-                    }
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            ContinueReadingSection(
+                                cards = state.continueCards,
+                                fallback = state.continueCard,
+                                onOpenBook = onOpenBook,
+                                onLongPress = { contextBook = it },
+                            )
+                            ShelvesSection(state = state, onShelfFilter = onShelfFilter)
+                        }
                     }
                 }
             }
@@ -471,7 +532,7 @@ fun LibraryContent(
                     }
                 }
             }
-            if (state.groupMode == LibraryGroupMode.FOLDER &&
+            if (state.libraryMode == LibraryMode.FOLDER && state.groupMode == LibraryGroupMode.FOLDER &&
                 state.query.isBlank() && state.selectedTag == null && state.selectedShelf == null
             ) item(key = "library-folders") {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -484,24 +545,11 @@ fun LibraryContent(
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.weight(1f),
                         )
-                        ViewModeToggle(mode = state.viewMode, onSelect = onViewMode)
-                        TextButton(onClick = { showOrganizationControls = !showOrganizationControls }) {
-                            Text(if (showOrganizationControls) "ปิดตัวกรอง" else "จัดกลุ่ม/เรียง")
-                        }
                         if (state.selectedFolder != null) {
                             TextButton(onClick = {
                                 onFolderFilter(state.selectedFolder.substringBeforeLast('/', "").ifBlank { null })
                             }) { Text("ย้อนกลับ") }
                         }
-                    }
-                    if (showOrganizationControls) {
-                        OrganizationControlsPanel(
-                            state, onGroupMode, onSortMode, onSortDescending,
-                            onSecondarySortMode, onShowFilename,
-                            groupMenuExpanded, { groupMenuExpanded = it },
-                            sortMenuExpanded, { sortMenuExpanded = it },
-                            secondarySortMenuExpanded, { secondarySortMenuExpanded = it },
-                        )
                     }
                     if (state.selectedFolder != null) {
                         Text(
@@ -766,7 +814,7 @@ private fun OrganizationControlsPanel(
                 Box {
                     TextButton(onClick = { setGroupMenuExpanded(true) }) { Text(state.groupMode.label) }
                     DropdownMenu(expanded = groupMenuExpanded, onDismissRequest = { setGroupMenuExpanded(false) }) {
-                        LibraryGroupMode.entries.forEach { mode ->
+                        LibraryGroupMode.entries.filter { mode -> mode != LibraryGroupMode.FOLDER || state.libraryMode == LibraryMode.FOLDER }.forEach { mode ->
                             DropdownMenuItem(text = { Text(mode.label) }, onClick = {
                                 onGroupMode(mode); setGroupMenuExpanded(false)
                             })
@@ -911,6 +959,113 @@ private fun FolderListItem(
     }
 }
 
+
+
+@Composable
+private fun ContinueListeningCard(
+    state: MiniPlayerUiState,
+    onPlayPause: () -> Unit,
+    onExpand: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onExpand),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            CoverImage(
+                coverPath = state.coverPath,
+                modifier = Modifier.size(40.dp).clip(MaterialTheme.shapes.small),
+            )
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text("ฟังต่อ", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    state.title,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+            }
+            IconButton(onClick = onPlayPause) {
+                Icon(
+                    imageVector = if (state.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    contentDescription = if (state.isPlaying) "หยุดชั่วคราว" else "เล่น",
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun ContinueReadingSection(
+    cards: List<BookCard>,
+    fallback: BookCard?,
+    onOpenBook: (String) -> Unit,
+    onLongPress: (BookCard) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("อ่านต่อ", style = MaterialTheme.typography.titleMedium)
+        val visible = (cards.ifEmpty { listOfNotNull(fallback) }).take(4)
+        if (visible.isEmpty()) {
+            Text("ยังไม่มีหนังสือที่กำลังอ่าน", style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                visible.forEach { card ->
+                    BookGridItem(
+                        card = card,
+                        isSelectionMode = false,
+                        isSelected = false,
+                        onClick = { onOpenBook(card.id) },
+                        onToggle = {},
+                        onLongPress = { onLongPress(card) },
+                        modifier = Modifier.width(104.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShelvesSection(
+    state: LibraryUiState,
+    onShelfFilter: (LibraryShelf?) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("Shelves", style = MaterialTheme.typography.titleMedium)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(Modifier.weight(1f)) {
+                ShelfCard("กำลังอ่าน", state.readingCount, state.selectedShelf == LibraryShelf.READING,
+                    { onShelfFilter(LibraryShelf.READING) }, Modifier.fillMaxWidth())
+            }
+            Box(Modifier.weight(1f)) {
+                ShelfCard("รออ่าน", state.toReadCount, state.selectedShelf == LibraryShelf.TO_READ,
+                    { onShelfFilter(LibraryShelf.TO_READ) }, Modifier.fillMaxWidth())
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(Modifier.weight(1f)) {
+                ShelfCard("ซีรีส์ / ชุด", state.seriesCount, state.selectedShelf == LibraryShelf.SERIES,
+                    { onShelfFilter(LibraryShelf.SERIES) }, Modifier.fillMaxWidth())
+            }
+            Box(Modifier.weight(1f)) {
+                ShelfCard("อ่านจบแล้ว", state.finishedCount, state.selectedShelf == LibraryShelf.FINISHED,
+                    { onShelfFilter(LibraryShelf.FINISHED) }, Modifier.fillMaxWidth())
+            }
+        }
+    }
+}
+
+
 // ─── Previews ───────────────────────────────────────────────────────────────────
 
 @Composable
@@ -919,17 +1074,21 @@ private fun ShelfCard(
     count: Int,
     selected: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = Modifier.width(116.dp).clickable(onClick = onClick),
+        modifier = modifier.clickable(onClick = onClick),
         colors = androidx.compose.material3.CardDefaults.cardColors(
             containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer
             else MaterialTheme.colorScheme.surfaceVariant,
         ),
     ) {
-        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(
+            Modifier.fillMaxWidth().padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
             Text(title, style = MaterialTheme.typography.titleSmall, maxLines = 1)
-            Text("$count เล่ม", style = MaterialTheme.typography.labelSmall,
+            Text(count.toString(), style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }

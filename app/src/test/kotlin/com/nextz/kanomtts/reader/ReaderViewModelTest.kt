@@ -94,6 +94,34 @@ class ReaderViewModelTest {
         assertEquals(true, volumeKeyMovesForward(down, reversed = true))
     }
 
+    @Test fun `initial hardware key down turns exactly once`() {
+        assertEquals(
+            HardwareKeyDisposition.PAGE_TURN,
+            hardwareKeyDisposition(android.view.KeyEvent.ACTION_DOWN, repeatCount = 0, isLongPress = false),
+        )
+    }
+
+    @Test fun `held hardware key repeats are consumed without another page turn`() {
+        // The disposition is independent of direction, so this protects both Next and Previous.
+        listOf(1, 2, 3, 10).forEach { repeat ->
+            assertEquals(
+                HardwareKeyDisposition.CONSUME,
+                hardwareKeyDisposition(android.view.KeyEvent.ACTION_DOWN, repeatCount = repeat, isLongPress = false),
+            )
+        }
+        assertEquals(
+            HardwareKeyDisposition.CONSUME,
+            hardwareKeyDisposition(android.view.KeyEvent.ACTION_DOWN, repeatCount = 0, isLongPress = true),
+        )
+    }
+
+    @Test fun `hardware key up is left for device release handling`() {
+        assertEquals(
+            HardwareKeyDisposition.IGNORE,
+            hardwareKeyDisposition(android.view.KeyEvent.ACTION_UP, repeatCount = 0, isLongPress = false),
+        )
+    }
+
     @Test fun `missing book yields Error state`() = runTest {
         source.book = null
         val vm = vm("missing")

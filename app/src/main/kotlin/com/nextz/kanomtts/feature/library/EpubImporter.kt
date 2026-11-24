@@ -25,7 +25,14 @@ class EpubImporter(
 ) {
     suspend fun import(uri: String, fileSize: Long, displayName: String?, sourceFolder: String? = null): ImportResult {
         // Re-importing a previously indexed SAF URI should not reopen or reparse the EPUB.
-        if (books.isDuplicate(uri)) return ImportResult.Duplicate
+        // If it is now discovered through Folder Library, retain the original Book ID and
+        // reading data but attach its real folder path so the hierarchy can display it.
+        if (books.isDuplicate(uri)) {
+            if (!sourceFolder.isNullOrBlank()) {
+                books.updateImportLocation(uri, sourceFolder, displayName)
+            }
+            return ImportResult.Duplicate
+        }
         val meta = extractor.extract(uri) ?: return ImportResult.Unreadable
         val filenameTitle = displayName?.takeIf { it.isNotBlank() }?.let { name ->
             (if (name.endsWith(".epub", ignoreCase = true)) name.dropLast(5) else name)

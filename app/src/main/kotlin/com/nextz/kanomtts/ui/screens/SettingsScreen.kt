@@ -314,7 +314,15 @@ fun SettingsScreen(
                 text = {
                     Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
                         Text(item?.book?.title.orEmpty(), style = MaterialTheme.typography.titleMedium)
-                        item?.candidates?.forEach { candidate ->
+                        val candidates = item?.candidates.orEmpty()
+                        Text(
+                            if (candidates.size == 1) "พบไฟล์ที่เป็นไปได้ 1 ไฟล์ โปรดยืนยันว่าจะใช้ไฟล์นี้"
+                            else "พบไฟล์ที่เป็นไปได้ ${candidates.size} ไฟล์ โปรดเลือกไฟล์ต้นฉบับที่ถูกต้อง",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                        candidates.forEach { candidate ->
                             val alreadyAssigned = portableVm.isCandidateAlreadyAssigned(candidate)
                             val sizeLabel = candidate.size.takeIf { it > 0L }?.let { "$it bytes" } ?: "ไม่ทราบขนาด"
                             OutlinedButton(
@@ -324,12 +332,22 @@ fun SettingsScreen(
                             ) {
                                 Column {
                                     Text(
-                                        if (alreadyAssigned) "${candidate.name} · จับคู่แล้ว"
-                                        else "${candidate.name} · $sizeLabel",
+                                        when {
+                                            alreadyAssigned -> "ไฟล์นี้ถูกจับคู่กับหนังสือรายการอื่นแล้ว"
+                                            candidates.size == 1 -> "ใช้ไฟล์นี้: ${candidate.name}"
+                                            else -> "${candidate.name} · $sizeLabel"
+                                        },
                                     )
                                     Text(candidate.sourceFolder.orEmpty(), style = MaterialTheme.typography.bodySmall)
                                 }
                             }
+                        }
+                        if (candidates.isEmpty()) {
+                            Text("ไม่พบตัวเลือกไฟล์ในรายการนี้ กรุณายกเลิกแล้วสแกนโฟลเดอร์ใหม่")
+                        }
+                        portable.message?.let { message ->
+                            Text(message, style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp))
                         }
                     }
                 },
@@ -352,6 +370,10 @@ fun SettingsScreen(
                             if (missing.isEmpty()) "จับคู่ไฟล์ต้นฉบับครบทุกเล่มแล้ว"
                             else "หนังสือเหล่านี้จะกู้คืนข้อมูลและตำแหน่งอ่านไว้ แต่ยังเปิดอ่านไม่ได้จนกว่าจะ Relink ภายหลัง"
                         )
+                        portable.message?.let { message ->
+                            Text(message, style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp))
+                        }
                         missing.forEach { book ->
                             Text("• ${book.title}", modifier = Modifier.padding(top = 6.dp))
                         }

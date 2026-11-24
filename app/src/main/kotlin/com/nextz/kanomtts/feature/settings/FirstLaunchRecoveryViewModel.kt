@@ -60,6 +60,11 @@ class FirstLaunchRecoveryViewModel @Inject constructor(
     }
 
     fun continueAfterFailure() {
+        // Continuing is an explicit decision to enter the app without this recovery.
+        // Mark this attempt as handled so the same failing archive does not trigger
+        // an automatic restore loop on every subsequent cold start. The user can
+        // still start Restore manually or choose Retry from the failure screen.
+        markComplete()
         _uiState.value = FirstLaunchRecoveryUiState(FirstLaunchRecoveryStatus.READY)
     }
 
