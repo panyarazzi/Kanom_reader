@@ -85,6 +85,9 @@ internal fun parsePortableReadingStatus(bookJson: JSONObject): String? {
         ?: error("สถานะการอ่านในไฟล์สำรองไม่ถูกต้อง")
 }
 
+internal fun encodeSavedTagLibrary(tags: List<BookTagLibraryEntity>): JSONArray =
+    JSONArray().apply { tags.forEach { put(JSONObject().put("tag", it.tag)) } }
+
 internal fun parseSavedTagLibrary(json: JSONObject): List<BookTagLibraryEntity> {
     val savedTagArray = json.optJSONArray("savedTags")
     return (0 until (savedTagArray?.length() ?: 0)).map { index ->
@@ -210,9 +213,7 @@ class PortableDataManager @Inject constructor(
             put("bookTags", JSONArray().apply {
                 tags.forEach { tag -> put(JSONObject().put("bookId", tag.bookId).put("tag", tag.tag)) }
             })
-            put("savedTags", JSONArray().apply {
-                savedTags.forEach { tag -> put(JSONObject().put("tag", tag.tag)) }
-            })
+            put("savedTags", encodeSavedTagLibrary(savedTags))
             put("bookNotes", JSONArray().apply {
                 notes.forEach { note -> put(JSONObject().put("bookId", note.bookId)
                     .put("note", note.note).put("updatedAt", note.updatedAt)) }
