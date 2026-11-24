@@ -60,14 +60,13 @@ internal suspend fun <Snapshot, Result> withCompensatingRollback(
     try {
         return operation()
     } catch (failure: Throwable) {
-        try {
-            withContext(NonCancellable) { rollback(previous) }
-        } catch (rollbackFailure: Throwable) {
-            // Preserve the operation failure as the primary exception. Self-suppression is
-            // illegal, and a failure while attaching diagnostics must never mask the original.
-            if (rollbackFailure !== failure) {
-                runCatching { failure.addSuppressed(rollbackFailure) }
-            }
+        // Capture the rollback error inside NonCancellable rather than letting it escape
+        // that context; the operation error must remain the exception observed by callers.
+        val rollbackFailure = withContext(NonCancellable) {
+            runCatching { rollback(previous) }.exceptionOrNull()
+        }
+        if (rollbackFailure != null && rollbackFailure !== failure) {
+            failure.addSuppressed(rollbackFailure)
         }
         throw failure
     }
