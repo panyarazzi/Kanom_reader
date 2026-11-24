@@ -62,6 +62,7 @@ data class BookCard(
     val seriesPosition: Double? = null,
     val sha256: String? = null,
     val readingStatus: String? = null,
+    val description: String? = null,
 ) {
     val displayTitle: String get() = if (displayFilename && filename.isNotBlank()) filename else title
 }
