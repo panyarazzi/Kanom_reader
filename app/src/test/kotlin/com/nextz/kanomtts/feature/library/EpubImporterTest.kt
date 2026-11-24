@@ -53,6 +53,17 @@ class EpubImporterTest {
         assertTrue(imp.import("content://same", 50, "a.epub") is ImportResult.Duplicate)
         assertEquals(1, repo.books.value.size)
     }
+    @Test fun `folder reimport updates location for existing URI without replacing the book`() = runTest {
+        val repo = FakeBookRepository()
+        val imp = importer(repo, FakeMetadataExtractor(BookMetadata("Dup", null, null, null)), createTempDir())
+        val first = imp.import("content://same-folder-uri", 50, "a.epub") as ImportResult.Imported
+        val second = imp.import("content://same-folder-uri", 50, "a.epub", "Books/ePub Normal Style/ePub Normal")
+        assertTrue(second is ImportResult.Duplicate)
+        assertEquals(1, repo.books.value.size)
+        assertEquals(first.bookId, repo.books.value.single().id)
+        assertEquals("Books/ePub Normal Style/ePub Normal", repo.books.value.single().sourceFolder)
+    }
+
     @Test fun `same title and size from different source files are not silently relinked or suppressed`() = runTest {
         val repo = FakeBookRepository()
         val imp = importer(repo, FakeMetadataExtractor(BookMetadata("Same Book", "Author", "th", null)), createTempDir())
