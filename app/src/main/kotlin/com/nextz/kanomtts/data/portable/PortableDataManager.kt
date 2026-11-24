@@ -59,11 +59,15 @@ internal suspend fun <Snapshot, Result> withCompensatingRollback(
     val previous = snapshot()
     try {
         return operation()
-    } catch (failure: Exception) {
+    } catch (failure: Throwable) {
         try {
             withContext(NonCancellable) { rollback(previous) }
-        } catch (rollbackFailure: Exception) {
-            failure.addSuppressed(rollbackFailure)
+        } catch (rollbackFailure: Throwable) {
+            // Preserve the operation failure as the primary exception. Self-suppression is
+            // illegal, and a failure while attaching diagnostics must never mask the original.
+            if (rollbackFailure !== failure) {
+                runCatching { failure.addSuppressed(rollbackFailure) }
+            }
         }
         throw failure
     }
