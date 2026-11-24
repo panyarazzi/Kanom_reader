@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nextz.kanomtts.data.db.BookEntity
 import com.nextz.kanomtts.data.db.BookDao
-import com.nextz.kanomtts.data.db.ProgressDao
 import com.nextz.kanomtts.data.db.BookTagDao
 import com.nextz.kanomtts.data.db.BookTagEntity
 import com.nextz.kanomtts.data.db.ProgressEntity
@@ -41,7 +40,6 @@ class LibraryViewModel @Inject constructor(
     private val playbackStopper: PlaybackStopper,
     private val bookTagDao: BookTagDao? = null,
     private val bookDao: BookDao? = null,
-    private val progressDao: ProgressDao? = null,
 ) : ViewModel() {
 
     private val _viewMode = MutableStateFlow(LibraryViewMode.GRID)
@@ -114,10 +112,9 @@ class LibraryViewModel @Inject constructor(
             }
             .filter { card ->
                 when (selectedShelf) {
-                    LibraryShelf.READING -> card.percent > 0f && card.percent < 0.999f
-                    LibraryShelf.TO_READ -> card.percent <= 0f
+                    LibraryShelf.READING, LibraryShelf.TO_READ, LibraryShelf.FINISHED ->
+                        card.effectiveReadingShelf() == selectedShelf
                     LibraryShelf.SERIES -> !card.seriesName.isNullOrBlank()
-                    LibraryShelf.FINISHED -> card.percent >= 0.999f
                     null -> true
                 }
             }
@@ -214,10 +211,10 @@ class LibraryViewModel @Inject constructor(
             showFilename = showFilename,
             totalBookCount = allCards.size,
             selectedShelf = selectedShelf,
-            readingCount = allCards.count { it.percent > 0f && it.percent < 0.999f },
-            toReadCount = allCards.count { it.percent <= 0f },
+            readingCount = allCards.count { it.effectiveReadingShelf() == LibraryShelf.READING },
+            toReadCount = allCards.count { it.effectiveReadingShelf() == LibraryShelf.TO_READ },
             seriesCount = allCards.count { !it.seriesName.isNullOrBlank() },
-            finishedCount = allCards.count { it.percent >= 0.999f },
+            finishedCount = allCards.count { it.effectiveReadingShelf() == LibraryShelf.FINISHED },
             recentlyOpened = recentlyOpened,
             newestBooks = newestBooks,
         )
@@ -276,25 +273,14 @@ class LibraryViewModel @Inject constructor(
 
     fun setReadingStatus(bookId: String, shelf: LibraryShelf) {
         if (shelf == LibraryShelf.SERIES) return
-        viewModelScope.launch {
-            val dao = progressDao ?: return@launch
-            val current = dao.get(bookId)
-            val percent = when (shelf) {
-                LibraryShelf.READING -> current?.percent?.takeIf { it > 0f && it < 1f } ?: 0.001f
-                LibraryShelf.TO_READ -> 0f
-                LibraryShelf.FINISHED -> 1f
-                LibraryShelf.SERIES -> return@launch
-            }
-            dao.upsert(
-                ProgressEntity(
-                    bookId = bookId,
-                    locator = current?.locator,
-                    ttsLocator = current?.ttsLocator,
-                    percent = percent,
-                    updatedAt = System.currentTimeMillis(),
-                ),
-            )
+        val dao = bookDao ?: return
+        val status = when (shelf) {
+            LibraryShelf.READING -> "READING"
+            LibraryShelf.TO_READ -> "TO_READ"
+            LibraryShelf.FINISHED -> "FINISHED"
+            LibraryShelf.SERIES -> return
         }
+        viewModelScope.launch { dao.updateReadingStatus(bookId, status) }
     }
 
     fun updateBookMetadata(bookId: String, title: String, author: String?) {
@@ -340,6 +326,7 @@ class LibraryViewModel @Inject constructor(
             lastOpenedAt = lastOpenedAt,
             seriesName = seriesName,
             seriesPosition = seriesPosition,
+            readingStatus = readingStatus,
         )
     }
 
