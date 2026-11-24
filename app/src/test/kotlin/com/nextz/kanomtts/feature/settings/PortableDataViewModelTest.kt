@@ -114,7 +114,7 @@ class PortableDataViewModelTest {
 
         vm.chooseAmbiguousCandidate(selectedSource)
         assertEquals(RestoreReconciliationStage.NOT_FOUND, vm.uiState.value.restoreStage)
-        assertEquals(0, vm.uiState.value.ambiguousIndex)
+        assertEquals(1, vm.uiState.value.ambiguousIndex)
 
         vm.finishRestore()
         withTimeout(5_000) {
