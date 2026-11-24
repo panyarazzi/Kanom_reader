@@ -39,6 +39,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.FileInputStream
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import java.io.FileOutputStream
 import java.nio.file.Files
 import java.security.MessageDigest
@@ -297,11 +299,11 @@ class PortableDataManager @Inject constructor(
                 }
             }
             val entry = metadataEntry ?: error("ไฟล์สำรองไม่มี data.json")
-            require(entry.size >= 0L && entry.size <= MAX_ENTRY_BYTES) {
+            require(entry.size >= 0L && entry.size <= MAX_METADATA_BYTES) {
                 "ไฟล์ข้อมูลสำรองมีขนาดใหญ่เกินกำหนดหรือไม่ทราบขนาด"
             }
             zip.getInputStream(entry).use { input ->
-                val bytes = input.readBytes()
+                val bytes = readBoundedBytes(input, MAX_METADATA_BYTES)
                 require(bytes.size.toLong() == entry.size) { "ข้อมูล data.json ใน ZIP ไม่สมบูรณ์" }
                 bytes
             }
@@ -317,206 +319,270 @@ class PortableDataManager @Inject constructor(
         requireStorageAccess()
         currentCoroutineContext().ensureActive()
         check(latestBackup.isFile) { "ไม่พบไฟล์สำรอง Kanom" }
-        val entries = mutableMapOf<String, ByteArray>()
-        // Read only metadata and covers. Legacy EPUB payloads in older backups are never opened.
-        ZipFile(latestBackup).use { zip ->
-            val zipEntries = zip.entries()
+
+        // Keep decompressed cover images on disk instead of retaining every image in heap.
+        // The JSON metadata is the only ZIP entry that must be materialized for parsing.
+        val stagingDir = File(context.cacheDir, "kanom-restore-\${System.nanoTime()}")
+        check(stagingDir.mkdirs()) { "สร้างพื้นที่เตรียม Restore ไม่สำเร็จ" }
+        val stagedCovers = linkedMapOf<String, File>()
+        val promotedCovers = mutableListOf<File>()
+        var restoreCommitted = false
+
+        try {
+            val entryNames = mutableSetOf<String>()
             var totalRestoredBytes = 0L
-            while (zipEntries.hasMoreElements()) {
-                currentCoroutineContext().ensureActive()
-                val entry = zipEntries.nextElement()
-                if (entry.isDirectory || !isRestorablePortableEntry(entry.name)) continue
-                require(entry.size >= 0L && entry.size <= MAX_ENTRY_BYTES) {
-                    "ไฟล์ในชุดสำรองมีขนาดใหญ่เกินกำหนดหรือไม่ทราบขนาด"
-                }
-                require(entry.name !in entries) { "ไฟล์สำรองมีรายการซ้ำ: ${entry.name}" }
-                totalRestoredBytes += entry.size
-                require(totalRestoredBytes <= MAX_TOTAL_RESTORE_BYTES) {
-                    "ข้อมูลที่ต้องกู้คืนมีขนาดรวมเกินกำหนด"
-                }
-                val bytes = zip.getInputStream(entry).use { it.readBytes() }
-                require(bytes.size.toLong() == entry.size) { "ข้อมูลใน ZIP ไม่สมบูรณ์: ${entry.name}" }
-                entries[entry.name] = bytes
-            }
-        }
-        val json = JSONObject(String(entries["data.json"] ?: error("ไฟล์สำรองไม่มี data.json"), Charsets.UTF_8))
-        require(json.optInt("formatVersion", -1) == FORMAT_VERSION) { "เวอร์ชันไฟล์สำรองนี้ไม่รองรับ" }
-        val bookArray = json.getJSONArray("books")
-        val backupBookObjects = (0 until bookArray.length()).map { bookArray.getJSONObject(it) }
-        val bookObjectsById = backupBookObjects.associateBy { it.getString("id") }
-        require(bookObjectsById.size == backupBookObjects.size) {
-            "ไฟล์สำรองมี Book ID ซ้ำกัน"
-        }
-        val backupBookIds = bookObjectsById.keys
-        require(sourceMappings.keys.all { it in backupBookIds }) {
-            "มีการจับคู่ไฟล์กับ Book ID ที่ไม่มีอยู่ในชุดสำรอง"
-        }
-        require(sourceMappings.values.map { it.uri }.distinct().size == sourceMappings.size) {
-            "ไม่สามารถใช้ไฟล์ EPUB ต้นฉบับเดียวกันกับหนังสือหลายเล่มได้"
-        }
-        val verifiedSourceHashes = mutableMapOf<String, String>()
-        // Revalidate every selected source immediately before staging the restored rows.
-        // Count actual bytes too: legacy backups without SHA-256 need exact size evidence.
-        sourceMappings.forEach { (bookId, source) ->
-            currentCoroutineContext().ensureActive()
-            val savedBook = bookObjectsById.getValue(bookId)
-            val savedHash = savedBook.optNullableString("sha256")
-            var actualSize = 0L
-            val actualHash = context.contentResolver.openInputStream(Uri.parse(source.uri))?.use { input ->
-                val digest = MessageDigest.getInstance("SHA-256")
-                val buffer = ByteArray(64 * 1024)
-                while (true) {
+            var metadataBytes: ByteArray? = null
+
+            ZipFile(latestBackup).use { zip ->
+                val zipEntries = zip.entries()
+                while (zipEntries.hasMoreElements()) {
                     currentCoroutineContext().ensureActive()
-                    val count = input.read(buffer)
-                    if (count < 0) break
-                    if (count > 0) {
-                        actualSize += count
-                        digest.update(buffer, 0, count)
+                    val entry = zipEntries.nextElement()
+                    if (entry.isDirectory || !isRestorablePortableEntry(entry.name)) continue
+
+                    require(entry.size >= 0L && entry.size <= MAX_ENTRY_BYTES) {
+                        "ไฟล์ในชุดสำรองมีขนาดใหญ่เกินกำหนดหรือไม่ทราบขนาด"
+                    }
+                    require(entryNames.add(entry.name)) { "ไฟล์สำรองมีรายการซ้ำ: \${entry.name}" }
+                    totalRestoredBytes += entry.size
+                    require(totalRestoredBytes <= MAX_TOTAL_RESTORE_BYTES) {
+                        "ข้อมูลที่ต้องกู้คืนมีขนาดรวมเกินกำหนด"
+                    }
+
+                    zip.getInputStream(entry).use { input ->
+                        if (entry.name == "data.json") {
+                            require(entry.size <= MAX_METADATA_BYTES) {
+                                "ไฟล์ข้อมูลสำรองมีขนาดใหญ่เกินกำหนด"
+                            }
+                            val bytes = readBoundedBytes(input, MAX_METADATA_BYTES)
+                            require(bytes.size.toLong() == entry.size) {
+                                "ข้อมูลใน ZIP ไม่สมบูรณ์: \${entry.name}"
+                            }
+                            metadataBytes = bytes
+                        } else {
+                            val staged = File(stagingDir, "cover-\${stagedCovers.size}.bin")
+                            copyBounded(input, staged, entry.size, MAX_ENTRY_BYTES)
+                            stagedCovers[entry.name] = staged
+                        }
                     }
                 }
-                digest.digest().joinToString("") { "%02x".format(it) }
-            } ?: error("ไม่สามารถอ่านไฟล์ต้นฉบับที่เลือกได้: ${source.name}")
-            require(source.sha256.isNullOrBlank() || actualHash.equals(source.sha256, ignoreCase = true)) {
-                "ไฟล์ต้นฉบับเปลี่ยนแปลงหลังจากสแกน: ${source.name}"
             }
-            require(savedHash.isNullOrBlank() || actualHash.equals(savedHash, ignoreCase = true)) {
-                "SHA-256 ของไฟล์ไม่ตรงกับหนังสือ ${savedBook.getString("title")}"
-            }
-            if (savedHash.isNullOrBlank()) {
-                val savedSize = savedBook.optLong("fileSize", -1L)
-                require(savedSize <= 0L || actualSize == savedSize) {
-                    "ขนาดไฟล์ต้นฉบับไม่ตรงกับหนังสือ ${savedBook.getString("title")}"
-                }
-            }
-            verifiedSourceHashes[bookId] = actualHash
-        }
-        currentCoroutineContext().ensureActive()
-        val books = (0 until bookArray.length()).map { i ->
-            val o = bookArray.getJSONObject(i)
-            val id = o.getString("id")
-            val coverEntry = o.optString("coverEntry").takeIf { it.isNotBlank() && it != "null" }
-            val coverBytes = coverEntry?.let(entries::get)
-            // Ignore legacy portableEpub pointers. Preserve the original URI for explicit relinking.
-            val restoredUri = o.getString("uri")
-            val coverPath = coverBytes?.let { bytes ->
-                val dir = File(context.filesDir, "covers")
-                check(dir.exists() || dir.mkdirs()) { "สร้างโฟลเดอร์ภาพปกไม่สำเร็จ" }
-                File(dir, "${safeName(id)}.bin").apply { writeBytes(bytes) }.absolutePath
-            }
-            val source = sourceMappings[id]
-            if (source != null) {
-                // Validate every chosen SAF URI before the database transaction starts.
-                context.contentResolver.openFileDescriptor(Uri.parse(source.uri), "r")?.use { }
-                    ?: error("ไม่สามารถเปิดไฟล์ต้นฉบับที่เลือกได้: ${source.name}")
-            }
-            BookEntity(
-                id = id,
-                uri = source?.uri ?: restoredUri,
-                title = o.getString("title"),
-                author = o.optNullableString("author"), lang = o.optNullableString("lang"),
-                coverPath = coverPath, fileSize = o.getLong("fileSize"),
-                addedAt = o.getLong("addedAt"), lastOpenedAt = o.optNullableLong("lastOpenedAt"),
-                sha256 = verifiedSourceHashes[id] ?: o.optNullableString("sha256"),
-                sourceFolder = source?.sourceFolder ?: o.optNullableString("sourceFolder"),
-                sourceFileName = source?.name ?: o.optNullableString("sourceFileName"),
-                seriesName = o.optNullableString("seriesName"),
-                seriesPosition = o.optNullableDouble("seriesPosition"),
-                readingStatus = parsePortableReadingStatus(o),
-            )
-        }
-        val progressArray = json.getJSONArray("progress")
-        val progress = (0 until progressArray.length()).map { i ->
-            val o = progressArray.getJSONObject(i)
-            ProgressEntity(o.getString("bookId"), o.optNullableString("locator"),
-                o.optNullableString("ttsLocator"), o.getDouble("percent").toFloat(), o.getLong("updatedAt"))
-        }
-        val bookmarkArray = json.getJSONArray("bookmarks")
-        val bookmarks = (0 until bookmarkArray.length()).map { i ->
-            val o = bookmarkArray.getJSONObject(i)
-            BookmarkEntity(o.getLong("id"), o.getString("bookId"), o.getString("locator"),
-                o.getString("snippet"), o.getLong("createdAt"))
-        }
-        val ruleArray = json.getJSONArray("replacementRules")
-        val rules = (0 until ruleArray.length()).map { i ->
-            val o = ruleArray.getJSONObject(i)
-            ReplacementRuleEntity(o.getLong("id"), o.getString("scope"), o.optNullableString("bookId"),
-                o.getString("pattern"), o.getString("replacement"), o.getBoolean("isRegex"),
-                o.getBoolean("enabled"), o.getInt("position"), o.optBoolean("showInReader", false))
-        }
-        val voiceArray = json.getJSONArray("voiceConfigs")
-        val voices = (0 until voiceArray.length()).map { i ->
-            val o = voiceArray.getJSONObject(i)
-            VoiceConfigEntity(o.getString("lang"), o.getString("providerId"), o.optNullableString("voiceId"),
-                o.getDouble("speed").toFloat(), o.getDouble("pitch").toFloat())
-        }
-        val savedTags = parseSavedTagLibrary(json)
-        val tagArray = json.optJSONArray("bookTags")
-        val tags = (0 until (tagArray?.length() ?: 0)).map { i ->
-            val o = tagArray!!.getJSONObject(i)
-            BookTagEntity(o.getString("bookId"), o.getString("tag"))
-        }
-        val noteArray = json.optJSONArray("bookNotes")
-        val notes = (0 until (noteArray?.length() ?: 0)).map { i ->
-            val o = noteArray!!.getJSONObject(i)
-            BookNoteEntity(o.getString("bookId"), o.getString("note"), o.getLong("updatedAt"))
-        }
-        val sessionArray = json.optJSONArray("readingSessions")
-        val sessions = (0 until (sessionArray?.length() ?: 0)).map { i ->
-            val o = sessionArray!!.getJSONObject(i)
-            ReadingSessionEntity(o.optLong("id", 0L), o.getString("bookId"),
-                o.getLong("startedAt"), o.getLong("durationMs"))
-        }
-        require(tags.all { tag -> books.any { it.id == tag.bookId } }) { "ข้อมูล Tag อ้างถึงหนังสือที่ไม่มีในชุดสำรอง" }
-        require(notes.all { note -> books.any { it.id == note.bookId } }) { "ข้อมูล Note อ้างถึงหนังสือที่ไม่มีในชุดสำรอง" }
-        require(sessions.all { session -> books.any { it.id == session.bookId } }) { "ข้อมูล Reading Statistics อ้างถึงหนังสือที่ไม่มีในชุดสำรอง" }
-        require(progress.all { p -> books.any { it.id == p.bookId } }) { "ข้อมูลตำแหน่งอ่านอ้างถึงหนังสือที่ไม่มีในชุดสำรอง" }
-        require(bookmarks.all { b -> books.any { it.id == b.bookId } }) { "ข้อมูล Bookmark อ้างถึงหนังสือที่ไม่มีในชุดสำรอง" }
-        require(rules.filter { it.scope == "book" }.all { r -> r.bookId != null && books.any { it.id == r.bookId } }) {
-            "ข้อมูลกฎแทนที่อ้างถึงหนังสือที่ไม่มีในชุดสำรอง"
-        }
 
-        val preferencesArray = json.getJSONArray("preferences")
-        currentCoroutineContext().ensureActive()
-        // Room and DataStore are separate stores. Snapshot the current preferences so a
-        // failed/cancelled Room transaction can compensate if the DataStore write succeeded.
-        val previousPreferences = encodePortablePreferences(dataStore.data.first())
-        try {
-            database.withTransaction {
-                currentCoroutineContext().ensureActive()
-                database.bookTagDao().deleteAll()
-                database.bookTagLibraryDao().deleteAll()
-                database.bookNoteDao().deleteAll()
-                database.readingSessionDao().deleteAll()
-                database.bookmarkDao().deleteAll()
-                database.progressDao().deleteAll()
-                database.replacementRuleDao().deleteAll()
-                database.voiceConfigDao().deleteAll()
-                database.bookDao().deleteAll()
-                database.bookDao().insertAll(books)
-                database.progressDao().insertAll(progress)
-                database.bookmarkDao().insertAll(bookmarks)
-                database.replacementRuleDao().insertAll(rules)
-                database.voiceConfigDao().insertAll(voices)
-                database.bookTagDao().insertAll(tags)
-                database.bookTagLibraryDao().insertAll(savedTags)
-                database.bookNoteDao().insertAll(notes)
-                database.readingSessionDao().insertAll(sessions)
-                // Apply preferences as the final operation in the DB transaction. If the
-                // Room transaction fails after this point, the catch below restores the snapshot.
-                currentCoroutineContext().ensureActive()
-                restorePreferences(preferencesArray)
+            val json = JSONObject(String(metadataBytes ?: error("ไฟล์สำรองไม่มี data.json"), Charsets.UTF_8))
+            require(json.optInt("formatVersion", -1) == FORMAT_VERSION) { "เวอร์ชันไฟล์สำรองนี้ไม่รองรับ" }
+            val bookArray = json.getJSONArray("books")
+            val backupBookObjects = (0 until bookArray.length()).map { bookArray.getJSONObject(it) }
+            val bookObjectsById = backupBookObjects.associateBy { it.getString("id") }
+            require(bookObjectsById.size == backupBookObjects.size) {
+                "ไฟล์สำรองมี Book ID ซ้ำกัน"
             }
-        } catch (failure: Exception) {
-            try {
-                withContext(NonCancellable) {
-                    restorePreferences(previousPreferences)
+            require(sourceMappings.keys.all { it in bookObjectsById.keys }) {
+                "มีการจับคู่ไฟล์กับ Book ID ที่ไม่มีอยู่ในชุดสำรอง"
+            }
+            require(sourceMappings.values.map { it.uri }.distinct().size == sourceMappings.size) {
+                "ไม่สามารถใช้ไฟล์ EPUB ต้นฉบับเดียวกันกับหนังสือหลายเล่มได้"
+            }
+
+            val verifiedSourceHashes = mutableMapOf<String, String>()
+            sourceMappings.forEach { (bookId, source) ->
+                currentCoroutineContext().ensureActive()
+                val savedBook = bookObjectsById.getValue(bookId)
+                val savedHash = savedBook.optNullableString("sha256")
+                var actualSize = 0L
+                val actualHash = context.contentResolver.openInputStream(Uri.parse(source.uri))?.use { input ->
+                    val digest = MessageDigest.getInstance("SHA-256")
+                    val buffer = ByteArray(64 * 1024)
+                    while (true) {
+                        currentCoroutineContext().ensureActive()
+                        val count = input.read(buffer)
+                        if (count < 0) break
+                        if (count > 0) {
+                            actualSize += count
+                            digest.update(buffer, 0, count)
+                        }
+                    }
+                    digest.digest().joinToString("") { "%02x".format(it) }
+                } ?: error("ไม่สามารถอ่านไฟล์ต้นฉบับที่เลือกได้: \${source.name}")
+                require(source.sha256.isNullOrBlank() || actualHash.equals(source.sha256, ignoreCase = true)) {
+                    "ไฟล์ต้นฉบับเปลี่ยนแปลงหลังจากสแกน: \${source.name}"
                 }
-            } catch (rollbackFailure: Exception) {
-                failure.addSuppressed(rollbackFailure)
+                require(savedHash.isNullOrBlank() || actualHash.equals(savedHash, ignoreCase = true)) {
+                    "SHA-256 ของไฟล์ไม่ตรงกับหนังสือ \${savedBook.getString("title")}"
+                }
+                if (savedHash.isNullOrBlank()) {
+                    val savedSize = savedBook.optLong("fileSize", -1L)
+                    require(savedSize <= 0L || actualSize == savedSize) {
+                        "ขนาดไฟล์ต้นฉบับไม่ตรงกับหนังสือ \${savedBook.getString("title")}"
+                    }
+                }
+                verifiedSourceHashes[bookId] = actualHash
             }
-            throw failure
+
+            currentCoroutineContext().ensureActive()
+            val coverDir = File(context.filesDir, "covers")
+            val books = (0 until bookArray.length()).map { i ->
+                currentCoroutineContext().ensureActive()
+                val o = bookArray.getJSONObject(i)
+                val id = o.getString("id")
+                val coverEntry = o.optString("coverEntry").takeIf { it.isNotBlank() && it != "null" }
+                val stagedCover = coverEntry?.let(stagedCovers::get)
+                // A fresh name prevents a failed restore from overwriting a current cover.
+                val coverPath = stagedCover?.let { staged ->
+                    check(coverDir.exists() || coverDir.mkdirs()) { "สร้างโฟลเดอร์ภาพปกไม่สำเร็จ" }
+                    val destination = File(coverDir, "restore-\${safeName(id)}-\${System.nanoTime()}.bin")
+                    staged.copyTo(destination, overwrite = false)
+                    promotedCovers += destination
+                    destination.absolutePath
+                }
+                val source = sourceMappings[id]
+                if (source != null) {
+                    context.contentResolver.openFileDescriptor(Uri.parse(source.uri), "r")?.use { }
+                        ?: error("ไม่สามารถเปิดไฟล์ต้นฉบับที่เลือกได้: \${source.name}")
+                }
+                BookEntity(
+                    id = id,
+                    uri = source?.uri ?: o.getString("uri"),
+                    title = o.getString("title"),
+                    author = o.optNullableString("author"), lang = o.optNullableString("lang"),
+                    coverPath = coverPath, fileSize = o.getLong("fileSize"),
+                    addedAt = o.getLong("addedAt"), lastOpenedAt = o.optNullableLong("lastOpenedAt"),
+                    sha256 = verifiedSourceHashes[id] ?: o.optNullableString("sha256"),
+                    sourceFolder = source?.sourceFolder ?: o.optNullableString("sourceFolder"),
+                    sourceFileName = source?.name ?: o.optNullableString("sourceFileName"),
+                    seriesName = o.optNullableString("seriesName"),
+                    seriesPosition = o.optNullableDouble("seriesPosition"),
+                    readingStatus = parsePortableReadingStatus(o),
+                )
+            }
+            val progressArray = json.getJSONArray("progress")
+            val progress = (0 until progressArray.length()).map { i ->
+                val o = progressArray.getJSONObject(i)
+                ProgressEntity(o.getString("bookId"), o.optNullableString("locator"),
+                    o.optNullableString("ttsLocator"), o.getDouble("percent").toFloat(), o.getLong("updatedAt"))
+            }
+            val bookmarkArray = json.getJSONArray("bookmarks")
+            val bookmarks = (0 until bookmarkArray.length()).map { i ->
+                val o = bookmarkArray.getJSONObject(i)
+                BookmarkEntity(o.getLong("id"), o.getString("bookId"), o.getString("locator"),
+                    o.getString("snippet"), o.getLong("createdAt"))
+            }
+            val ruleArray = json.getJSONArray("replacementRules")
+            val rules = (0 until ruleArray.length()).map { i ->
+                val o = ruleArray.getJSONObject(i)
+                ReplacementRuleEntity(o.getLong("id"), o.getString("scope"), o.optNullableString("bookId"),
+                    o.getString("pattern"), o.getString("replacement"), o.getBoolean("isRegex"),
+                    o.getBoolean("enabled"), o.getInt("position"), o.optBoolean("showInReader", false))
+            }
+            val voiceArray = json.getJSONArray("voiceConfigs")
+            val voices = (0 until voiceArray.length()).map { i ->
+                val o = voiceArray.getJSONObject(i)
+                VoiceConfigEntity(o.getString("lang"), o.getString("providerId"), o.optNullableString("voiceId"),
+                    o.getDouble("speed").toFloat(), o.getDouble("pitch").toFloat())
+            }
+            val savedTags = parseSavedTagLibrary(json)
+            val tagArray = json.optJSONArray("bookTags")
+            val tags = (0 until (tagArray?.length() ?: 0)).map { i ->
+                val o = tagArray!!.getJSONObject(i)
+                BookTagEntity(o.getString("bookId"), o.getString("tag"))
+            }
+            val noteArray = json.optJSONArray("bookNotes")
+            val notes = (0 until (noteArray?.length() ?: 0)).map { i ->
+                val o = noteArray!!.getJSONObject(i)
+                BookNoteEntity(o.getString("bookId"), o.getString("note"), o.getLong("updatedAt"))
+            }
+            val sessionArray = json.optJSONArray("readingSessions")
+            val sessions = (0 until (sessionArray?.length() ?: 0)).map { i ->
+                val o = sessionArray!!.getJSONObject(i)
+                ReadingSessionEntity(o.optLong("id", 0L), o.getString("bookId"),
+                    o.getLong("startedAt"), o.getLong("durationMs"))
+            }
+            require(tags.all { tag -> books.any { it.id == tag.bookId } }) { "ข้อมูล Tag อ้างถึงหนังสือที่ไม่มีในชุดสำรอง" }
+            require(notes.all { note -> books.any { it.id == note.bookId } }) { "ข้อมูล Note อ้างถึงหนังสือที่ไม่มีในชุดสำรอง" }
+            require(sessions.all { session -> books.any { it.id == session.bookId } }) { "ข้อมูล Reading Statistics อ้างถึงหนังสือที่ไม่มีในชุดสำรอง" }
+            require(progress.all { p -> books.any { it.id == p.bookId } }) { "ข้อมูลตำแหน่งอ่านอ้างถึงหนังสือที่ไม่มีในชุดสำรอง" }
+            require(bookmarks.all { b -> books.any { it.id == b.bookId } }) { "ข้อมูล Bookmark อ้างถึงหนังสือที่ไม่มีในชุดสำรอง" }
+            require(rules.filter { it.scope == "book" }.all { r -> r.bookId != null && books.any { it.id == r.bookId } }) {
+                "ข้อมูลกฎแทนที่อ้างถึงหนังสือที่ไม่มีในชุดสำรอง"
+            }
+
+            val preferencesArray = json.getJSONArray("preferences")
+            currentCoroutineContext().ensureActive()
+            val previousPreferences = encodePortablePreferences(dataStore.data.first())
+            try {
+                database.withTransaction {
+                    currentCoroutineContext().ensureActive()
+                    database.bookTagDao().deleteAll()
+                    database.bookTagLibraryDao().deleteAll()
+                    database.bookNoteDao().deleteAll()
+                    database.readingSessionDao().deleteAll()
+                    database.bookmarkDao().deleteAll()
+                    database.progressDao().deleteAll()
+                    database.replacementRuleDao().deleteAll()
+                    database.voiceConfigDao().deleteAll()
+                    database.bookDao().deleteAll()
+                    database.bookDao().insertAll(books)
+                    database.progressDao().insertAll(progress)
+                    database.bookmarkDao().insertAll(bookmarks)
+                    database.replacementRuleDao().insertAll(rules)
+                    database.voiceConfigDao().insertAll(voices)
+                    database.bookTagDao().insertAll(tags)
+                    database.bookTagLibraryDao().insertAll(savedTags)
+                    database.bookNoteDao().insertAll(notes)
+                    database.readingSessionDao().insertAll(sessions)
+                    currentCoroutineContext().ensureActive()
+                    restorePreferences(preferencesArray)
+                }
+            } catch (failure: Exception) {
+                try {
+                    withContext(NonCancellable) {
+                        restorePreferences(previousPreferences)
+                    }
+                } catch (rollbackFailure: Exception) {
+                    failure.addSuppressed(rollbackFailure)
+                }
+                throw failure
+            }
+
+            restoreCommitted = true
+            PortableBackupSummary(books.size, progress.size, bookmarks.size, rules.size, voices.size, tags.size, notes.size, sessions.size, latestBackup.absolutePath)
+        } finally {
+            stagingDir.deleteRecursively()
+            if (!restoreCommitted) {
+                promotedCovers.forEach { runCatching { it.delete() } }
+            }
         }
-        PortableBackupSummary(books.size, progress.size, bookmarks.size, rules.size, voices.size, tags.size, notes.size, sessions.size, latestBackup.absolutePath)
+    }
+
+    private fun readBoundedBytes(input: InputStream, maxBytes: Long): ByteArray {
+        val output = ByteArrayOutputStream()
+        val buffer = ByteArray(64 * 1024)
+        var total = 0L
+        while (true) {
+            val count = input.read(buffer)
+            if (count < 0) break
+            if (count == 0) continue
+            total += count
+            require(total <= maxBytes) { "ข้อมูลใน ZIP มีขนาดใหญ่เกินกำหนด" }
+            output.write(buffer, 0, count)
+        }
+        return output.toByteArray()
+    }
+
+    private fun copyBounded(input: InputStream, destination: File, expectedSize: Long, maxBytes: Long) {
+        var total = 0L
+        FileOutputStream(destination).buffered().use { output ->
+            val buffer = ByteArray(64 * 1024)
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                if (count == 0) continue
+                total += count
+                require(total <= maxBytes) { "ไฟล์ปกใน ZIP มีขนาดใหญ่เกินกำหนด" }
+                output.write(buffer, 0, count)
+            }
+            output.flush()
+        }
+        require(total == expectedSize) { "ข้อมูลใน ZIP ไม่สมบูรณ์: \${destination.name}" }
     }
 
     private fun requireStorageAccess() {
@@ -574,7 +640,8 @@ class PortableDataManager @Inject constructor(
 
     companion object {
         private const val FORMAT_VERSION = 1
-        private const val MAX_ENTRY_BYTES = 512 * 1024 * 1024
+        private const val MAX_METADATA_BYTES = 32L * 1024L * 1024L
+        private const val MAX_ENTRY_BYTES = 512L * 1024L * 1024L
         private const val MAX_TOTAL_RESTORE_BYTES = 768L * 1024L * 1024L
     }
 }
