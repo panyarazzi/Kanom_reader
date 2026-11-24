@@ -333,6 +333,7 @@ class LibraryViewModel @Inject constructor(
             seriesName = seriesName,
             seriesPosition = seriesPosition,
             readingStatus = readingStatus,
+            description = description,
         )
     }
 
