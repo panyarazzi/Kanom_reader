@@ -4,6 +4,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.json.JSONObject
+import com.nextz.kanomtts.data.db.BookTagLibraryEntity
 class PortableDataPolicyTest {
     @Test fun `only metadata and cover entries are restored from zip archives`() {
         assertTrue(isRestorablePortableEntry("data.json"))
@@ -24,6 +25,12 @@ class PortableDataPolicyTest {
             .put(JSONObject().put("tag", ""))
             .put(JSONObject().put("tag", " แนะนำ ")))
         assertEquals(listOf("Review", "แนะนำ"), parseSavedTagLibrary(json).map { it.tag })
+    }
+
+    @Test fun `saved tag backup round trip preserves reusable tags`() {
+        val original = listOf(BookTagLibraryEntity("แนะนำ"), BookTagLibraryEntity("Review"))
+        val encoded = encodeSavedTagLibrary(original)
+        assertEquals(original, parseSavedTagLibrary(JSONObject().put("savedTags", encoded)))
     }
 
     @Test fun `legacy book records without manual status remain progress-derived`() {
