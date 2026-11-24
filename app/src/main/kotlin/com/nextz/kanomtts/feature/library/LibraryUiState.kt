@@ -60,6 +60,7 @@ data class BookCard(
     val seriesName: String? = null,
     val seriesPosition: Double? = null,
     val sha256: String? = null,
+    val readingStatus: String? = null,
 ) {
     val displayTitle: String get() = if (displayFilename && filename.isNotBlank()) filename else title
 }
@@ -97,4 +98,15 @@ data class LibraryUiState(
     val newestBooks: List<BookCard> = emptyList(),
 ) {
     val isSelectionMode: Boolean get() = selectedIds.isNotEmpty()
+}
+
+internal fun BookCard.effectiveReadingShelf(): LibraryShelf = when (readingStatus) {
+    "READING" -> LibraryShelf.READING
+    "TO_READ" -> LibraryShelf.TO_READ
+    "FINISHED" -> LibraryShelf.FINISHED
+    else -> when {
+        percent >= 0.999f -> LibraryShelf.FINISHED
+        percent > 0f -> LibraryShelf.READING
+        else -> LibraryShelf.TO_READ
+    }
 }
