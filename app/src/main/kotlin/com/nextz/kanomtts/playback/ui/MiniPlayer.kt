@@ -94,8 +94,6 @@ fun MiniPlayerBar(
     onExpand: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    if (!state.visible) return
-
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -157,36 +155,38 @@ fun MiniPlayerBar(
                 }
             }
 
-            // Sleep chip (shown only when timer is active)
-            if (state.sleepRemainingMs != null) {
+            // Sleep timer is available only during an active playback session.
+            if (state.visible && state.sleepRemainingMs != null) {
                 SleepChip(
                     remainingMs = state.sleepRemainingMs,
                     onClick = onSleep,
                 )
             }
 
-            // Transport controls
-            IconButton(onClick = onPrev, modifier = Modifier.size(36.dp)) {
-                Icon(
-                    imageVector = Icons.Filled.SkipPrevious,
-                    contentDescription = if (state.byParagraph) "ย่อหน้าก่อนหน้า" else "ประโยคก่อนหน้า",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-            IconButton(onClick = onPlayPause, modifier = Modifier.size(36.dp)) {
-                Icon(
-                    imageVector = if (state.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                    contentDescription = if (state.isPlaying) "หยุดชั่วคราว" else "เล่น",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(28.dp),
-                )
-            }
-            IconButton(onClick = onNext, modifier = Modifier.size(36.dp)) {
-                Icon(
-                    imageVector = Icons.Filled.SkipNext,
-                    contentDescription = if (state.byParagraph) "ย่อหน้าถัดไป" else "ประโยคถัดไป",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
+            // Keep the book card visible while idle; transport controls require a live session.
+            if (state.visible) {
+                IconButton(onClick = onPrev, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        imageVector = Icons.Filled.SkipPrevious,
+                        contentDescription = if (state.byParagraph) "ย่อหน้าก่อนหน้า" else "ประโยคก่อนหน้า",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                IconButton(onClick = onPlayPause, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        imageVector = if (state.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                        contentDescription = if (state.isPlaying) "หยุดชั่วคราว" else "เล่น",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(26.dp),
+                    )
+                }
+                IconButton(onClick = onNext, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        imageVector = Icons.Filled.SkipNext,
+                        contentDescription = if (state.byParagraph) "ย่อหน้าถัดไป" else "ประโยคถัดไป",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
             }
         }
     }
