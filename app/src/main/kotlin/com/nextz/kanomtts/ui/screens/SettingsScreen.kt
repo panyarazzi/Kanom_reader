@@ -325,7 +325,19 @@ fun SettingsScreen(
                 title = { Text("เลือกไฟล์ต้นฉบับ (${portable.ambiguousIndex + 1}/${portable.restorePlan?.ambiguousMatches?.size ?: 0})") },
                 text = {
                     Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
-                        Text(item?.book?.title.orEmpty(), style = MaterialTheme.typography.titleMedium)
+                        if (item == null) {
+                            Text("รายการเลือกไฟล์ไม่พร้อมแล้ว เมื่อกดข้าม ระบบจะเก็บหนังสือที่เหลือไว้เป็นรายการที่ยังไม่เชื่อมไฟล์")
+                        } else {
+                            Text(item.book.title, style = MaterialTheme.typography.titleMedium)
+                        }
+                        if (portable.message != null) {
+                            Text(
+                                portable.message.orEmpty(),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                        }
                         item?.candidates?.forEach { candidate ->
                             val alreadyAssigned = portableVm.isCandidateAlreadyAssigned(candidate)
                             val sizeLabel = candidate.size.takeIf { it > 0L }?.let { "$it bytes" } ?: "ไม่ทราบขนาด"
