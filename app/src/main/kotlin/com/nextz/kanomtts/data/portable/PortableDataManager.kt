@@ -322,7 +322,7 @@ class PortableDataManager @Inject constructor(
 
         // Keep decompressed cover images on disk instead of retaining every image in heap.
         // The JSON metadata is the only ZIP entry that must be materialized for parsing.
-        val stagingDir = File(context.cacheDir, "kanom-restore-\${System.nanoTime()}")
+        val stagingDir = File(context.cacheDir, "kanom-restore-${System.nanoTime()}")
         check(stagingDir.mkdirs()) { "สร้างพื้นที่เตรียม Restore ไม่สำเร็จ" }
         val stagedCovers = linkedMapOf<String, File>()
         val promotedCovers = mutableListOf<File>()
@@ -343,7 +343,7 @@ class PortableDataManager @Inject constructor(
                     require(entry.size >= 0L && entry.size <= MAX_ENTRY_BYTES) {
                         "ไฟล์ในชุดสำรองมีขนาดใหญ่เกินกำหนดหรือไม่ทราบขนาด"
                     }
-                    require(entryNames.add(entry.name)) { "ไฟล์สำรองมีรายการซ้ำ: \${entry.name}" }
+                    require(entryNames.add(entry.name)) { "ไฟล์สำรองมีรายการซ้ำ: ${entry.name}" }
                     totalRestoredBytes += entry.size
                     require(totalRestoredBytes <= MAX_TOTAL_RESTORE_BYTES) {
                         "ข้อมูลที่ต้องกู้คืนมีขนาดรวมเกินกำหนด"
@@ -356,11 +356,11 @@ class PortableDataManager @Inject constructor(
                             }
                             val bytes = readBoundedBytes(input, MAX_METADATA_BYTES)
                             require(bytes.size.toLong() == entry.size) {
-                                "ข้อมูลใน ZIP ไม่สมบูรณ์: \${entry.name}"
+                                "ข้อมูลใน ZIP ไม่สมบูรณ์: ${entry.name}"
                             }
                             metadataBytes = bytes
                         } else {
-                            val staged = File(stagingDir, "cover-\${stagedCovers.size}.bin")
+                            val staged = File(stagingDir, "cover-${stagedCovers.size}.bin")
                             copyBounded(input, staged, entry.size, MAX_ENTRY_BYTES)
                             stagedCovers[entry.name] = staged
                         }
@@ -402,17 +402,17 @@ class PortableDataManager @Inject constructor(
                         }
                     }
                     digest.digest().joinToString("") { "%02x".format(it) }
-                } ?: error("ไม่สามารถอ่านไฟล์ต้นฉบับที่เลือกได้: \${source.name}")
+                } ?: error("ไม่สามารถอ่านไฟล์ต้นฉบับที่เลือกได้: ${source.name}")
                 require(source.sha256.isNullOrBlank() || actualHash.equals(source.sha256, ignoreCase = true)) {
-                    "ไฟล์ต้นฉบับเปลี่ยนแปลงหลังจากสแกน: \${source.name}"
+                    "ไฟล์ต้นฉบับเปลี่ยนแปลงหลังจากสแกน: ${source.name}"
                 }
                 require(savedHash.isNullOrBlank() || actualHash.equals(savedHash, ignoreCase = true)) {
-                    "SHA-256 ของไฟล์ไม่ตรงกับหนังสือ \${savedBook.getString("title")}"
+                    "SHA-256 ของไฟล์ไม่ตรงกับหนังสือ ${savedBook.getString("title")}"
                 }
                 if (savedHash.isNullOrBlank()) {
                     val savedSize = savedBook.optLong("fileSize", -1L)
                     require(savedSize <= 0L || actualSize == savedSize) {
-                        "ขนาดไฟล์ต้นฉบับไม่ตรงกับหนังสือ \${savedBook.getString("title")}"
+                        "ขนาดไฟล์ต้นฉบับไม่ตรงกับหนังสือ ${savedBook.getString("title")}"
                     }
                 }
                 verifiedSourceHashes[bookId] = actualHash
@@ -429,7 +429,7 @@ class PortableDataManager @Inject constructor(
                 // A fresh name prevents a failed restore from overwriting a current cover.
                 val coverPath = stagedCover?.let { staged ->
                     check(coverDir.exists() || coverDir.mkdirs()) { "สร้างโฟลเดอร์ภาพปกไม่สำเร็จ" }
-                    val destination = File(coverDir, "restore-\${safeName(id)}-\${System.nanoTime()}.bin")
+                    val destination = File(coverDir, "restore-${safeName(id)}-${System.nanoTime()}.bin")
                     promotedCovers += destination
                     staged.copyTo(destination, overwrite = false)
                     destination.absolutePath
@@ -437,7 +437,7 @@ class PortableDataManager @Inject constructor(
                 val source = sourceMappings[id]
                 if (source != null) {
                     context.contentResolver.openFileDescriptor(Uri.parse(source.uri), "r")?.use { }
-                        ?: error("ไม่สามารถเปิดไฟล์ต้นฉบับที่เลือกได้: \${source.name}")
+                        ?: error("ไม่สามารถเปิดไฟล์ต้นฉบับที่เลือกได้: ${source.name}")
                 }
                 BookEntity(
                     id = id,
@@ -584,7 +584,7 @@ class PortableDataManager @Inject constructor(
             }
             output.flush()
         }
-        require(total == expectedSize) { "ข้อมูลใน ZIP ไม่สมบูรณ์: \${destination.name}" }
+        require(total == expectedSize) { "ข้อมูลใน ZIP ไม่สมบูรณ์: ${destination.name}" }
     }
 
     private fun requireStorageAccess() {
