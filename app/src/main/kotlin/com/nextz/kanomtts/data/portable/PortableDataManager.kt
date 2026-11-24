@@ -287,7 +287,7 @@ class PortableDataManager @Inject constructor(
         }
     }
 
-    private fun readBackupJson(): JSONObject {
+    private suspend fun readBackupJson(): JSONObject {
         val metadata = ZipFile(latestBackup).use { zip ->
             val entries = zip.entries()
             var metadataEntry: ZipEntry? = null
@@ -430,8 +430,8 @@ class PortableDataManager @Inject constructor(
                 val coverPath = stagedCover?.let { staged ->
                     check(coverDir.exists() || coverDir.mkdirs()) { "สร้างโฟลเดอร์ภาพปกไม่สำเร็จ" }
                     val destination = File(coverDir, "restore-\${safeName(id)}-\${System.nanoTime()}.bin")
-                    staged.copyTo(destination, overwrite = false)
                     promotedCovers += destination
+                    staged.copyTo(destination, overwrite = false)
                     destination.absolutePath
                 }
                 val source = sourceMappings[id]
@@ -553,11 +553,12 @@ class PortableDataManager @Inject constructor(
         }
     }
 
-    private fun readBoundedBytes(input: InputStream, maxBytes: Long): ByteArray {
+    private suspend fun readBoundedBytes(input: InputStream, maxBytes: Long): ByteArray {
         val output = ByteArrayOutputStream()
         val buffer = ByteArray(64 * 1024)
         var total = 0L
         while (true) {
+            currentCoroutineContext().ensureActive()
             val count = input.read(buffer)
             if (count < 0) break
             if (count == 0) continue
@@ -568,11 +569,12 @@ class PortableDataManager @Inject constructor(
         return output.toByteArray()
     }
 
-    private fun copyBounded(input: InputStream, destination: File, expectedSize: Long, maxBytes: Long) {
+    private suspend fun copyBounded(input: InputStream, destination: File, expectedSize: Long, maxBytes: Long) {
         var total = 0L
         FileOutputStream(destination).buffered().use { output ->
             val buffer = ByteArray(64 * 1024)
             while (true) {
+                currentCoroutineContext().ensureActive()
                 val count = input.read(buffer)
                 if (count < 0) break
                 if (count == 0) continue
