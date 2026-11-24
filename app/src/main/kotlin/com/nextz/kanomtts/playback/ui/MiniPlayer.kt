@@ -148,7 +148,7 @@ fun MiniPlayerBar(
                                 modifier = Modifier.weight(1f, fill = false),
                             )
                         }
-                        if (state.voiceLabel != null) {
+                        if (state.visible && state.voiceLabel != null) {
                             VoiceChip(label = state.voiceLabel)
                         }
                     }
