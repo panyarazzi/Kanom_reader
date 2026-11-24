@@ -233,7 +233,7 @@ fun LibraryContent(
     onOpenStatistics: () -> Unit = {},
     onOpenAnnotations: (String) -> Unit = {},
     onSetReadingStatus: (String, LibraryShelf) -> Unit = { _, _ -> },
-    onUpdateBookMetadata: (String, String, String?) -> Unit = { _, _, _ -> },
+    onUpdateBookMetadata: (String, String, String?, String?, Double?) -> Unit = { _, _, _, _, _ -> },
     onChangeBookCover: (String) -> Unit = {},
     onOpenNowPlaying: () -> Unit = {},
     playbackState: MiniPlayerUiState? = null,
@@ -252,6 +252,8 @@ fun LibraryContent(
     var metadataBook by remember { mutableStateOf<BookCard?>(null) }
     var metadataTitle by remember { mutableStateOf("") }
     var metadataAuthor by remember { mutableStateOf("") }
+    var metadataSeriesName by remember { mutableStateOf("") }
+    var metadataSeriesPosition by remember { mutableStateOf("") }
     var showOrganizationControls by remember { mutableStateOf(false) }
     var groupMenuExpanded by remember { mutableStateOf(false) }
     var sortMenuExpanded by remember { mutableStateOf(false) }
@@ -652,7 +654,7 @@ fun LibraryContent(
                     TextButton(onClick = { onSetReadingStatus(book.id, LibraryShelf.TO_READ); contextBook = null }) { Text("ทำเครื่องหมายว่ายังไม่ได้อ่าน") }
                     TextButton(onClick = { shelfBook = book; contextBook = null }) { Text("ย้ายไปชั้นหนังสือ…") }
                     TextButton(onClick = { onChangeBookCover(book.id); contextBook = null }) { Text("เปลี่ยนภาพปก") }
-                    TextButton(onClick = { metadataBook = book; metadataTitle = book.title; metadataAuthor = book.author.orEmpty(); contextBook = null }) { Text("แก้ไขชื่อหนังสือ / ผู้แต่ง") }
+                    TextButton(onClick = { metadataBook = book; metadataTitle = book.title; metadataAuthor = book.author.orEmpty(); metadataSeriesName = book.seriesName.orEmpty(); metadataSeriesPosition = book.seriesPosition?.toString().orEmpty(); contextBook = null }) { Text("แก้ไขชื่อหนังสือ / ผู้แต่ง") }
                     TextButton(onClick = { onToggleSelection(book.id); contextBook = null }) { Text("เลือกหลายรายการ") }
                     TextButton(onClick = { removeBook = book; contextBook = null }) { Text("นำออกจากรายการ") }
                 }
@@ -701,11 +703,13 @@ fun LibraryContent(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(value = metadataTitle, onValueChange = { metadataTitle = it }, label = { Text("ชื่อหนังสือ") }, singleLine = true)
                     OutlinedTextField(value = metadataAuthor, onValueChange = { metadataAuthor = it }, label = { Text("ผู้แต่ง") }, singleLine = true)
+                    OutlinedTextField(value = metadataSeriesName, onValueChange = { metadataSeriesName = it }, label = { Text("ชื่อซีรีส์ / ชุดหนังสือ") }, singleLine = true)
+                    OutlinedTextField(value = metadataSeriesPosition, onValueChange = { metadataSeriesPosition = it }, label = { Text("ลำดับในซีรีส์") }, singleLine = true)
                     Text("แก้ไขเฉพาะข้อมูลในคลัง Kanom Reader ไม่เปลี่ยนชื่อไฟล์ EPUB ต้นฉบับ")
                 }
             },
             confirmButton = {
-                TextButton(enabled = metadataTitle.isNotBlank(), onClick = { onUpdateBookMetadata(book.id, metadataTitle, metadataAuthor); metadataBook = null }) { Text("บันทึก") }
+                TextButton(enabled = metadataTitle.isNotBlank() && (metadataSeriesPosition.isBlank() || metadataSeriesPosition.toDoubleOrNull() != null), onClick = { onUpdateBookMetadata(book.id, metadataTitle, metadataAuthor, metadataSeriesName, metadataSeriesPosition.toDoubleOrNull()); metadataBook = null }) { Text("บันทึก") }
             },
             dismissButton = { TextButton(onClick = { metadataBook = null }) { Text("ยกเลิก") } },
         )
