@@ -215,12 +215,12 @@ class LibraryViewModelTest {
     }
 
     @Test
-    fun `continueCards contains at most four most recently opened in-progress books`() = runTest {
+    fun `continueCards retains all in-progress books ordered by recent activity`() = runTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         fakeBooks.books.value = (1..6).map { book("$it", "Book $it", lastOpenedAt = it.toLong()) }
         (1..6).forEach { fakeProgress.setProgress("$it", progress("$it", 0.2f)) }
         runCurrent()
-        assertEquals(listOf("6", "5", "4", "3"), vm.uiState.value.continueCards.map { it.id })
+        assertEquals(listOf("6", "5", "4", "3", "2", "1"), vm.uiState.value.continueCards.map { it.id })
         assertEquals("6", vm.uiState.value.continueCard?.id)
     }
 
