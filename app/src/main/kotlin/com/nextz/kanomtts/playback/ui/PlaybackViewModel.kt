@@ -46,19 +46,25 @@ class PlaybackViewModel @Inject constructor(
         controller.currentLang,
         controller.sleepRemaining,
         prefs.preferences,
-    ) { state, lang, sleepRemaining, p ->
+        books.observeLibrary(),
+    ) { state, lang, sleepRemaining, p, libraryBooks ->
         val bookId = when (state) {
             is PlaybackState.Playing -> state.bookId
             is PlaybackState.Paused -> state.bookId
             else -> null
         }
-        val book = bookId?.let { books.get(it) }
+        val activeBook = bookId?.let { id -> libraryBooks.firstOrNull { it.id == id } ?: books.get(id) }
+        val latestBook = libraryBooks.maxWithOrNull(
+            compareBy<com.nextz.kanomtts.data.db.BookEntity> { it.lastOpenedAt ?: Long.MIN_VALUE }
+                .thenBy { it.addedAt },
+        )
+        val displayBook = activeBook ?: latestBook
         MiniPlayerUiState(
             visible = state is PlaybackState.Playing || state is PlaybackState.Paused,
             isPlaying = state is PlaybackState.Playing,
-            title = book?.title ?: "",
-            author = book?.author,
-            coverPath = book?.coverPath,
+            title = displayBook?.title ?: "ยังไม่มีหนังสือที่เปิดล่าสุด",
+            author = displayBook?.author,
+            coverPath = displayBook?.coverPath,
             voiceLabel = lang?.toThaiLabel(),
             sleepRemainingMs = sleepRemaining,
             byParagraph = p.readingUnit == ReadingUnit.PARAGRAPH,
