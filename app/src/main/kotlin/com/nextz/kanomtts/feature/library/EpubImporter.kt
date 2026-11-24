@@ -24,8 +24,21 @@ class EpubImporter(
     private val contentHasher: suspend (String) -> String? = { null },
 ) {
     suspend fun import(uri: String, fileSize: Long, displayName: String?, sourceFolder: String? = null): ImportResult {
-        // Re-importing a previously indexed SAF URI should not reopen or reparse the EPUB.
-        if (books.isDuplicate(uri)) return ImportResult.Duplicate
+        // A URI may have been imported individually before the user imports its parent
+        // folder. Keep the existing Book ID/progress, but attach the real folder location so
+        // the Folder Library can reconstruct every level of that source tree.
+        if (books.isDuplicate(uri)) {
+            if (!sourceFolder.isNullOrBlank()) {
+                books.updateSource(
+                    bookId = stableId(uri),
+                    uri = uri,
+                    sha256 = null, // The repository preserves the already-computed fingerprint.
+                    sourceFolder = sourceFolder,
+                    sourceFileName = displayName,
+                )
+            }
+            return ImportResult.Duplicate
+        }
         val meta = extractor.extract(uri) ?: return ImportResult.Unreadable
         val filenameTitle = displayName?.takeIf { it.isNotBlank() }?.let { name ->
             (if (name.endsWith(".epub", ignoreCase = true)) name.dropLast(5) else name)
