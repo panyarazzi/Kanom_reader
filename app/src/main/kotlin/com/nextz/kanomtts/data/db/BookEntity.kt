@@ -20,4 +20,5 @@ data class BookEntity(
     val seriesName: String? = null,
     val seriesPosition: Double? = null,
     val readingStatus: String? = null,
+    val description: String? = null,
 )
