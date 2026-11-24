@@ -359,7 +359,6 @@ internal fun ReaderSettingsSheetContent(
             ProgressLayoutSection(
                 title = "รูปแบบ Progress ด้านบน",
                 layout = ProgressLayout(prefs.topProgressLeft, prefs.topProgressCenter, prefs.topProgressRight),
-                rightOptions = listOf("BOOK_PERCENT" to "% ทั้งเล่ม", "NONE" to "ไม่แสดง"),
                 onChange = onTopProgressLayout,
             )
             HorizontalDivider(Modifier.padding(vertical = 16.dp))
@@ -434,37 +433,37 @@ internal fun ReaderSettingsSheetContent(
     }
 }
 
+private val progressLayoutOptions = listOf(
+    "CHAPTER_PAGE" to "หน้า/บท",
+    "CHAPTER_TITLE" to "ชื่อบท",
+    "BOOK_TITLE" to "ชื่อหนังสือ",
+    "BOOK_PERCENT" to "% ทั้งเล่ม",
+    "TIME_BATTERY" to "เวลา+แบตฯ",
+    "TIME" to "เวลา",
+    "BATTERY" to "แบตเตอรี่",
+    "CHARGING" to "สถานะชาร์จ",
+    "NONE" to "ไม่แสดง",
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ProgressLayoutSection(
     title: String,
     layout: ProgressLayout,
-    rightOptions: List<Pair<String, String>> = listOf(
-        "TIME_BATTERY" to "เวลา+แบตฯ",
-        "TIME" to "เวลา",
-        "BATTERY" to "แบตเตอรี่",
-        "CHARGING" to "สถานะชาร์จ",
-        "NONE" to "ไม่แสดง",
-    ),
     onChange: (String, String, String) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(title, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
-        ProgressChoiceRow("ซ้าย", layout.left, listOf(
-            "BOOK_PERCENT" to "% ทั้งเล่ม",
-            "NONE" to "ไม่แสดง",
-        )) { onChange(it, layout.center, layout.right) }
+        ProgressChoiceRow("ซ้าย", layout.left, progressLayoutOptions) {
+            onChange(it, layout.center, layout.right)
+        }
         Spacer(Modifier.height(8.dp))
-        ProgressChoiceRow("กลาง", layout.center, listOf(
-            "CHAPTER_TITLE" to "ชื่อบท",
-            "BOOK_TITLE" to "ชื่อหนังสือ",
-            "CHAPTER_PAGE" to "หน้า/บท",
-            "BOOK_PERCENT" to "% ทั้งเล่ม",
-            "NONE" to "ไม่แสดง",
-        )) { onChange(layout.left, it, layout.right) }
+        ProgressChoiceRow("กลาง", layout.center, progressLayoutOptions) {
+            onChange(layout.left, it, layout.right)
+        }
         Spacer(Modifier.height(8.dp))
-        ProgressChoiceRow("ขวา", layout.right, rightOptions) {
+        ProgressChoiceRow("ขวา", layout.right, progressLayoutOptions) {
             onChange(layout.left, layout.center, it)
         }
     }
