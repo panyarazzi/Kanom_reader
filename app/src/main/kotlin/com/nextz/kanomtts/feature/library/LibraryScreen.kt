@@ -462,19 +462,24 @@ fun LibraryContent(
                         }
                     }
                     val shelvesContent: @Composable () -> Unit = {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Shelves", style = MaterialTheme.typography.titleMedium)
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                ShelfCard("กำลังอ่าน", state.readingCount, state.selectedShelf == LibraryShelf.READING,
-                                    { onShelfFilter(LibraryShelf.READING) }, Modifier.weight(1f))
-                                ShelfCard("รออ่าน", state.toReadCount, state.selectedShelf == LibraryShelf.TO_READ,
-                                    { onShelfFilter(LibraryShelf.TO_READ) }, Modifier.weight(1f))
-                            }
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                ShelfCard("ซีรีส์ / ชุด", state.seriesCount, state.selectedShelf == LibraryShelf.SERIES,
-                                    { onShelfFilter(LibraryShelf.SERIES) }, Modifier.weight(1f))
-                                ShelfCard("อ่านจบแล้ว", state.finishedCount, state.selectedShelf == LibraryShelf.FINISHED,
-                                    { onShelfFilter(LibraryShelf.FINISHED) }, Modifier.weight(1f))
+                        Card(Modifier.fillMaxWidth()) {
+                            Column(
+                                Modifier.fillMaxWidth().padding(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Text("Shelves", style = MaterialTheme.typography.titleMedium)
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    ShelfCard("กำลังอ่าน", state.readingCount, state.selectedShelf == LibraryShelf.READING,
+                                        { onShelfFilter(LibraryShelf.READING) }, Modifier.weight(1f))
+                                    ShelfCard("รออ่าน", state.toReadCount, state.selectedShelf == LibraryShelf.TO_READ,
+                                        { onShelfFilter(LibraryShelf.TO_READ) }, Modifier.weight(1f))
+                                }
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    ShelfCard("ซีรีส์ / ชุด", state.seriesCount, state.selectedShelf == LibraryShelf.SERIES,
+                                        { onShelfFilter(LibraryShelf.SERIES) }, Modifier.weight(1f))
+                                    ShelfCard("อ่านจบแล้ว", state.finishedCount, state.selectedShelf == LibraryShelf.FINISHED,
+                                        { onShelfFilter(LibraryShelf.FINISHED) }, Modifier.weight(1f))
+                                }
                             }
                         }
                     }
@@ -1025,24 +1030,23 @@ private fun ShelfCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
-        colors = androidx.compose.material3.CardDefaults.cardColors(
-            containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer
-            else MaterialTheme.colorScheme.surfaceVariant,
-        ),
-    ) {
-        Column(
-            Modifier.fillMaxWidth().padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(title, style = MaterialTheme.typography.titleSmall, maxLines = 1)
-            Text(
-                count.toString(),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+    Column(
+        modifier = modifier.fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
+            .background(
+                if (selected) MaterialTheme.colorScheme.secondaryContainer
+                else MaterialTheme.colorScheme.surfaceVariant,
             )
-        }
+            .clickable(onClick = onClick)
+            .padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(title, style = MaterialTheme.typography.titleSmall, maxLines = 1)
+        Text(
+            count.toString(),
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
