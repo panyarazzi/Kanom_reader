@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
     entities = [BookEntity::class, ProgressEntity::class, BookmarkEntity::class,
         ReplacementRuleEntity::class, VoiceConfigEntity::class, ReadingSessionEntity::class,
         BookTagEntity::class, BookNoteEntity::class, BookTagLibraryEntity::class],
-    version = 9,
+    version = 10,
     exportSchema = false,
 )
 abstract class KanomDatabase : RoomDatabase() {
