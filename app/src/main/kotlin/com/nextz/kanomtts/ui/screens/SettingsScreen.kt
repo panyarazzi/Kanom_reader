@@ -44,6 +44,7 @@ fun SettingsScreen(
     contentPadding: PaddingValues = PaddingValues(),
     onOpenReplacements: () -> Unit = {},
     onOpenAdvanced: () -> Unit = {},
+    onOpenBackupRestore: () -> Unit = {},
     backupOnly: Boolean = false,
     onBack: () -> Unit = {},
     playbackVm: PlaybackSettingsViewModel = hiltViewModel(),
@@ -130,6 +131,17 @@ fun SettingsScreen(
                 Column(Modifier.weight(1f)) {
                     Text("การตั้งค่าขั้นสูง", style = MaterialTheme.typography.titleMedium)
                     Text("Progress, ระยะบรรทัด, ระยะขอบ และตัวเลือกเพิ่มเติม", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+            }
+        }
+        Card(Modifier.fillMaxWidth().clickable(onClick = onOpenBackupRestore).padding(top = 8.dp)) {
+            Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Backup / Restore", style = MaterialTheme.typography.titleMedium)
+                    Text("สำรองและกู้คืนข้อมูลคลังหนังสือและการตั้งค่า โดยไม่คัดลอกไฟล์ EPUB",
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
