@@ -25,11 +25,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.stickyHeader
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.FilterChip
@@ -51,6 +55,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
@@ -414,14 +419,10 @@ fun LibraryContent(
                                 }
                                 if (listeningVisible) {
                                     Box(Modifier.weight(1f)) {
-                                        MiniPlayerBar(
+                                        ContinueListeningCard(
                                             state = playbackState!!,
                                             onPlayPause = onPlaybackToggle,
-                                            onNext = onPlaybackNext,
-                                            onPrev = onPlaybackPrevious,
-                                            onSleep = onPlaybackSleep,
                                             onExpand = onOpenNowPlaying,
-                                            modifier = Modifier.fillMaxWidth(),
                                         )
                                     }
                                 } else {
@@ -953,6 +954,47 @@ private fun FolderListItem(
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+
+
+@Composable
+private fun ContinueListeningCard(
+    state: MiniPlayerUiState,
+    onPlayPause: () -> Unit,
+    onExpand: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onExpand),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            CoverImage(
+                coverPath = state.coverPath,
+                modifier = Modifier.size(40.dp).clip(MaterialTheme.shapes.small),
+            )
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text("ฟังต่อ", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    state.title,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+            }
+            IconButton(onClick = onPlayPause) {
+                Icon(
+                    imageVector = if (state.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    contentDescription = if (state.isPlaying) "หยุดชั่วคราว" else "เล่น",
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
     }
 }
 
