@@ -327,7 +327,21 @@ fun LibraryContent(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Box(Modifier.weight(1f)) {
-                                BrandHeader(modifier = Modifier.fillMaxWidth())
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    BrandHeader(modifier = Modifier.fillMaxWidth())
+                                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                        FilterChip(
+                                            selected = state.libraryMode == LibraryMode.CLASSIC,
+                                            onClick = { onLibraryMode(LibraryMode.CLASSIC) },
+                                            label = { Text("Classic") },
+                                        )
+                                        FilterChip(
+                                            selected = state.libraryMode == LibraryMode.FOLDER,
+                                            onClick = { onLibraryMode(LibraryMode.FOLDER) },
+                                            label = { Text("Folder") },
+                                        )
+                                    }
+                                }
                             }
                             Column(Modifier.weight(1.35f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 LibrarySearchBar(
@@ -335,18 +349,6 @@ fun LibraryContent(
                                     onQueryChange = onQueryChange,
                                     modifier = Modifier.fillMaxWidth(),
                                 )
-                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                    FilterChip(
-                                        selected = state.libraryMode == LibraryMode.CLASSIC,
-                                        onClick = { onLibraryMode(LibraryMode.CLASSIC) },
-                                        label = { Text("Classic") },
-                                    )
-                                    FilterChip(
-                                        selected = state.libraryMode == LibraryMode.FOLDER,
-                                        onClick = { onLibraryMode(LibraryMode.FOLDER) },
-                                        label = { Text("Folder") },
-                                    )
-                                }
                                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                     Spacer(Modifier.weight(1f))
                                     ViewModeToggle(mode = state.viewMode, onSelect = onViewMode)
