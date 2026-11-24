@@ -13,7 +13,7 @@ class EpubImporterTest {
 
     @Test fun `imports new book with metadata fingerprint and original filename`() = runTest {
         val repo = FakeBookRepository()
-        val ext = FakeMetadataExtractor(BookMetadata("My Book", "Auth", "th", null, "The Saga", 2.0))
+        val ext = FakeMetadataExtractor(BookMetadata("My Book", "Auth", "th", null, "The Saga", 2.0, "Book description"))
         val result = importer(repo, ext, createTempDir()) { "sha-256-value" }
             .import("content://x", 123, "original-name.epub", "Series/Volume 1")
         assertTrue(result is ImportResult.Imported)
@@ -25,6 +25,7 @@ class EpubImporterTest {
         assertEquals("original-name.epub", saved.sourceFileName)
         assertEquals("The Saga", saved.seriesName)
         assertEquals(2.0, saved.seriesPosition!!, 0.0)
+        assertEquals("Book description", saved.description)
     }
     @Test fun `cancellation during fingerprinting propagates and does not add a book`() = runTest {
         val repo = FakeBookRepository()
