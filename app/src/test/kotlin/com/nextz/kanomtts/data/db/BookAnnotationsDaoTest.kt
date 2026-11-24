@@ -44,5 +44,18 @@ class BookAnnotationsDaoTest : RoomTestBase() {
         assertEquals("locator-snapshot", db.progressDao().get("b1")?.locator)
     }
 
+    @Test fun `editing metadata leaves original EPUB URI and source filename unchanged`() = runTest {
+        db.bookDao().upsert(book().copy(sourceFileName = "original.epub"))
+        db.bookDao().updateMetadata("b1", "Edited title", "Edited author", "Saga", 2.0)
+
+        val updated = db.bookDao().getById("b1")!!
+        assertEquals("Edited title", updated.title)
+        assertEquals("Edited author", updated.author)
+        assertEquals("Saga", updated.seriesName)
+        assertEquals(2.0, updated.seriesPosition!!, 0.0)
+        assertEquals("content://b1", updated.uri)
+        assertEquals("original.epub", updated.sourceFileName)
+    }
+
 
 }
