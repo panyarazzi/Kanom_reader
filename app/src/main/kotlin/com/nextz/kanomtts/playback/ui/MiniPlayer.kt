@@ -82,7 +82,7 @@ fun MiniPlayerInline(
 /**
  * Stateless visual — accepts hoisted state for Previews (no Hilt needed).
  *
- * Renders NOTHING when [state.visible] is false.
+ * Keeps the latest-book card visible while idle; transport controls appear only during playback.
  */
 @Composable
 fun MiniPlayerBar(
