@@ -558,15 +558,6 @@ fun LibraryContent(
                             }) { Text("ย้อนกลับ") }
                         }
                     }
-                    if (showOrganizationControls) {
-                        OrganizationControlsPanel(
-                            state, onLibraryMode, onGroupMode, onSortMode, onSortDescending,
-                            onSecondarySortMode, onShowFilename,
-                            groupMenuExpanded, { groupMenuExpanded = it },
-                            sortMenuExpanded, { sortMenuExpanded = it },
-                            secondarySortMenuExpanded, { secondarySortMenuExpanded = it },
-                        )
-                    }
                     if (state.selectedFolder != null) {
                         Text(
                             state.selectedFolder.replace("/", "  ›  "),
