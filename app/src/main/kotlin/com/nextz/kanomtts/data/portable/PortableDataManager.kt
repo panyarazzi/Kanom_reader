@@ -413,6 +413,7 @@ class PortableDataManager @Inject constructor(
                 sourceFileName = source?.name ?: o.optNullableString("sourceFileName"),
                 seriesName = o.optNullableString("seriesName"),
                 seriesPosition = o.optNullableDouble("seriesPosition"),
+                readingStatus = o.optNullableString("readingStatus"),
             )
         }
         val progressArray = json.getJSONArray("progress")
