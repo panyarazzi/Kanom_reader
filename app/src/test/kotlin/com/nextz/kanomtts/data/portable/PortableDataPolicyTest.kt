@@ -1,6 +1,7 @@
 package com.nextz.kanomtts.data.portable
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.json.JSONObject
 class PortableDataPolicyTest {
@@ -23,6 +24,15 @@ class PortableDataPolicyTest {
             .put(JSONObject().put("tag", ""))
             .put(JSONObject().put("tag", " แนะนำ ")))
         assertEquals(listOf("Review", "แนะนำ"), parseSavedTagLibrary(json).map { it.tag })
+    }
+
+    @Test fun `legacy book records without manual status remain progress-derived`() {
+        assertEquals(null, parsePortableReadingStatus(JSONObject().put("id", "b1")))
+    }
+
+    @Test fun `portable reading status accepts only known shelf values`() {
+        assertEquals("TO_READ", parsePortableReadingStatus(JSONObject().put("readingStatus", "TO_READ")))
+        assertEquals("FINISHED", parsePortableReadingStatus(JSONObject().put("readingStatus", "FINISHED")))
     }
 
 }
