@@ -75,7 +75,7 @@ class PlaybackViewModel @Inject constructor(
         initialValue = MiniPlayerUiState(
             visible = false,
             isPlaying = false,
-            title = "",
+            title = "ยังไม่มีหนังสือที่เปิดล่าสุด",
             author = null,
             coverPath = null,
             voiceLabel = null,
