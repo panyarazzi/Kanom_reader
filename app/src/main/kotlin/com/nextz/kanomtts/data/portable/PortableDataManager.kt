@@ -298,7 +298,7 @@ class PortableDataManager @Inject constructor(
                 }
             }
             val entry = metadataEntry ?: error("ไฟล์สำรองไม่มี data.json")
-            require(entry.size >= 0L && entry.size <= MAX_ENTRY_BYTES) {
+            require(entry.size >= 0L && entry.size <= MAX_METADATA_BYTES) {
                 "ไฟล์ข้อมูลสำรองมีขนาดใหญ่เกินกำหนดหรือไม่ทราบขนาด"
             }
             zip.getInputStream(entry).use { input ->
