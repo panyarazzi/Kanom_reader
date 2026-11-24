@@ -1,5 +1,10 @@
 package com.nextz.kanomtts.feature.library
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import com.nextz.kanomtts.data.db.BookEntity
 import com.nextz.kanomtts.data.db.ProgressEntity
 import com.nextz.kanomtts.data.repository.BookDeleter
@@ -9,7 +14,9 @@ import com.nextz.kanomtts.playback.PlaybackState
 import com.nextz.kanomtts.playback.PlaybackStopper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -41,6 +48,16 @@ class LibraryViewModelTest {
     private lateinit var fakeBooks: FakeBookRepository
     private lateinit var fakeProgress: FakeProgressRepository
     private lateinit var vm: LibraryViewModel
+
+    private class FakePreferencesDataStore : DataStore<Preferences> {
+        private val state = MutableStateFlow<Preferences>(emptyPreferences())
+        override val data: Flow<Preferences> = state
+        override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences {
+            val updated = transform(state.value)
+            state.value = updated
+            return updated
+        }
+    }
 
     private class FakeBookDeleter : BookDeleter {
         val deleted = mutableSetOf<String>()
@@ -173,6 +190,32 @@ class LibraryViewModelTest {
         runCurrent()
         assertTrue(vm.uiState.value.books.isEmpty())
         assertTrue(vm.uiState.value.folders.isNotEmpty())
+    }
+
+    @Test
+    fun `library presentation mode is persisted and restored for a new view model`() = runTest {
+        val store = FakePreferencesDataStore()
+        val localVm = LibraryViewModel(
+            fakeBooks, fakeProgress, FakeBookDeleter(), FakeStopper(PlaybackState.Idle),
+            dataStore = store,
+        )
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { localVm.uiState.collect {} }
+
+        localVm.setLibraryMode(LibraryPresentationMode.CLASSIC)
+        runCurrent()
+        assertEquals(
+            LibraryPresentationMode.CLASSIC.name,
+            store.data.first()[stringPreferencesKey("library_presentation_mode")],
+        )
+
+        val recreatedVm = LibraryViewModel(
+            fakeBooks, fakeProgress, FakeBookDeleter(), FakeStopper(PlaybackState.Idle),
+            dataStore = store,
+        )
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { recreatedVm.uiState.collect {} }
+        runCurrent()
+        assertEquals(LibraryPresentationMode.CLASSIC, recreatedVm.uiState.value.libraryMode)
+        assertTrue(recreatedVm.uiState.value.folders.isEmpty())
     }
 
     @Test
