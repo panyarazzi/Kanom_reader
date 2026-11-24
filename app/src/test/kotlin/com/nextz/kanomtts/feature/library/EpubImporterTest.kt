@@ -74,6 +74,28 @@ class EpubImporterTest {
         assertEquals("existing.epub", saved.sourceFileName)
     }
 
+    @Test fun `folder import reconciles same EPUB from a different SAF uri by fingerprint`() = runTest {
+        val repo = FakeBookRepository()
+        val ext = FakeMetadataExtractor(BookMetadata("Same content", "Author", "th", null))
+        val imp = importer(repo, ext, createTempDir()) { "same-content-sha" }
+        val first = imp.import("content://individual/document/1", 2048, "same.epub") as ImportResult.Imported
+
+        val folderResult = imp.import(
+            "content://tree/Books/document/99",
+            2048,
+            "same.epub",
+            "Books/ePub Normal Style/Series B",
+        )
+
+        assertTrue(folderResult is ImportResult.Duplicate)
+        assertEquals(1, repo.books.value.size)
+        val saved = repo.books.value.single()
+        assertEquals(first.bookId, saved.id)
+        assertEquals("content://tree/Books/document/99", saved.uri)
+        assertEquals("same-content-sha", saved.sha256)
+        assertEquals("Books/ePub Normal Style/Series B", saved.sourceFolder)
+    }
+
     @Test fun `same title and size from different source files are not silently relinked or suppressed`() = runTest {
         val repo = FakeBookRepository()
         val imp = importer(repo, FakeMetadataExtractor(BookMetadata("Same Book", "Author", "th", null)), createTempDir())
