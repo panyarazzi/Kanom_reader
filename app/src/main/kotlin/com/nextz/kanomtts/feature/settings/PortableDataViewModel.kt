@@ -7,7 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nextz.kanomtts.data.db.BookEntity
 import com.nextz.kanomtts.data.portable.PortableBackupSummary
-import com.nextz.kanomtts.data.portable.PortableDataManager
+import com.nextz.kanomtts.data.portable.PortableDataGateway
 import com.nextz.kanomtts.data.portable.RestoreSourceCandidate
 import com.nextz.kanomtts.data.portable.RestoreSourcePlan
 import com.nextz.kanomtts.data.portable.buildRestoreSourcePlan
@@ -47,7 +47,7 @@ data class PortableDataUiState(
 
 @HiltViewModel
 class PortableDataViewModel @Inject constructor(
-    private val manager: PortableDataManager,
+    private val manager: PortableDataGateway,
     private val metadata: MetadataExtractor,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
