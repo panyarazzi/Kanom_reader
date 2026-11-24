@@ -180,6 +180,24 @@ internal fun ReaderSettingsSheetContent(
 
             Spacer(Modifier.height(16.dp))
 
+                Spacer(Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.medium)
+                        .clickable { advancedMenuOpen = true }
+                        .padding(horizontal = 14.dp, vertical = 13.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "การตั้งค่าขั้นสูง",
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "เปิดการตั้งค่าขั้นสูง")
+                }
+
             // ── Font size ──────────────────────────────────────────────────────
             SectionLabel("ขนาดตัวอักษร: ${prefs.fontSizeSp} sp (${prefs.fontSizeSp * 100 / 16}%)")
             Slider(
@@ -253,23 +271,7 @@ internal fun ReaderSettingsSheetContent(
             Spacer(Modifier.height(8.dp))
 
 
-                Spacer(Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.medium)
-                        .clickable { advancedMenuOpen = true }
-                        .padding(horizontal = 14.dp, vertical = 13.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        "การตั้งค่าขั้นสูง",
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "เปิดการตั้งค่าขั้นสูง")
-                }
+
             } else {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
@@ -327,7 +329,6 @@ internal fun ReaderSettingsSheetContent(
             Spacer(Modifier.height(16.dp))
 
             // ── Escape hatches ─────────────────────────────────────────────────
-            SectionLabel("การตั้งค่าขั้นสูง")
             ToggleRow(
                 label = "ใช้สไตล์ผู้จัดพิมพ์",
                 checked = prefs.usePublisherStyles,
