@@ -194,6 +194,7 @@ class LibraryViewModelTest {
 
     @Test
     fun `library presentation mode is persisted and restored for a new view model`() = runTest {
+        Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
         val store = FakePreferencesDataStore()
         val localVm = LibraryViewModel(
             fakeBooks, fakeProgress, FakeBookDeleter(), FakeStopper(PlaybackState.Idle),
