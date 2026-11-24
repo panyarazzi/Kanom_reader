@@ -31,6 +31,7 @@ class PortablePreferencesCodecTest {
         }
         store.edit {
             it[stringPreferencesKey("book_custom_typography")] = """{"lineHeight":1.35,"indent":1.2}"""
+            it[stringPreferencesKey("library_presentation_mode")] = "CLASSIC"
             it[booleanPreferencesKey("tap_anywhere_to_next")] = true
             it[floatPreferencesKey("line_height")] = 1.35f
             it[floatPreferencesKey("paragraph_indent_em")] = 1.4f
@@ -47,6 +48,7 @@ class PortablePreferencesCodecTest {
         assertEquals("string", byName.getValue("book_custom_typography").getString("type"))
         assertEquals("""{"lineHeight":1.35,"indent":1.2}""", byName.getValue("book_custom_typography").getString("value"))
         assertEquals(true, byName.getValue("tap_anywhere_to_next").getBoolean("value"))
+        assertEquals("CLASSIC", byName.getValue("library_presentation_mode").getString("value"))
         assertEquals(1.35, byName.getValue("line_height").getDouble("value"), 0.0001)
         assertEquals(1.4, byName.getValue("paragraph_indent_em").getDouble("value"), 0.0001)
         assertEquals(0.6, byName.getValue("paragraph_spacing_em").getDouble("value"), 0.0001)
