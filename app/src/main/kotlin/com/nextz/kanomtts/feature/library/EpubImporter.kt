@@ -80,6 +80,7 @@ class EpubImporter(
             coverPath = coverPath, fileSize = fileSize, addedAt = now(), lastOpenedAt = null,
             sha256 = sha256, sourceFolder = sourceFolder, sourceFileName = displayName,
             seriesName = meta.seriesName, seriesPosition = meta.seriesPosition,
+            description = meta.description,
         ))
         return ImportResult.Imported(id)
     }
