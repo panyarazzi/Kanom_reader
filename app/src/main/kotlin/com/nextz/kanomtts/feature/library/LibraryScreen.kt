@@ -305,7 +305,7 @@ fun LibraryContent(
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        item(key = "library-header") {
+        stickyHeader(key = "library-header") {
             Spacer(Modifier.height(8.dp))
             if (state.isSelectionMode) {
                 SelectionBar(
@@ -326,16 +326,6 @@ fun LibraryContent(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            FilterChip(
-                                selected = state.libraryMode == LibraryPresentationMode.CLASSIC,
-                                onClick = { onLibraryMode(LibraryPresentationMode.CLASSIC) },
-                                label = { Text("Classic") },
-                            )
-                            FilterChip(
-                                selected = state.libraryMode == LibraryPresentationMode.FOLDER,
-                                onClick = { onLibraryMode(LibraryPresentationMode.FOLDER) },
-                                label = { Text("Folder") },
-                            )
                             ViewModeToggle(mode = state.viewMode, onSelect = onViewMode)
                             TextButton(onClick = { showOrganizationControls = !showOrganizationControls }) {
                                 Text(if (showOrganizationControls) "ปิดตัวกรอง" else "จัดกลุ่ม/เรียง")
@@ -343,7 +333,7 @@ fun LibraryContent(
                         }
                         if (showOrganizationControls) {
                             OrganizationControlsPanel(
-                                state, onGroupMode, onSortMode, onSortDescending,
+                                state, onLibraryMode, onGroupMode, onSortMode, onSortDescending,
                                 onSecondarySortMode, onShowFilename,
                                 groupMenuExpanded, { groupMenuExpanded = it },
                                 sortMenuExpanded, { sortMenuExpanded = it },
@@ -380,8 +370,16 @@ fun LibraryContent(
                     androidx.compose.foundation.layout.BoxWithConstraints(
                         Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(vertical = 4.dp),
                     ) {
-                        val listeningVisible = playbackState?.visible == true
-                        if (listeningVisible && maxWidth >= 720.dp) {
+                        val playerState = playbackState ?: MiniPlayerUiState(
+                            visible = false,
+                            isPlaying = false,
+                            title = "ยังไม่มีหนังสือที่เปิดล่าสุด",
+                            author = null,
+                            coverPath = null,
+                            voiceLabel = null,
+                            sleepRemainingMs = null,
+                        )
+                        if (maxWidth >= 720.dp) {
                             Row(
                                 Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -392,7 +390,7 @@ fun LibraryContent(
                                 }
                                 Box(Modifier.weight(1f)) {
                                     MiniPlayerBar(
-                                        state = playbackState!!,
+                                        state = playerState,
                                         onPlayPause = onPlaybackToggle,
                                         onNext = onPlaybackNext,
                                         onPrev = onPlaybackPrevious,
@@ -405,22 +403,19 @@ fun LibraryContent(
                         } else {
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 ReadingStatisticsCard(state = statistics, onMore = onOpenStatistics)
-                                if (listeningVisible) {
-                                    MiniPlayerBar(
-                                        state = playbackState!!,
-                                        onPlayPause = onPlaybackToggle,
-                                        onNext = onPlaybackNext,
-                                        onPrev = onPlaybackPrevious,
-                                        onSleep = onPlaybackSleep,
-                                        onExpand = onOpenNowPlaying,
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                }
+                                MiniPlayerBar(
+                                    state = playerState,
+                                    onPlayPause = onPlaybackToggle,
+                                    onNext = onPlaybackNext,
+                                    onPrev = onPlaybackPrevious,
+                                    onSleep = onPlaybackSleep,
+                                    onExpand = onOpenNowPlaying,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
                             }
                         }
                     }
                 }
-            }
             item(key = "library-continue-and-shelves") {
                 androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
                     val continueContent: @Composable () -> Unit = {
@@ -565,7 +560,7 @@ fun LibraryContent(
                     }
                     if (showOrganizationControls) {
                         OrganizationControlsPanel(
-                            state, onGroupMode, onSortMode, onSortDescending,
+                            state, onLibraryMode, onGroupMode, onSortMode, onSortDescending,
                             onSecondarySortMode, onShowFilename,
                             groupMenuExpanded, { groupMenuExpanded = it },
                             sortMenuExpanded, { sortMenuExpanded = it },
@@ -782,7 +777,7 @@ fun LibraryContent(
                 ) {
                     Text(book.title, style = MaterialTheme.typography.titleMedium)
                     book.author?.takeIf { it.isNotBlank() }?.let { Text("ผู้แต่ง: $it") }
-                    book.description?.takeIf { it.isNotBlank() }?.let { Text(it) }
+                    book.description?.let(::plainBookDescription)?.takeIf { it.isNotBlank() }?.let { Text(it) }
                     book.filename.takeIf { it.isNotBlank() }?.let { Text("ชื่อไฟล์: $it") }
                     book.sourceFolder?.takeIf { it.isNotBlank() }?.let { Text("โฟลเดอร์: $it") }
                     book.seriesName?.takeIf { it.isNotBlank() }?.let { Text("ซีรีส์: $it") }
@@ -857,6 +852,7 @@ fun LibraryContent(
 @Composable
 private fun OrganizationControlsPanel(
     state: LibraryUiState,
+    onLibraryMode: (LibraryPresentationMode) -> Unit,
     onGroupMode: (LibraryGroupMode) -> Unit,
     onSortMode: (LibrarySortMode) -> Unit,
     onSortDescending: (Boolean) -> Unit,
@@ -871,6 +867,10 @@ private fun OrganizationControlsPanel(
 ) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = state.libraryMode == LibraryPresentationMode.CLASSIC, onClick = { onLibraryMode(LibraryPresentationMode.CLASSIC) }, label = { Text("Classic") })
+                FilterChip(selected = state.libraryMode == LibraryPresentationMode.FOLDER, onClick = { onLibraryMode(LibraryPresentationMode.FOLDER) }, label = { Text("Folder") })
+            }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("Group by", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
                 Box {
@@ -1150,3 +1150,12 @@ private fun LibraryEmptyPreview() {
         )
     }
 }
+
+
+private fun plainBookDescription(source: String): String =
+    android.text.Html.fromHtml(source, android.text.Html.FROM_HTML_MODE_LEGACY)
+        .toString()
+        .replace('\u00A0', ' ')
+        .replace(Regex("[ \\t]+\\n"), "\\n")
+        .replace(Regex("\\n{3,}"), "\\n\\n")
+        .trim()
