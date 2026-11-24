@@ -330,7 +330,7 @@ internal fun ReaderSettingsSheetContent(
             ) {
                 Text(stringResource(R.string.reader_manage_replacements), Modifier.weight(1f))
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
-
+            }
 
             } else {
                 Row(
