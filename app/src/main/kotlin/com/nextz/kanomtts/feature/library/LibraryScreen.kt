@@ -715,9 +715,13 @@ fun LibraryContent(
             onDismissRequest = { detailsBook = null },
             title = { Text("รายละเอียดหนังสือ") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Column(
+                    Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                ) {
                     Text(book.title, style = MaterialTheme.typography.titleMedium)
                     book.author?.takeIf { it.isNotBlank() }?.let { Text("ผู้แต่ง: $it") }
+                    book.description?.takeIf { it.isNotBlank() }?.let { Text(it) }
                     book.filename.takeIf { it.isNotBlank() }?.let { Text("ชื่อไฟล์: $it") }
                     book.sourceFolder?.takeIf { it.isNotBlank() }?.let { Text("โฟลเดอร์: $it") }
                     book.seriesName?.takeIf { it.isNotBlank() }?.let { Text("ซีรีส์: $it") }
