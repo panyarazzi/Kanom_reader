@@ -25,6 +25,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CreateNewFolder
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.FilterChip
@@ -848,7 +850,7 @@ private fun FolderGridItem(
                 }
                 if (folder.sampleCovers.isEmpty()) {
                     androidx.compose.material3.Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Filled.Folder,
+                        imageVector = Icons.Filled.Folder,
                         contentDescription = "โฟลเดอร์",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.fillMaxSize().padding(5.dp),
@@ -902,7 +904,7 @@ private fun FolderListItem(
             )
         }
         androidx.compose.material3.Icon(
-            imageVector = androidx.compose.material.icons.Icons.AutoMirrored.Filled.ViewList,
+            imageVector = Icons.Filled.List,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
