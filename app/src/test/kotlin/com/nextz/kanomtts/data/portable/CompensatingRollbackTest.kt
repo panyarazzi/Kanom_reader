@@ -1,5 +1,6 @@
 package com.nextz.kanomtts.data.portable
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
@@ -43,6 +44,27 @@ class CompensatingRollbackTest {
 
         assertEquals("ok", result)
         assertEquals("restored", storedValue)
+    }
+
+    @Test
+    fun cancellationAlsoRunsCompensatingRollback() = runTest {
+        var storedValue = "before"
+        val thrown = try {
+            withCompensatingRollback(
+                snapshot = { storedValue },
+                operation = {
+                    storedValue = "partially-restored"
+                    throw CancellationException("cancel restore")
+                },
+                rollback = { previous -> storedValue = previous },
+            )
+            error("Expected cancellation")
+        } catch (cancelled: CancellationException) {
+            cancelled
+        }
+
+        assertEquals("cancel restore", thrown.message)
+        assertEquals("before", storedValue)
     }
 
     @Test
