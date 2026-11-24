@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -647,7 +648,7 @@ fun LibraryContent(
             onDismissRequest = { contextBook = null },
             title = { Text(book.displayTitle, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     TextButton(onClick = { onOpenAnnotations(book.id); contextBook = null }) { Text("🏷 Tags / Notes") }
                     TextButton(onClick = { detailsBook = book; contextBook = null }) { Text("รายละเอียดหนังสือ") }
                     TextButton(onClick = { onSetReadingStatus(book.id, LibraryShelf.FINISHED); contextBook = null }) { Text("ทำเครื่องหมายว่าอ่านจบแล้ว") }
