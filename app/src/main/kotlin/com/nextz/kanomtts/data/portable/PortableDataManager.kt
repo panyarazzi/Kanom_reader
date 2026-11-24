@@ -175,6 +175,7 @@ class PortableDataManager @Inject constructor(
                         put("addedAt", book.addedAt); putNullable("lastOpenedAt", book.lastOpenedAt)
                         putNullable("sourceFolder", book.sourceFolder); putNullable("sourceFileName", book.sourceFileName)
                         putNullable("seriesName", book.seriesName); putNullable("seriesPosition", book.seriesPosition)
+                         putNullable("readingStatus", book.readingStatus)
                     })
                 }
             })
