@@ -36,7 +36,7 @@ class ReadiumMetadataExtractor @Inject constructor(
                     bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
                 }.toByteArray()
             }
-            BookMetadata(title = title, author = author, lang = lang, coverBytes = coverBytes, seriesName = series?.name?.takeIf { it.isNotBlank() }, seriesPosition = series?.position)
+            BookMetadata(title = title, author = author, lang = lang, coverBytes = coverBytes, seriesName = series?.name?.takeIf { it.isNotBlank() }, seriesPosition = series?.position, description = metadata.description?.trim()?.takeIf { it.isNotEmpty() })
         }
     }
 }
