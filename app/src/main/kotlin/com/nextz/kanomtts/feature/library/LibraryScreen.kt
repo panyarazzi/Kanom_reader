@@ -161,8 +161,10 @@ fun LibraryScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SmallFloatingActionButton(onClick = { folderLauncher.launch(null) }) {
-                    androidx.compose.material3.Icon(Icons.Filled.CreateNewFolder, contentDescription = "นำเข้าโฟลเดอร์")
+                if (uiState.libraryMode == LibraryMode.FOLDER) {
+                    SmallFloatingActionButton(onClick = { folderLauncher.launch(null) }) {
+                        androidx.compose.material3.Icon(Icons.Filled.CreateNewFolder, contentDescription = "นำเข้าโฟลเดอร์")
+                    }
                 }
                 FloatingActionButton(onClick = { singleBookLauncher.launch(arrayOf("application/epub+zip")) }) {
                     androidx.compose.material3.Icon(Icons.Filled.Add, contentDescription = "นำเข้า EPUB")
@@ -181,6 +183,7 @@ fun LibraryScreen(
             state = uiState,
             onQueryChange = viewModel::setQuery,
             onViewMode = viewModel::setViewMode,
+            onLibraryMode = viewModel::setLibraryMode,
             onOpenBook = onOpenBook,
             onToggleSelection = viewModel::toggleSelection,
             onClearSelection = viewModel::clearSelection,
@@ -224,6 +227,7 @@ fun LibraryContent(
     state: LibraryUiState,
     onQueryChange: (String) -> Unit,
     onViewMode: (LibraryViewMode) -> Unit,
+    onLibraryMode: (LibraryMode) -> Unit = {},
     onOpenBook: (String) -> Unit,
     onToggleSelection: (String) -> Unit,
     onClearSelection: () -> Unit,
@@ -331,6 +335,17 @@ fun LibraryContent(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.End,
                                 ) {
+                                    FilterChip(
+                                        selected = state.libraryMode == LibraryMode.CLASSIC,
+                                        onClick = { onLibraryMode(LibraryMode.CLASSIC) },
+                                        label = { Text("Classic") },
+                                    )
+                                    FilterChip(
+                                        selected = state.libraryMode == LibraryMode.FOLDER,
+                                        onClick = { onLibraryMode(LibraryMode.FOLDER) },
+                                        label = { Text("Folder") },
+                                    )
+                                    Spacer(Modifier.weight(1f))
                                     ViewModeToggle(mode = state.viewMode, onSelect = onViewMode)
                                     TextButton(onClick = { showOrganizationControls = !showOrganizationControls }) {
                                         Text(if (showOrganizationControls) "ปิดตัวกรอง" else "จัดกลุ่ม/เรียง")
@@ -350,6 +365,16 @@ fun LibraryContent(
                                 Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
+                                FilterChip(
+                                    selected = state.libraryMode == LibraryMode.CLASSIC,
+                                    onClick = { onLibraryMode(LibraryMode.CLASSIC) },
+                                    label = { Text("Classic") },
+                                )
+                                FilterChip(
+                                    selected = state.libraryMode == LibraryMode.FOLDER,
+                                    onClick = { onLibraryMode(LibraryMode.FOLDER) },
+                                    label = { Text("Folder") },
+                                )
                                 Spacer(Modifier.weight(1f))
                                 ViewModeToggle(mode = state.viewMode, onSelect = onViewMode)
                                 TextButton(onClick = { showOrganizationControls = !showOrganizationControls }) {
@@ -507,7 +532,7 @@ fun LibraryContent(
                     }
                 }
             }
-            if (state.groupMode == LibraryGroupMode.FOLDER &&
+            if (state.libraryMode == LibraryMode.FOLDER && state.groupMode == LibraryGroupMode.FOLDER &&
                 state.query.isBlank() && state.selectedTag == null && state.selectedShelf == null
             ) item(key = "library-folders") {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -789,7 +814,7 @@ private fun OrganizationControlsPanel(
                 Box {
                     TextButton(onClick = { setGroupMenuExpanded(true) }) { Text(state.groupMode.label) }
                     DropdownMenu(expanded = groupMenuExpanded, onDismissRequest = { setGroupMenuExpanded(false) }) {
-                        LibraryGroupMode.entries.forEach { mode ->
+                        LibraryGroupMode.entries.filter { mode -> mode != LibraryGroupMode.FOLDER || state.libraryMode == LibraryMode.FOLDER }.forEach { mode ->
                             DropdownMenuItem(text = { Text(mode.label) }, onClick = {
                                 onGroupMode(mode); setGroupMenuExpanded(false)
                             })
