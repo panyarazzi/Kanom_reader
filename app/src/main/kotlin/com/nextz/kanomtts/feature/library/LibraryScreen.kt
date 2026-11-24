@@ -654,7 +654,7 @@ fun LibraryContent(
                     TextButton(onClick = { onSetReadingStatus(book.id, LibraryShelf.TO_READ); contextBook = null }) { Text("ทำเครื่องหมายว่ายังไม่ได้อ่าน") }
                     TextButton(onClick = { shelfBook = book; contextBook = null }) { Text("ย้ายไปชั้นหนังสือ…") }
                     TextButton(onClick = { onChangeBookCover(book.id); contextBook = null }) { Text("เปลี่ยนภาพปก") }
-                    TextButton(onClick = { metadataBook = book; metadataTitle = book.title; metadataAuthor = book.author.orEmpty(); metadataSeriesName = book.seriesName.orEmpty(); metadataSeriesPosition = book.seriesPosition?.toString().orEmpty(); contextBook = null }) { Text("แก้ไขชื่อหนังสือ / ผู้แต่ง") }
+                    TextButton(onClick = { metadataBook = book; metadataTitle = book.title; metadataAuthor = book.author.orEmpty(); metadataSeriesName = book.seriesName.orEmpty(); metadataSeriesPosition = book.seriesPosition?.toString().orEmpty(); contextBook = null }) { Text("แก้ไขข้อมูลหนังสือ") }
                     TextButton(onClick = { onToggleSelection(book.id); contextBook = null }) { Text("เลือกหลายรายการ") }
                     TextButton(onClick = { removeBook = book; contextBook = null }) { Text("นำออกจากรายการ") }
                 }
