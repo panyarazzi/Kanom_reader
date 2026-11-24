@@ -270,63 +270,7 @@ internal fun ReaderSettingsSheetContent(
             Spacer(Modifier.height(8.dp))
 
 
-
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    TextButton(onClick = { advancedMenuOpen = false }) { Text("‹ กลับ") }
-                    Text("การตั้งค่าขั้นสูง", style = MaterialTheme.typography.titleMedium)
-                }
-            SectionLabel("ขนาดตัวอักษรแสดงสถานะบน/ล่าง: ${prefs.progressFontSizeSp} sp")
-            Slider(
-                value = prefs.progressFontSizeSp.toFloat(),
-                onValueChange = { previewing = true; onProgressFontSize(it.toInt()) },
-                onValueChangeFinished = { previewing = false },
-                valueRange = 8f..80f,
-                steps = 71,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            NumericSettingField("ขนาด Progress (8–80 sp)", prefs.progressFontSizeSp.toString(), decimal = false) {
-                it.toIntOrNull()?.let { value -> onProgressFontSize(value.coerceIn(8, 80)) }
-            }
-            ToggleRow("ตัวแสดงสถานะด้านบน", prefs.topProgressEnabled, onTopProgressEnabled)
-            ToggleRow("ตัวแสดงสถานะด้านล่าง", prefs.footerProgressEnabled, onFooterProgressEnabled)
-
-            Spacer(Modifier.height(12.dp))
-            ProgressLayoutSection(
-                title = "รูปแบบ Progress ด้านบน",
-                layout = ProgressLayout(prefs.topProgressLeft, prefs.topProgressCenter, prefs.topProgressRight),
-                rightOptions = listOf("BOOK_PERCENT" to "% ทั้งเล่ม", "NONE" to "ไม่แสดง"),
-                onChange = onTopProgressLayout,
-            )
-            HorizontalDivider(Modifier.padding(vertical = 16.dp))
-            ProgressLayoutSection(
-                title = "รูปแบบ Progress ด้านล่าง",
-                layout = ProgressLayout(prefs.footerProgressLeft, prefs.footerProgressCenter, prefs.footerProgressRight),
-                onChange = onFooterProgressLayout,
-            )
-            Spacer(Modifier.height(16.dp))
-
-            SectionLabel("ระยะขอบด้านบน: ${prefs.topMarginDp} dp")
-            Slider(value = prefs.topMarginDp.toFloat(), onValueChange = { previewing = true; onTopMargin(it.toInt()) }, onValueChangeFinished = { previewing = false }, valueRange = 0f..80f, steps = 79, modifier = Modifier.fillMaxWidth())
-
-            NumericSettingField("ระยะขอบด้านบน (dp)", prefs.topMarginDp.toString(), decimal = false) {
-                it.toIntOrNull()?.let { value -> onTopMargin(value.coerceIn(0, 80)) }
-            }
-
-            Spacer(Modifier.height(8.dp))
-
-            SectionLabel("ระยะขอบด้านล่าง: ${prefs.bottomMarginDp} dp")
-            Slider(value = prefs.bottomMarginDp.toFloat(), onValueChange = { previewing = true; onBottomMargin(it.toInt()) }, onValueChangeFinished = { previewing = false }, valueRange = 0f..80f, steps = 79, modifier = Modifier.fillMaxWidth())
-
-            NumericSettingField("ระยะขอบด้านล่าง (dp)", prefs.bottomMarginDp.toString(), decimal = false) {
-                it.toIntOrNull()?.let { value -> onBottomMargin(value.coerceIn(0, 80)) }
-            }
-
-            Spacer(Modifier.height(16.dp))
-
+            // Existing reader options remain on the main settings page.
             // ── Escape hatches ─────────────────────────────────────────────────
             ToggleRow(
                 label = "ใช้สไตล์ผู้จัดพิมพ์",
@@ -386,6 +330,65 @@ internal fun ReaderSettingsSheetContent(
             ) {
                 Text(stringResource(R.string.reader_manage_replacements), Modifier.weight(1f))
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
+
+
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextButton(onClick = { advancedMenuOpen = false }) { Text("‹ กลับ") }
+                    Text("การตั้งค่าขั้นสูง", style = MaterialTheme.typography.titleMedium)
+                }
+            SectionLabel("ขนาดตัวอักษรแสดงสถานะบน/ล่าง: ${prefs.progressFontSizeSp} sp")
+            Slider(
+                value = prefs.progressFontSizeSp.toFloat(),
+                onValueChange = { previewing = true; onProgressFontSize(it.toInt()) },
+                onValueChangeFinished = { previewing = false },
+                valueRange = 8f..80f,
+                steps = 71,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            NumericSettingField("ขนาด Progress (8–80 sp)", prefs.progressFontSizeSp.toString(), decimal = false) {
+                it.toIntOrNull()?.let { value -> onProgressFontSize(value.coerceIn(8, 80)) }
+            }
+            ToggleRow("ตัวแสดงสถานะด้านบน", prefs.topProgressEnabled, onTopProgressEnabled)
+            ToggleRow("ตัวแสดงสถานะด้านล่าง", prefs.footerProgressEnabled, onFooterProgressEnabled)
+
+            Spacer(Modifier.height(12.dp))
+            ProgressLayoutSection(
+                title = "รูปแบบ Progress ด้านบน",
+                layout = ProgressLayout(prefs.topProgressLeft, prefs.topProgressCenter, prefs.topProgressRight),
+                rightOptions = listOf("BOOK_PERCENT" to "% ทั้งเล่ม", "NONE" to "ไม่แสดง"),
+                onChange = onTopProgressLayout,
+            )
+            HorizontalDivider(Modifier.padding(vertical = 16.dp))
+            ProgressLayoutSection(
+                title = "รูปแบบ Progress ด้านล่าง",
+                layout = ProgressLayout(prefs.footerProgressLeft, prefs.footerProgressCenter, prefs.footerProgressRight),
+                onChange = onFooterProgressLayout,
+            )
+            Spacer(Modifier.height(16.dp))
+
+            SectionLabel("ระยะขอบด้านบน: ${prefs.topMarginDp} dp")
+            Slider(value = prefs.topMarginDp.toFloat(), onValueChange = { previewing = true; onTopMargin(it.toInt()) }, onValueChangeFinished = { previewing = false }, valueRange = 0f..80f, steps = 79, modifier = Modifier.fillMaxWidth())
+
+            NumericSettingField("ระยะขอบด้านบน (dp)", prefs.topMarginDp.toString(), decimal = false) {
+                it.toIntOrNull()?.let { value -> onTopMargin(value.coerceIn(0, 80)) }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            SectionLabel("ระยะขอบด้านล่าง: ${prefs.bottomMarginDp} dp")
+            Slider(value = prefs.bottomMarginDp.toFloat(), onValueChange = { previewing = true; onBottomMargin(it.toInt()) }, onValueChangeFinished = { previewing = false }, valueRange = 0f..80f, steps = 79, modifier = Modifier.fillMaxWidth())
+
+            NumericSettingField("ระยะขอบด้านล่าง (dp)", prefs.bottomMarginDp.toString(), decimal = false) {
+                it.toIntOrNull()?.let { value -> onBottomMargin(value.coerceIn(0, 80)) }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+
             }
             }
         }
