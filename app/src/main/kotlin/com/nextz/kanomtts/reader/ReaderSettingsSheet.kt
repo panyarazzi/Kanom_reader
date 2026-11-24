@@ -313,7 +313,7 @@ internal fun ReaderSettingsSheetContent(
                 onCheckedChange = onBoldText,
             )
             ToggleRow(
-                label = "แตะพื้นที่อ่านเพื่อไปหน้าถัดไป (เว้นกลางจอ)",
+                label = "แตะจอเพื่อหน้าถัดไป",
                 checked = prefs.tapAnywhereToNext,
                 onCheckedChange = onTapAnywhereToNext,
             )
