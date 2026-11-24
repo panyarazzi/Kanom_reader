@@ -1,6 +1,7 @@
 package com.nextz.kanomtts.feature.library
 
 enum class LibraryViewMode { GRID, LIST, DETAIL }
+enum class LibraryPresentationMode { CLASSIC, FOLDER }
 enum class LibraryShelf(val label: String) {
     READING("กำลังอ่าน"),
     TO_READ("รออ่าน"),
@@ -73,6 +74,7 @@ data class LibraryFolderCard(
 )
 
 data class LibraryUiState(
+    val libraryMode: LibraryPresentationMode = LibraryPresentationMode.FOLDER,
     val books: List<BookCard> = emptyList(),
     val continueCard: BookCard? = null,
     val continueCards: List<BookCard> = emptyList(),
