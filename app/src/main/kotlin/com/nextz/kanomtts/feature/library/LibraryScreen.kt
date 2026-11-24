@@ -416,6 +416,7 @@ fun LibraryContent(
                         }
                     }
                 }
+            }
             item(key = "library-continue-and-shelves") {
                 androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
                     val continueContent: @Composable () -> Unit = {
