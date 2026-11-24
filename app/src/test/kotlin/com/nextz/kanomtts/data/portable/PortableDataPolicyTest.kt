@@ -4,8 +4,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import org.json.JSONObject
 import com.nextz.kanomtts.data.db.BookTagLibraryEntity
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35])
 class PortableDataPolicyTest {
     @Test fun `only metadata and cover entries are restored from zip archives`() {
         assertTrue(isRestorablePortableEntry("data.json"))
