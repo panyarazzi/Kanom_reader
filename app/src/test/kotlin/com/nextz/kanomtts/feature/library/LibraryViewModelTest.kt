@@ -24,6 +24,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -202,19 +203,20 @@ class LibraryViewModelTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { localVm.uiState.collect {} }
 
         localVm.setLibraryMode(LibraryPresentationMode.CLASSIC)
-        runCurrent()
-        assertEquals(
-            LibraryPresentationMode.CLASSIC.name,
-            store.data.first()[stringPreferencesKey("library_presentation_mode")],
-        )
+        withTimeout(5_000) {
+            store.data.first {
+                it[stringPreferencesKey("library_presentation_mode")] == LibraryPresentationMode.CLASSIC.name
+            }
+        }
 
         val recreatedVm = LibraryViewModel(
             fakeBooks, fakeProgress, FakeBookDeleter(), FakeStopper(PlaybackState.Idle),
             dataStore = store,
         )
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { recreatedVm.uiState.collect {} }
-        runCurrent()
-        assertEquals(LibraryPresentationMode.CLASSIC, recreatedVm.uiState.value.libraryMode)
+        withTimeout(5_000) {
+            recreatedVm.uiState.first { it.libraryMode == LibraryPresentationMode.CLASSIC }
+        }
         assertTrue(recreatedVm.uiState.value.folders.isEmpty())
     }
 
