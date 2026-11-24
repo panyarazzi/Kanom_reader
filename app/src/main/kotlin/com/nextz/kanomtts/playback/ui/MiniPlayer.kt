@@ -318,13 +318,13 @@ private fun MiniPlayerPausedPreview() {
 private fun MiniPlayerHiddenPreview() {
     KanomTheme {
         Column {
-            Text("(nothing below — mini-player is hidden when idle)")
+            Text("Latest-book card stays visible while idle")
             Spacer(Modifier.height(8.dp))
             MiniPlayerBar(
                 state = MiniPlayerUiState(
                     visible = false,
                     isPlaying = false,
-                    title = "",
+                    title = "ยังไม่มีหนังสือที่เปิดล่าสุด",
                     author = null,
                     coverPath = null,
                     voiceLabel = null,
