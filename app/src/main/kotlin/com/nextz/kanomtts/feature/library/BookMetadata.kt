@@ -14,6 +14,7 @@ data class BookMetadata(
     val coverBytes: ByteArray?,
     val seriesName: String? = null,
     val seriesPosition: Double? = null,
+    val description: String? = null,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -23,6 +24,7 @@ data class BookMetadata(
             lang == other.lang &&
             seriesName == other.seriesName &&
             seriesPosition == other.seriesPosition &&
+            description == other.description &&
             (coverBytes?.contentEquals(other.coverBytes) ?: (other.coverBytes == null))
     }
 
@@ -32,6 +34,7 @@ data class BookMetadata(
         result = 31 * result + (lang?.hashCode() ?: 0)
         result = 31 * result + (seriesName?.hashCode() ?: 0)
         result = 31 * result + (seriesPosition?.hashCode() ?: 0)
+        result = 31 * result + (description?.hashCode() ?: 0)
         result = 31 * result + (coverBytes?.contentHashCode() ?: 0)
         return result
     }
