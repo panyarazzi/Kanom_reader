@@ -53,6 +53,23 @@ class EpubImporter(
         } catch (_: Exception) {
             null
         }
+        // SAF may issue a different URI when the same EPUB is selected through
+        // OpenDocument versus a child of OpenDocumentTree. For folder imports,
+        // reconcile by content fingerprint so the existing book/progress is kept
+        // and its source-folder path is attached instead of creating a duplicate.
+        if (!sourceFolder.isNullOrBlank() && !sha256.isNullOrBlank()) {
+            val existing = books.findBySha256(sha256)
+            if (existing != null) {
+                books.updateSource(
+                    bookId = existing.id,
+                    uri = uri,
+                    sha256 = sha256,
+                    sourceFolder = sourceFolder,
+                    sourceFileName = displayName,
+                )
+                return ImportResult.Duplicate
+            }
+        }
         val id = stableId(uri)
         val coverPath = meta.coverBytes?.let { bytes ->
             coversDir.mkdirs()
