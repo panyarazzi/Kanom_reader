@@ -269,7 +269,12 @@ fun LibraryContent(
             .toSortedMap(String.CASE_INSENSITIVE_ORDER)
             .map { (name, books) -> name to books.sortedWith(compareBy<BookCard> { it.seriesPosition ?: Double.MAX_VALUE }.thenBy { it.title.lowercase() }) }
         LibraryGroupMode.READING_STATUS -> state.books.groupBy { card ->
-            when { card.percent >= 0.999f -> "อ่านจบแล้ว"; card.percent > 0f -> "กำลังอ่าน"; else -> "รออ่าน" }
+            when (card.effectiveReadingShelf()) {
+                LibraryShelf.READING -> "กำลังอ่าน"
+                LibraryShelf.TO_READ -> "รออ่าน"
+                LibraryShelf.FINISHED -> "อ่านจบแล้ว"
+                LibraryShelf.SERIES -> "ซีรีส์/ชุด"
+            }
         }.toList().sortedBy { listOf("กำลังอ่าน", "รออ่าน", "อ่านจบแล้ว").indexOf(it.first) }
         LibraryGroupMode.TAG -> {
             val tagged = state.books.flatMap { card ->
@@ -668,6 +673,7 @@ fun LibraryContent(
                     book.seriesName?.takeIf { it.isNotBlank() }?.let { Text("ซีรีส์: $it") }
                     if (book.tags.isNotEmpty()) Text("Tags: ${book.tags.joinToString(" · ")}")
                     Text("ความคืบหน้า: ${(book.percent * 100).toInt()}%")
+                    Text("สถานะ: " + when (book.effectiveReadingShelf()) { LibraryShelf.READING -> "กำลังอ่าน"; LibraryShelf.TO_READ -> "รออ่าน"; LibraryShelf.FINISHED -> "อ่านจบแล้ว"; LibraryShelf.SERIES -> "ซีรีส์/ชุด" })
                 }
             },
             confirmButton = { TextButton(onClick = { detailsBook = null }) { Text("ปิด") } },
