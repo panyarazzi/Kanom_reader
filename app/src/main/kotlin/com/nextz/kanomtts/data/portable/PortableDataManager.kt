@@ -100,7 +100,7 @@ class PortableDataManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val database: KanomDatabase,
     private val dataStore: DataStore<Preferences>,
-) {
+) : PortableDataGateway {
     private val root = File(Environment.getExternalStorageDirectory(), "Kanom")
     private val backupDir get() = File(root, "backup")
     private val latestBackup get() = File(backupDir, "kanom-latest.zip")
@@ -117,7 +117,7 @@ class PortableDataManager @Inject constructor(
         val sessions: List<ReadingSessionEntity>,
     )
 
-    fun hasStorageAccess(): Boolean = when {
+    override fun hasStorageAccess(): Boolean = when {
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> Environment.isExternalStorageManager()
         else -> ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
             PackageManager.PERMISSION_GRANTED
@@ -125,16 +125,16 @@ class PortableDataManager @Inject constructor(
 
     fun portableFolderPath(): String = root.absolutePath
 
-    fun ensurePortableFolders(): Boolean {
+    override fun ensurePortableFolders(): Boolean {
         if (!hasStorageAccess()) return false
         // Portable metadata is stored together in data.json inside the backup ZIP.
         // Create only folders that have an actual on-disk purpose.
         return listOf(root, backupDir).all { it.exists() || it.mkdirs() }
     }
 
-    fun latestBackupExists(): Boolean = hasStorageAccess() && latestBackup.isFile
+    override fun latestBackupExists(): Boolean = hasStorageAccess() && latestBackup.isFile
 
-    suspend fun createBackup(): PortableBackupSummary = withContext(Dispatchers.IO) {
+    override suspend fun createBackup(): PortableBackupSummary = withContext(Dispatchers.IO) {
         requireStorageAccess()
         check(ensurePortableFolders()) { "สร้างโฟลเดอร์ Kanom ไม่สำเร็จ" }
         val snapshot = database.withTransaction {
@@ -257,7 +257,7 @@ class PortableDataManager @Inject constructor(
      * Reads only backup metadata and returns the books that need source reconciliation.
      * This is a read-only preflight: it does not touch the database, preferences, or EPUB files.
      */
-    suspend fun previewBackupBooks(): List<BookEntity> = withContext(Dispatchers.IO) {
+    override suspend fun previewBackupBooks(): List<BookEntity> = withContext(Dispatchers.IO) {
         requireStorageAccess()
         check(latestBackup.isFile) { "ไม่พบไฟล์สำรอง Kanom" }
         val json = readBackupJson()
@@ -312,8 +312,8 @@ class PortableDataManager @Inject constructor(
         return json
     }
 
-    suspend fun restoreLatestBackup(
-        sourceMappings: Map<String, RestoreSourceCandidate> = emptyMap(),
+    override suspend fun restoreLatestBackup(
+        sourceMappings: Map<String, RestoreSourceCandidate>,
     ): PortableBackupSummary = withContext(Dispatchers.IO) {
         requireStorageAccess()
         currentCoroutineContext().ensureActive()
