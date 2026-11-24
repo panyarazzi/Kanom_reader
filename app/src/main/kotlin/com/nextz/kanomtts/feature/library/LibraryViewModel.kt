@@ -18,7 +18,6 @@ import com.nextz.kanomtts.playback.PlaybackState
 import com.nextz.kanomtts.playback.PlaybackStopper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -54,9 +53,22 @@ class LibraryViewModel @Inject constructor(
 
     private var libraryModeExplicitlyChanged = false
 
+    private val _viewMode = MutableStateFlow(LibraryViewMode.GRID)
+    private val _libraryMode = MutableStateFlow(LibraryPresentationMode.FOLDER)
+    private val _query = MutableStateFlow("")
+    private val _selectedIds = MutableStateFlow(emptySet<String>())
+    private val _selectedTag = MutableStateFlow<String?>(null)
+    private val _selectedFolder = MutableStateFlow<String?>(null)
+    private val _groupMode = MutableStateFlow(LibraryGroupMode.FOLDER)
+    private val _sortMode = MutableStateFlow(LibrarySortMode.TITLE_ASC)
+    private val _sortDescending = MutableStateFlow(false)
+    private val _secondarySortMode = MutableStateFlow(LibrarySecondarySortMode.FILENAME_ASC)
+    private val _showFilename = MutableStateFlow(false)
+    private val _selectedShelf = MutableStateFlow<LibraryShelf?>(null)
+
     init {
         dataStore?.let { store ->
-            viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            viewModelScope.launch {
                 val storedMode = runCatching {
                     store.data.map { preferences ->
                         preferences[libraryPresentationModeKey]
@@ -78,18 +90,6 @@ class LibraryViewModel @Inject constructor(
         }
     }
 
-    private val _viewMode = MutableStateFlow(LibraryViewMode.GRID)
-    private val _libraryMode = MutableStateFlow(LibraryPresentationMode.FOLDER)
-    private val _query = MutableStateFlow("")
-    private val _selectedIds = MutableStateFlow(emptySet<String>())
-    private val _selectedTag = MutableStateFlow<String?>(null)
-    private val _selectedFolder = MutableStateFlow<String?>(null)
-    private val _groupMode = MutableStateFlow(LibraryGroupMode.FOLDER)
-    private val _sortMode = MutableStateFlow(LibrarySortMode.TITLE_ASC)
-    private val _sortDescending = MutableStateFlow(false)
-    private val _secondarySortMode = MutableStateFlow(LibrarySecondarySortMode.FILENAME_ASC)
-    private val _showFilename = MutableStateFlow(false)
-    private val _selectedShelf = MutableStateFlow<LibraryShelf?>(null)
 
     private val booksWithProgress = bookReader.observeLibrary()
         .flatMapLatest { books ->
@@ -269,7 +269,7 @@ class LibraryViewModel @Inject constructor(
         libraryModeExplicitlyChanged = true
         _libraryMode.value = mode
         dataStore?.let { store ->
-            viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            viewModelScope.launch {
                 runCatching { store.edit { preferences -> preferences[libraryPresentationModeKey] = mode.name } }
             }
         }
