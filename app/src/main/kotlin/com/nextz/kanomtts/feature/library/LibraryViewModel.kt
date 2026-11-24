@@ -55,11 +55,13 @@ class LibraryViewModel @Inject constructor(
     init {
         dataStore?.let { store ->
             viewModelScope.launch {
-                val storedMode = store.data.map { preferences ->
-                    preferences[libraryPresentationModeKey]
-                        ?.let { runCatching { LibraryPresentationMode.valueOf(it) }.getOrNull() }
-                        ?: LibraryPresentationMode.FOLDER
-                }.first()
+                val storedMode = runCatching {
+                    store.data.map { preferences ->
+                        preferences[libraryPresentationModeKey]
+                            ?.let { runCatching { LibraryPresentationMode.valueOf(it) }.getOrNull() }
+                            ?: LibraryPresentationMode.FOLDER
+                    }.first()
+                }.getOrDefault(LibraryPresentationMode.FOLDER)
                 if (!libraryModeExplicitlyChanged) {
                     _libraryMode.value = storedMode
                     _groupMode.value = if (storedMode == LibraryPresentationMode.FOLDER) {
@@ -265,7 +267,9 @@ class LibraryViewModel @Inject constructor(
         libraryModeExplicitlyChanged = true
         _libraryMode.value = mode
         dataStore?.let { store ->
-            viewModelScope.launch { store.edit { preferences -> preferences[libraryPresentationModeKey] = mode.name } }
+            viewModelScope.launch {
+                runCatching { store.edit { preferences -> preferences[libraryPresentationModeKey] = mode.name } }
+            }
         }
         _selectedFolder.value = null
         if (mode == LibraryPresentationMode.FOLDER) {
