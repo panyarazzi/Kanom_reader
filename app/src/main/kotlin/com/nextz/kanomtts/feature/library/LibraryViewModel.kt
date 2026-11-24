@@ -230,7 +230,15 @@ class LibraryViewModel @Inject constructor(
     )
 
     fun setViewMode(mode: LibraryViewMode) { _viewMode.value = mode }
-    fun setLibraryMode(mode: LibraryPresentationMode) { _libraryMode.value = mode; _selectedFolder.value = null }
+    fun setLibraryMode(mode: LibraryPresentationMode) {
+        _libraryMode.value = mode
+        _selectedFolder.value = null
+        if (mode == LibraryPresentationMode.FOLDER) {
+            _groupMode.value = LibraryGroupMode.FOLDER
+        } else if (_groupMode.value == LibraryGroupMode.FOLDER) {
+            _groupMode.value = LibraryGroupMode.NONE
+        }
+    }
     fun setQuery(query: String) { _query.value = query }
     fun setTagFilter(tag: String?) { _selectedTag.value = tag }
     fun setFolderFilter(folder: String?) { _selectedFolder.value = folder; _selectedShelf.value = null }
