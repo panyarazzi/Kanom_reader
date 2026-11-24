@@ -153,6 +153,29 @@ class LibraryViewModelTest {
     }
 
     @Test
+    fun `Classic mode flattens the library while Folder mode preserves hierarchy`() = runTest {
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        fakeBooks.books.value = listOf(
+            book("1", "Alpha").copy(sourceFolder = "Books/Series/One"),
+            book("2", "Beta").copy(sourceFolder = "Books/Series/Two"),
+        )
+        runCurrent()
+
+        assertTrue(vm.uiState.value.books.isEmpty())
+        assertTrue(vm.uiState.value.folders.isNotEmpty())
+
+        vm.setLibraryMode(LibraryPresentationMode.CLASSIC)
+        runCurrent()
+        assertEquals(listOf("1", "2"), vm.uiState.value.books.map { it.id })
+        assertTrue(vm.uiState.value.folders.isEmpty())
+
+        vm.setLibraryMode(LibraryPresentationMode.FOLDER)
+        runCurrent()
+        assertTrue(vm.uiState.value.books.isEmpty())
+        assertTrue(vm.uiState.value.folders.isNotEmpty())
+    }
+
+    @Test
     fun `search results include matching books inside folder containers`() = runTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         fakeBooks.books.value = listOf(
