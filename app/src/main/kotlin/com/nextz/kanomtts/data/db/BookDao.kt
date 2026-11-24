@@ -11,7 +11,7 @@ interface BookDao {
     @Query("SELECT * FROM books ORDER BY lastOpenedAt DESC, addedAt DESC") fun observeAll(): Flow<List<BookEntity>>
     @Query("SELECT * FROM books") suspend fun getAllForBackup(): List<BookEntity>
     @Query("SELECT * FROM books WHERE id = :id") suspend fun getById(id: String): BookEntity?
-    @Query("UPDATE books SET uri = :uri, sha256 = :sha256, sourceFolder = :sourceFolder, sourceFileName = :sourceFileName WHERE id = :id")
+    @Query("UPDATE books SET uri = :uri, sha256 = COALESCE(:sha256, sha256), sourceFolder = :sourceFolder, sourceFileName = :sourceFileName WHERE id = :id")
     suspend fun updateSource(id: String, uri: String, sha256: String?, sourceFolder: String?, sourceFileName: String?)
     @Query("UPDATE books SET title = :title, author = :author, seriesName = :seriesName, seriesPosition = :seriesPosition WHERE id = :id")
     suspend fun updateMetadata(id: String, title: String, author: String?, seriesName: String?, seriesPosition: Double?)
