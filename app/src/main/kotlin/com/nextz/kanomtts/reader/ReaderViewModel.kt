@@ -225,7 +225,7 @@ class ReaderViewModel @Inject constructor(
 
     /** Mirrors KanomPreferences.reverseVolumeKeys; OFF keeps Up=Next and Down=Previous. */
     private var reverseVolumeKeys: Boolean = false
-    /** Live tap mode; false preserves the original centered menu activation zone. */
+    /** When enabled, all eight outer 3×3 cells advance; the center cell remains the menu. */
     private var tapAnywhereToNext: Boolean = false
 
     /** Buffer up to 1 pending locator; oldest dropped so tryEmit always keeps the latest value. */
