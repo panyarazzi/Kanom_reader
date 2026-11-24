@@ -20,6 +20,8 @@ interface BookDao {
     @Query("UPDATE books SET readingStatus = :status WHERE id = :id")
     suspend fun updateReadingStatus(id: String, status: String?)
     @Query("SELECT EXISTS(SELECT 1 FROM books WHERE uri = :uri)") suspend fun existsUri(uri: String): Boolean
+    @Query("UPDATE books SET sourceFolder = :sourceFolder, sourceFileName = COALESCE(:sourceFileName, sourceFileName) WHERE uri = :uri")
+    suspend fun updateImportLocation(uri: String, sourceFolder: String, sourceFileName: String?): Int
     @Query("DELETE FROM books WHERE id = :id") suspend fun delete(id: String)
     @Query("DELETE FROM books") suspend fun deleteAll()
 }
