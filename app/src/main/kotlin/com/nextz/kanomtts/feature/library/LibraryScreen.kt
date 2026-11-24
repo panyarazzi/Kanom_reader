@@ -299,14 +299,13 @@ fun LibraryContent(
             tagged.groupBy({ it.first }, { it.second }).toSortedMap(String.CASE_INSENSITIVE_ORDER).toList()
         }
     }
-    LazyColumn(
+    Column(
         modifier = modifier
             .fillMaxSize()
             .padding(contentPadding)
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        stickyHeader(key = "library-header") {
             Column(
                 modifier = Modifier.fillMaxWidth()
                     .background(MaterialTheme.colorScheme.background)
@@ -369,7 +368,11 @@ fun LibraryContent(
                 }
             }
              }
-        }
+
+        LazyColumn(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
 
         if (!state.isSelectionMode) {
             if (statistics != null) {
@@ -706,6 +709,7 @@ fun LibraryContent(
         }
 
 
+    }
     }
 
     if (showContinueList) {
