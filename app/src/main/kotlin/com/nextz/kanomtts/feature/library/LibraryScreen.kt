@@ -55,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nextz.kanomtts.playback.ui.MiniPlayerBar
 import com.nextz.kanomtts.playback.ui.MiniPlayerUiState
@@ -306,6 +307,11 @@ fun LibraryContent(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         stickyHeader(key = "library-header") {
+            Column(
+                modifier = Modifier.fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.background)
+                    .zIndex(2f),
+            ) {
             Spacer(Modifier.height(8.dp))
             if (state.isSelectionMode) {
                 SelectionBar(
@@ -362,13 +368,14 @@ fun LibraryContent(
                     }
                 }
             }
+             }
         }
 
         if (!state.isSelectionMode) {
             if (statistics != null) {
                 stickyHeader(key = "library-reading-statistics-and-listening") {
                     androidx.compose.foundation.layout.BoxWithConstraints(
-                        Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(vertical = 4.dp),
+                        Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).zIndex(1f).padding(vertical = 4.dp),
                     ) {
                         val playerState = playbackState ?: MiniPlayerUiState(
                             visible = false,
@@ -379,7 +386,7 @@ fun LibraryContent(
                             voiceLabel = null,
                             sleepRemainingMs = null,
                         )
-                        if (maxWidth >= 720.dp) {
+                        if (maxWidth >= 560.dp) {
                             Row(
                                 Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
