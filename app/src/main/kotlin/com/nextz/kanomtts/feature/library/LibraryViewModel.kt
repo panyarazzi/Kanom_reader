@@ -283,12 +283,12 @@ class LibraryViewModel @Inject constructor(
         viewModelScope.launch { dao.updateReadingStatus(bookId, status) }
     }
 
-    fun updateBookMetadata(bookId: String, title: String, author: String?) {
+    fun updateBookMetadata(bookId: String, title: String, author: String?, seriesName: String?, seriesPosition: Double?) {
         val cleanTitle = title.trim()
         if (cleanTitle.isEmpty()) return
         val dao = bookDao ?: return
         viewModelScope.launch {
-            dao.updateMetadata(bookId, cleanTitle, author?.trim()?.takeIf { it.isNotEmpty() })
+            dao.updateMetadata(bookId, cleanTitle, author?.trim()?.takeIf { it.isNotEmpty() }, seriesName?.trim()?.takeIf { it.isNotEmpty() }, seriesPosition)
         }
     }
 
