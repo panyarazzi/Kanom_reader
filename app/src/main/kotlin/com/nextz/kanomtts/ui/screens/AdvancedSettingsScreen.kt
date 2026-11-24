@@ -123,7 +123,7 @@ fun AdvancedSettingsScreen(
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
             Text("Reading & Navigation", style = MaterialTheme.typography.titleMedium)
             Text(if (prefs.tapAnywhereToNext) "เปิดอยู่: แตะพื้นที่ใดก็ไปหน้าถัดไป ยกเว้นพื้นที่กลางจอที่ยังเปิดเมนูอ่าน" else "ปิดอยู่: แตะซ้ายเพื่อย้อนหน้า แตะกลางเพื่อเปิดเมนู และแตะขวาเพื่อไปหน้าถัดไป", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            ToggleRow("แตะพื้นที่อ่านเพื่อไปหน้าถัดไป (เว้นกลางจอ)", prefs.tapAnywhereToNext, viewModel::setTapAnywhereToNext)
+            ToggleRow("แตะจอเพื่อหน้าถัดไป", prefs.tapAnywhereToNext, viewModel::setTapAnywhereToNext)
             ToggleRow("สลับปุ่ม Volume", prefs.reverseVolumeKeys, viewModel::setReverseVolumeKeys)
             ToggleRow("ใช้สไตล์ผู้จัดพิมพ์", prefs.usePublisherStyles, viewModel::setUsePublisherStyles)
             ToggleRow("บังคับแบบอักษร", prefs.forceFont, viewModel::setForceFont)
