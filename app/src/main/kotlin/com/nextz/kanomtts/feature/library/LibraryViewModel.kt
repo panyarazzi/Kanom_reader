@@ -167,7 +167,7 @@ class LibraryViewModel @Inject constructor(
             )
         }
         val continueCards = filteredCards
-            .filter { it.percent > 0f && it.percent < 0.999f && it.lastOpenedAt != null }
+            .filter { it.effectiveReadingShelf() == LibraryShelf.READING && it.percent > 0f && it.percent < 0.999f && it.lastOpenedAt != null }
             .sortedByDescending { it.lastOpenedAt }
             .take(4)
         val continueCard = continueCards.firstOrNull()
