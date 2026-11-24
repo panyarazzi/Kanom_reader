@@ -25,7 +25,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 enum class RestoreReconciliationStage {
     NONE,
@@ -260,13 +259,11 @@ class PortableDataViewModel @Inject constructor(
         // Snapshot the confirmed mapping on the caller thread before the IO restore starts.
         val sourceSnapshot = selectedSources.toMap()
         _uiState.value = _uiState.value.copy(busy = true, message = "กำลังกู้คืนข้อมูล…")
-        // Keep UI-state transitions on the ViewModel's Main scope. Only the blocking
-        // restore gateway runs on IO; this also makes completion observable immediately
-        // and consistently by collectors after the IO operation returns.
+        // The production gateway owns its IO boundary (PortableDataManager uses
+        // withContext(IO)). Keep the ViewModel coroutine on Main so state transitions
+        // are deterministic and test dispatchers can observe completion.
         activeRestoreJob = viewModelScope.launch {
-            val result = runCatching {
-                withContext(Dispatchers.IO) { manager.restoreLatestBackup(sourceSnapshot) }
-            }
+            val result = runCatching { manager.restoreLatestBackup(sourceSnapshot) }
             result.onSuccess { summary ->
                 selectedSources.clear()
                 previewBooks = emptyList()
