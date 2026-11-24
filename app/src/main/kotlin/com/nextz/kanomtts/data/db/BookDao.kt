@@ -17,6 +17,8 @@ interface BookDao {
     suspend fun updateMetadata(id: String, title: String, author: String?)
     @Query("UPDATE books SET coverPath = :coverPath WHERE id = :id")
     suspend fun updateCoverPath(id: String, coverPath: String?)
+    @Query("UPDATE books SET readingStatus = :status WHERE id = :id")
+    suspend fun updateReadingStatus(id: String, status: String?)
     @Query("SELECT EXISTS(SELECT 1 FROM books WHERE uri = :uri)") suspend fun existsUri(uri: String): Boolean
     @Query("DELETE FROM books WHERE id = :id") suspend fun delete(id: String)
     @Query("DELETE FROM books") suspend fun deleteAll()
