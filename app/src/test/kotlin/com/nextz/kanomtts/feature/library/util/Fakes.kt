@@ -17,6 +17,24 @@ class FakeBookRepository : BookWriter, BookReader {
     override suspend fun get(id: String): BookEntity? = books.value.find { it.id == id }
     override suspend fun add(book: BookEntity) { books.value = books.value.filterNot { it.id == book.id } + book }
     override suspend fun isDuplicate(uri: String): Boolean = books.value.any { it.uri == uri }
+    override suspend fun updateSource(
+        bookId: String,
+        uri: String,
+        sha256: String?,
+        sourceFolder: String?,
+        sourceFileName: String?,
+    ): Boolean {
+        val current = books.value.find { it.id == bookId } ?: return false
+        books.value = books.value.map { book ->
+            if (book.id == bookId) book.copy(
+                uri = uri,
+                sha256 = sha256 ?: book.sha256,
+                sourceFolder = sourceFolder,
+                sourceFileName = sourceFileName,
+            ) else book
+        }
+        return current.id == bookId
+    }
     suspend fun remove(id: String) { books.value = books.value.filterNot { it.id == id } }
 }
 
