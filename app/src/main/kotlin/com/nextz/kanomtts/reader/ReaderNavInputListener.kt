@@ -59,14 +59,18 @@ class ReaderNavInputListener(
     }
 }
 
-/** True only for taps inside the centered menu activation area. */
+/**
+ * Reserve a full-height vertical strip in the horizontal center for the reader menu.
+ *
+ * Do not constrain Y to a small center rectangle: with "tap anywhere to next" enabled,
+ * a tap at the horizontal center but slightly above/below the geometric midpoint must
+ * still open the menu, never turn the page.
+ */
 internal fun isCenterMenuTap(x: Float, y: Float, width: Float, height: Float, fraction: Float = 0.34f): Boolean {
     if (width <= 0f || height <= 0f) return true
     val zone = fraction.coerceIn(0.05f, 0.8f)
     val halfWidth = width * zone / 2f
-    val halfHeight = height * zone / 2f
-    return x in (width / 2f - halfWidth)..(width / 2f + halfWidth) &&
-        y in (height / 2f - halfHeight)..(height / 2f + halfHeight)
+    return x in (width / 2f - halfWidth)..(width / 2f + halfWidth)
 }
 
 /** Reader action for an unhandled tap after EPUB links/selections have been given priority. */
