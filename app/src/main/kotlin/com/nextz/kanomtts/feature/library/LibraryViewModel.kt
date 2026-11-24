@@ -321,7 +321,7 @@ class LibraryViewModel @Inject constructor(
             author = author,
             coverPath = coverPath,
             percent = percent,
-            isReading = percent > 0f && percent < 0.999f,
+            isReading = when (readingStatus) { "READING" -> true; "TO_READ", "FINISHED" -> false; else -> percent > 0f && percent < 0.999f },
             addedAt = addedAt,
             lastOpenedAt = lastOpenedAt,
             seriesName = seriesName,
