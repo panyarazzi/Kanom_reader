@@ -18,6 +18,7 @@ import com.nextz.kanomtts.playback.PlaybackState
 import com.nextz.kanomtts.playback.PlaybackStopper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -55,7 +56,7 @@ class LibraryViewModel @Inject constructor(
 
     init {
         dataStore?.let { store ->
-            viewModelScope.launch {
+            viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
                 val storedMode = runCatching {
                     store.data.map { preferences ->
                         preferences[libraryPresentationModeKey]
@@ -268,7 +269,7 @@ class LibraryViewModel @Inject constructor(
         libraryModeExplicitlyChanged = true
         _libraryMode.value = mode
         dataStore?.let { store ->
-            viewModelScope.launch {
+            viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
                 runCatching { store.edit { preferences -> preferences[libraryPresentationModeKey] = mode.name } }
             }
         }
