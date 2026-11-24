@@ -3,7 +3,7 @@ package com.nextz.kanomtts.feature.settings
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.nextz.kanomtts.data.portable.PortableDataManager
+import com.nextz.kanomtts.data.portable.PortableDataGateway
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
@@ -30,7 +30,7 @@ data class FirstLaunchRecoveryUiState(
 @HiltViewModel
 class FirstLaunchRecoveryViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val manager: PortableDataManager,
+    private val manager: PortableDataGateway,
 ) : ViewModel() {
     // noBackupFilesDir survives app updates but is not restored by Android Auto Backup.
     // This lets a true reinstall be distinguished from an ordinary app update.
