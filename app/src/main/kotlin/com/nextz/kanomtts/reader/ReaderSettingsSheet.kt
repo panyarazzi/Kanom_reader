@@ -56,6 +56,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
 import com.nextz.kanomtts.R
 import com.nextz.kanomtts.data.prefs.KanomPreferences
 import com.nextz.kanomtts.data.prefs.ReadingFont
@@ -272,51 +279,24 @@ internal fun ReaderSettingsSheetContent(
 
 
             // ── Escape hatches ─────────────────────────────────────────────────
-            ToggleRow(
-                label = "ใช้สไตล์ผู้จัดพิมพ์",
-                checked = prefs.usePublisherStyles,
-                onCheckedChange = onUsePublisherStyles,
-            )
-            ToggleRow(
-                label = "บังคับแบบอักษร",
-                checked = prefs.forceFont,
-                onCheckedChange = onForceFont,
-            )
-            ToggleRow(
-                label = "ตัวอักษรหนา",
-                checked = prefs.boldText,
-                onCheckedChange = onBoldText,
-            )
-            ToggleRow(
-                label = "แตะจอเพื่อหน้าถัดไป",
-                checked = prefs.tapAnywhereToNext,
-                onCheckedChange = onTapAnywhereToNext,
-            )
-            ToggleRow(
-                label = "สลับปุ่ม Volume",
-                checked = prefs.reverseVolumeKeys,
-                onCheckedChange = onReverseVolumeKeys,
-            )
-            ToggleRow(
-                label = "ไม่ใช้สีผู้จัดพิมพ์",
-                checked = prefs.stripColors,
-                onCheckedChange = onStripColors,
-            )
-            ToggleRow(
-                label = "ตัดคำไทย (ZWSP)",
-                checked = prefs.thaiWordBreak,
-                onCheckedChange = onThaiWordBreak,
-            )
-            ToggleRow(
-                label = "แอนิเมชันพลิกหน้า",
-                checked = prefs.pageAnimation,
-                onCheckedChange = onPageAnimation,
-            )
-            ToggleRow(
-                label = "แทนที่ในหน้าอ่าน",
-                checked = prefs.visualReplacement,
-                onCheckedChange = onVisualReplacement,
-            )
+            InfoToggleRow(label = "ใช้สไตล์ผู้จัดพิมพ์", checked = prefs.usePublisherStyles, onCheckedChange = onUsePublisherStyles, explanation = "เปิด: ให้แอปใช้รูปแบบที่ผู้ทำหนังสือกำหนดมา เช่น รูปแบบตัวอักษร ระยะห่าง และการจัดหน้า
+ปิด: ให้แอปใช้รูปแบบการอ่านที่คุณเลือกใน Kanom Reader แทน")
+            InfoToggleRow(label = "บังคับแบบอักษร", checked = prefs.forceFont, onCheckedChange = onForceFont, explanation = "เปิด: ใช้แบบอักษรที่เลือกใน Kanom Reader แทนแบบอักษรที่ฝังมากับหนังสือ
+ปิด: อนุญาตให้หนังสือใช้แบบอักษรของตัวเองตามปกติ")
+            InfoToggleRow(label = "ตัวอักษรหนา", checked = prefs.boldText, onCheckedChange = onBoldText, explanation = "เปิด: ทำให้ตัวอักษรในเนื้อหาหนังสือหนาขึ้นทั่วทั้งหน้า
+ปิด: กลับไปใช้ความหนาตัวอักษรตามรูปแบบเดิมของหนังสือและแบบอักษร")
+            InfoToggleRow(label = "แตะจอเพื่อหน้าถัดไป", checked = prefs.tapAnywhereToNext, onCheckedChange = onTapAnywhereToNext, explanation = "เปิด: แตะบริเวณหน้าจอที่ไม่ได้ใช้คำสั่งอื่นเพื่อไปหน้าถัดไปได้
+ปิด: คงการแตะตามโซนเดิม โดยบริเวณกลางหน้าจอใช้เปิดเมนูอ่าน")
+            InfoToggleRow(label = "สลับปุ่ม Volume", checked = prefs.reverseVolumeKeys, onCheckedChange = onReverseVolumeKeys, explanation = "เปิด: สลับหน้าที่ปุ่มเพิ่ม/ลดเสียงสำหรับเปลี่ยนหน้า
+ปิด: ปุ่มเพิ่มเสียงไปหน้าถัดไป และปุ่มลดเสียงย้อนกลับ")
+            InfoToggleRow(label = "ไม่ใช้สีผู้จัดพิมพ์", checked = prefs.stripColors, onCheckedChange = onStripColors, explanation = "เปิด: ไม่ใช้สีที่ผู้จัดพิมพ์กำหนดในหนังสือ เพื่อให้อ่านด้วยสีตามธีมของแอปได้สม่ำเสมอ
+ปิด: แสดงสีตามที่หนังสือกำหนดไว้")
+            InfoToggleRow(label = "ตัดคำไทย (ZWSP)", checked = prefs.thaiWordBreak, onCheckedChange = onThaiWordBreak, explanation = "เปิด: เพิ่มจุดแบ่งคำที่มองไม่เห็นในข้อความภาษาไทย ช่วยให้ตัดบรรทัดได้เหมาะสมขึ้น
+ปิด: แสดงข้อความตามต้นฉบับโดยไม่เพิ่มจุดแบ่งคำ")
+            InfoToggleRow(label = "แอนิเมชันพลิกหน้า", checked = prefs.pageAnimation, onCheckedChange = onPageAnimation, explanation = "เปิด: แสดงการเคลื่อนไหวเมื่อเปลี่ยนหน้า
+ปิด: เปลี่ยนหน้าโดยไม่ใช้ภาพเคลื่อนไหว")
+            InfoToggleRow(label = "แทนที่ในหน้าอ่าน", checked = prefs.visualReplacement, onCheckedChange = onVisualReplacement, explanation = "เปิด: ใช้กฎแทนข้อความที่ตั้งค่าไว้กับเนื้อหาหนังสือเมื่อเปิดหนังสือครั้งถัดไป
+ปิด: ไม่ใช้กฎแทนข้อความกับหน้าอ่าน")
 
             Spacer(Modifier.height(16.dp))
 
@@ -551,20 +531,64 @@ private fun SectionLabel(text: String) {
 }
 
 @Composable
-private fun ToggleRow(
+private fun InfoToggleRow(
     label: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
+    explanation: String,
 ) {
+    var infoOpen by remember(label) { mutableStateOf(false) }
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text = label, style = MaterialTheme.typography.bodyMedium)
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+            Text(text = label, style = MaterialTheme.typography.bodyMedium)
+            Text("ⓘ", color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(start = 8.dp).clickable { infoOpen = true })
+        }
         Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+    if (infoOpen) {
+        Popup(
+            popupPositionProvider = remember {
+                object : PopupPositionProvider {
+                    override fun calculatePosition(anchorBounds: IntRect, windowSize: IntSize,
+                        layoutDirection: LayoutDirection, popupContentSize: IntSize): IntOffset {
+                        val margin = 12
+                        val maxX = (windowSize.width - popupContentSize.width - margin).coerceAtLeast(margin)
+                        val x = (anchorBounds.left + anchorBounds.width / 2 - popupContentSize.width / 2).coerceIn(margin, maxX)
+                        val below = anchorBounds.bottom + 8
+                        val y = if (below + popupContentSize.height <= windowSize.height - margin) below
+                            else (anchorBounds.top - popupContentSize.height - 8).coerceAtLeast(margin)
+                        return IntOffset(x, y)
+                    }
+                }
+            },
+            onDismissRequest = { infoOpen = false },
+            properties = PopupProperties(focusable = true, dismissOnClickOutside = true),
+        ) {
+            Surface(
+                modifier = Modifier.width(300.dp).padding(4.dp),
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 8.dp,
+                shadowElevation = 10.dp,
+            ) {
+                Column(Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+                        TextButton(onClick = { infoOpen = false }) { Text("X") }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(explanation, style = MaterialTheme.typography.bodyMedium)
+                    Spacer(Modifier.height(8.dp))
+                    TextButton(onClick = { infoOpen = false }, modifier = Modifier.align(Alignment.End)) { Text("ปิด") }
+                }
+            }
+        }
     }
 }
 
