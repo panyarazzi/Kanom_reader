@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -74,6 +75,7 @@ fun MiniPlayerInline(
         onNext = viewModel::next,
         onPrev = viewModel::prev,
         onSleep = { viewModel.setSleep(15) },
+        onStop = viewModel::stop,
         onExpand = onExpand,
         modifier = modifier,
     )
@@ -91,6 +93,7 @@ fun MiniPlayerBar(
     onNext: () -> Unit,
     onPrev: () -> Unit,
     onSleep: () -> Unit,
+    onStop: () -> Unit = {},
     onExpand: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -185,6 +188,13 @@ fun MiniPlayerBar(
                         imageVector = Icons.Filled.SkipNext,
                         contentDescription = if (state.byParagraph) "ย่อหน้าถัดไป" else "ประโยคถัดไป",
                         tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                IconButton(onClick = onStop, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        imageVector = Icons.Filled.Stop,
+                        contentDescription = "หยุดการอ่านออกเสียง",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
