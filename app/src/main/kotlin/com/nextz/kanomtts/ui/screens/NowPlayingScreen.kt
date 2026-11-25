@@ -26,18 +26,33 @@ import com.nextz.kanomtts.ui.theme.KanomTheme
 fun NowPlayingScreen(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
+    onBack: () -> Unit = {},
     viewModel: NowPlayingViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
     var sheetLang by remember { mutableStateOf<Lang?>(null) }
 
     if (!state.present) {
-        Box(modifier.fillMaxSize().padding(contentPadding), contentAlignment = Alignment.Center) {
-            Text(
-                "ยังไม่มีการเล่น",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        Column(
+            modifier.fillMaxSize().padding(contentPadding),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.Filled.ArrowBack, contentDescription = "กลับไปหน้าก่อน")
+                }
+                Text("กำลังฟัง", style = MaterialTheme.typography.titleMedium)
+            }
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    "ยังไม่มีการเล่น",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         return
     }
@@ -50,7 +65,16 @@ fun NowPlayingScreen(
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Spacer(Modifier.height(16.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.Filled.ArrowBack, contentDescription = "กลับไปหน้าก่อน")
+            }
+            Text("กำลังฟัง", style = MaterialTheme.typography.titleMedium)
+        }
+        Spacer(Modifier.height(8.dp))
         AsyncImage(
             model = state.coverPath,
             contentDescription = null,
@@ -98,7 +122,9 @@ fun NowPlayingScreen(
                 )
             }
             IconButton(viewModel::next) { Icon(Icons.Filled.SkipNext, "ถัดไป") }
-            IconButton(viewModel::stop) { Icon(Icons.Filled.Stop, "หยุด") }
+            IconButton(onClick = { viewModel.stop(); onBack() }) {
+                Icon(Icons.Filled.Stop, contentDescription = "หยุดและกลับไปหน้าก่อน")
+            }
         }
 
         Spacer(Modifier.height(12.dp))
