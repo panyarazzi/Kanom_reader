@@ -156,10 +156,11 @@ internal data class ProgressSlotValues(
 )
 
 internal fun progressSlotValues(layout: ProgressLayout, content: ProgressContent): ProgressSlotValues {
-    val left = progressSlotValue(layout.left, content)
-    val centerRaw = progressSlotValue(layout.center, content)
-    val center = centerRaw?.takeUnless { it == left }
-    val rightRaw = progressSlotValue(layout.right, content)
-    val right = rightRaw?.takeUnless { it == left || it == center }
-    return ProgressSlotValues(left, center, right)
+    // Each position is an independent user-selected slot. Repeating a value is valid:
+    // e.g. CHAPTER_PAGE may intentionally appear on both the left and right.
+    return ProgressSlotValues(
+        left = progressSlotValue(layout.left, content),
+        center = progressSlotValue(layout.center, content),
+        right = progressSlotValue(layout.right, content),
+    )
 }
