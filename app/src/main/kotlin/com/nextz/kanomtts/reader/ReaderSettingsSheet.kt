@@ -42,6 +42,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
@@ -529,6 +530,9 @@ private fun InfoToggleRow(
     explanation: String,
 ) {
     var infoOpen by remember(label) { mutableStateOf(false) }
+    val screenWidthDp = LocalConfiguration.current.screenWidthDp
+    val popupWidth = (screenWidthDp - 24).coerceAtMost(300).coerceAtLeast(220).dp
+
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -536,50 +540,71 @@ private fun InfoToggleRow(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
             Text(text = label, style = MaterialTheme.typography.bodyMedium)
-            Text("ⓘ", color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(start = 8.dp).clickable { infoOpen = true })
-        }
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
-    }
-    if (infoOpen) {
-        Popup(
-            popupPositionProvider = remember {
-                object : PopupPositionProvider {
-                    override fun calculatePosition(anchorBounds: IntRect, windowSize: IntSize,
-                        layoutDirection: LayoutDirection, popupContentSize: IntSize): IntOffset {
-                        val margin = 12
-                        val maxX = (windowSize.width - popupContentSize.width - margin).coerceAtLeast(margin)
-                        val x = (anchorBounds.left + anchorBounds.width / 2 - popupContentSize.width / 2).coerceIn(margin, maxX)
-                        val below = anchorBounds.bottom + 8
-                        val y = if (below + popupContentSize.height <= windowSize.height - margin) below
-                            else (anchorBounds.top - popupContentSize.height - 8).coerceAtLeast(margin)
-                        return IntOffset(x, y)
+            Box {
+                Text(
+                    "ⓘ",
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(start = 8.dp).clickable { infoOpen = true },
+                )
+                if (infoOpen) {
+                    Popup(
+                        popupPositionProvider = remember {
+                            object : PopupPositionProvider {
+                                override fun calculatePosition(
+                                    anchorBounds: IntRect,
+                                    windowSize: IntSize,
+                                    layoutDirection: LayoutDirection,
+                                    popupContentSize: IntSize,
+                                ): IntOffset {
+                                    val margin = 12
+                                    val maxX = (windowSize.width - popupContentSize.width - margin)
+                                        .coerceAtLeast(margin)
+                                    val x = (anchorBounds.left + anchorBounds.width / 2 -
+                                        popupContentSize.width / 2).coerceIn(margin, maxX)
+                                    val below = anchorBounds.bottom + 8
+                                    val y = if (below + popupContentSize.height <= windowSize.height - margin) {
+                                        below
+                                    } else {
+                                        (anchorBounds.top - popupContentSize.height - 8).coerceAtLeast(margin)
+                                    }
+                                    return IntOffset(x, y)
+                                }
+                            }
+                        },
+                        onDismissRequest = { infoOpen = false },
+                        properties = PopupProperties(focusable = true, dismissOnClickOutside = true),
+                    ) {
+                        Surface(
+                            modifier = Modifier.width(popupWidth).padding(4.dp),
+                            shape = MaterialTheme.shapes.large,
+                            color = MaterialTheme.colorScheme.surface,
+                            tonalElevation = 8.dp,
+                            shadowElevation = 10.dp,
+                        ) {
+                            Column(Modifier.padding(16.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        label,
+                                        modifier = Modifier.weight(1f),
+                                        style = MaterialTheme.typography.titleMedium,
+                                    )
+                                    TextButton(onClick = { infoOpen = false }) { Text("X") }
+                                }
+                                Spacer(Modifier.height(8.dp))
+                                Text(explanation, style = MaterialTheme.typography.bodyMedium)
+                                Spacer(Modifier.height(8.dp))
+                                TextButton(
+                                    onClick = { infoOpen = false },
+                                    modifier = Modifier.align(Alignment.End),
+                                ) { Text("ปิด") }
+                            }
+                        }
                     }
-                }
-            },
-            onDismissRequest = { infoOpen = false },
-            properties = PopupProperties(focusable = true, dismissOnClickOutside = true),
-        ) {
-            Surface(
-                modifier = Modifier.width(300.dp).padding(4.dp),
-                shape = MaterialTheme.shapes.large,
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp,
-                shadowElevation = 10.dp,
-            ) {
-                Column(Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
-                        TextButton(onClick = { infoOpen = false }) { Text("X") }
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Text(explanation, style = MaterialTheme.typography.bodyMedium)
-                    Spacer(Modifier.height(8.dp))
-                    TextButton(onClick = { infoOpen = false }, modifier = Modifier.align(Alignment.End)) { Text("ปิด") }
                 }
             }
         }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
