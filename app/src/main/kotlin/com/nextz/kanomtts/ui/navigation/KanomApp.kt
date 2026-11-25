@@ -80,10 +80,15 @@ fun KanomApp(
                             NavigationBarItem(
                                 selected = currentRoute == dest.route,
                                 onClick = {
-                                    navController.navigate(dest.route) {
-                                        popUpTo(KanomDestination.LIBRARY.route) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
+                                    if (dest == KanomDestination.NOW_PLAYING) {
+                                        // Now Playing is an overlay on the current screen, never a route.
+                                        showTtsSessionPopup = true
+                                    } else {
+                                        navController.navigate(dest.route) {
+                                            popUpTo(KanomDestination.LIBRARY.route) { saveState = true }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
                                     }
                                 },
                                 icon = { Icon(dest.icon, contentDescription = null) },
