@@ -38,10 +38,7 @@ fun NowPlayingScreen(
     // Dismissing it must leave the Reader and its Readium navigator composed underneath.
     Dialog(
         onDismissRequest = onBack,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            decorFitsSystemWindows = true,
-        ),
+        properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Surface(
             modifier = modifier
