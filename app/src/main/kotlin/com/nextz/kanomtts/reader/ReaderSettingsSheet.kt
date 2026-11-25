@@ -279,24 +279,15 @@ internal fun ReaderSettingsSheetContent(
 
 
             // ── Escape hatches ─────────────────────────────────────────────────
-            InfoToggleRow(label = "ใช้สไตล์ผู้จัดพิมพ์", checked = prefs.usePublisherStyles, onCheckedChange = onUsePublisherStyles, explanation = "เปิด: ให้แอปใช้รูปแบบที่ผู้ทำหนังสือกำหนดมา เช่น รูปแบบตัวอักษร ระยะห่าง และการจัดหน้า
-ปิด: ให้แอปใช้รูปแบบการอ่านที่คุณเลือกใน Kanom Reader แทน")
-            InfoToggleRow(label = "บังคับแบบอักษร", checked = prefs.forceFont, onCheckedChange = onForceFont, explanation = "เปิด: ใช้แบบอักษรที่เลือกใน Kanom Reader แทนแบบอักษรที่ฝังมากับหนังสือ
-ปิด: อนุญาตให้หนังสือใช้แบบอักษรของตัวเองตามปกติ")
-            InfoToggleRow(label = "ตัวอักษรหนา", checked = prefs.boldText, onCheckedChange = onBoldText, explanation = "เปิด: ทำให้ตัวอักษรในเนื้อหาหนังสือหนาขึ้นทั่วทั้งหน้า
-ปิด: กลับไปใช้ความหนาตัวอักษรตามรูปแบบเดิมของหนังสือและแบบอักษร")
-            InfoToggleRow(label = "แตะจอเพื่อหน้าถัดไป", checked = prefs.tapAnywhereToNext, onCheckedChange = onTapAnywhereToNext, explanation = "เปิด: แตะบริเวณหน้าจอที่ไม่ได้ใช้คำสั่งอื่นเพื่อไปหน้าถัดไปได้
-ปิด: คงการแตะตามโซนเดิม โดยบริเวณกลางหน้าจอใช้เปิดเมนูอ่าน")
-            InfoToggleRow(label = "สลับปุ่ม Volume", checked = prefs.reverseVolumeKeys, onCheckedChange = onReverseVolumeKeys, explanation = "เปิด: สลับหน้าที่ปุ่มเพิ่ม/ลดเสียงสำหรับเปลี่ยนหน้า
-ปิด: ปุ่มเพิ่มเสียงไปหน้าถัดไป และปุ่มลดเสียงย้อนกลับ")
-            InfoToggleRow(label = "ไม่ใช้สีผู้จัดพิมพ์", checked = prefs.stripColors, onCheckedChange = onStripColors, explanation = "เปิด: ไม่ใช้สีที่ผู้จัดพิมพ์กำหนดในหนังสือ เพื่อให้อ่านด้วยสีตามธีมของแอปได้สม่ำเสมอ
-ปิด: แสดงสีตามที่หนังสือกำหนดไว้")
-            InfoToggleRow(label = "ตัดคำไทย (ZWSP)", checked = prefs.thaiWordBreak, onCheckedChange = onThaiWordBreak, explanation = "เปิด: เพิ่มจุดแบ่งคำที่มองไม่เห็นในข้อความภาษาไทย ช่วยให้ตัดบรรทัดได้เหมาะสมขึ้น
-ปิด: แสดงข้อความตามต้นฉบับโดยไม่เพิ่มจุดแบ่งคำ")
-            InfoToggleRow(label = "แอนิเมชันพลิกหน้า", checked = prefs.pageAnimation, onCheckedChange = onPageAnimation, explanation = "เปิด: แสดงการเคลื่อนไหวเมื่อเปลี่ยนหน้า
-ปิด: เปลี่ยนหน้าโดยไม่ใช้ภาพเคลื่อนไหว")
-            InfoToggleRow(label = "แทนที่ในหน้าอ่าน", checked = prefs.visualReplacement, onCheckedChange = onVisualReplacement, explanation = "เปิด: ใช้กฎแทนข้อความที่ตั้งค่าไว้กับเนื้อหาหนังสือเมื่อเปิดหนังสือครั้งถัดไป
-ปิด: ไม่ใช้กฎแทนข้อความกับหน้าอ่าน")
+            InfoToggleRow(label = "ใช้สไตล์ผู้จัดพิมพ์", checked = prefs.usePublisherStyles, onCheckedChange = onUsePublisherStyles, explanation = "เปิด: ให้แอปใช้รูปแบบที่ผู้ทำหนังสือกำหนดมา เช่น รูปแบบตัวอักษร ระยะห่าง และการจัดหน้า\nปิด: ให้แอปใช้รูปแบบการอ่านที่คุณเลือกใน Kanom Reader แทน")
+            InfoToggleRow(label = "บังคับแบบอักษร", checked = prefs.forceFont, onCheckedChange = onForceFont, explanation = "เปิด: ใช้แบบอักษรที่เลือกใน Kanom Reader แทนแบบอักษรที่ฝังมากับหนังสือ\nปิด: อนุญาตให้หนังสือใช้แบบอักษรของตัวเองตามปกติ")
+            InfoToggleRow(label = "ตัวอักษรหนา", checked = prefs.boldText, onCheckedChange = onBoldText, explanation = "เปิด: ทำให้ตัวอักษรในเนื้อหาหนังสือหนาขึ้นทั่วทั้งหน้า\nปิด: กลับไปใช้ความหนาตัวอักษรตามรูปแบบเดิมของหนังสือและแบบอักษร")
+            InfoToggleRow(label = "แตะจอเพื่อหน้าถัดไป", checked = prefs.tapAnywhereToNext, onCheckedChange = onTapAnywhereToNext, explanation = "เปิด: แตะบริเวณหน้าจอที่ไม่ได้ใช้คำสั่งอื่นเพื่อไปหน้าถัดไปได้\nปิด: คงการแตะตามโซนเดิม โดยบริเวณกลางหน้าจอใช้เปิดเมนูอ่าน")
+            InfoToggleRow(label = "สลับปุ่ม Volume", checked = prefs.reverseVolumeKeys, onCheckedChange = onReverseVolumeKeys, explanation = "เปิด: สลับหน้าที่ปุ่มเพิ่ม/ลดเสียงสำหรับเปลี่ยนหน้า\nปิด: ปุ่มเพิ่มเสียงไปหน้าถัดไป และปุ่มลดเสียงย้อนกลับ")
+            InfoToggleRow(label = "ไม่ใช้สีผู้จัดพิมพ์", checked = prefs.stripColors, onCheckedChange = onStripColors, explanation = "เปิด: ไม่ใช้สีที่ผู้จัดพิมพ์กำหนดในหนังสือ เพื่อให้อ่านด้วยสีตามธีมของแอปได้สม่ำเสมอ\nปิด: แสดงสีตามที่หนังสือกำหนดไว้")
+            InfoToggleRow(label = "ตัดคำไทย (ZWSP)", checked = prefs.thaiWordBreak, onCheckedChange = onThaiWordBreak, explanation = "เปิด: เพิ่มจุดแบ่งคำที่มองไม่เห็นในข้อความภาษาไทย ช่วยให้ตัดบรรทัดได้เหมาะสมขึ้น\nปิด: แสดงข้อความตามต้นฉบับโดยไม่เพิ่มจุดแบ่งคำ")
+            InfoToggleRow(label = "แอนิเมชันพลิกหน้า", checked = prefs.pageAnimation, onCheckedChange = onPageAnimation, explanation = "เปิด: แสดงการเคลื่อนไหวเมื่อเปลี่ยนหน้า\nปิด: เปลี่ยนหน้าโดยไม่ใช้ภาพเคลื่อนไหว")
+            InfoToggleRow(label = "แทนที่ในหน้าอ่าน", checked = prefs.visualReplacement, onCheckedChange = onVisualReplacement, explanation = "เปิด: ใช้กฎแทนข้อความที่ตั้งค่าไว้กับเนื้อหาหนังสือเมื่อเปิดหนังสือครั้งถัดไป\nปิด: ไม่ใช้กฎแทนข้อความกับหน้าอ่าน")
 
             Spacer(Modifier.height(16.dp))
 
