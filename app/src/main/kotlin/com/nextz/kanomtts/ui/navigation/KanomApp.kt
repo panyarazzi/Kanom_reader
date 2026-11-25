@@ -68,10 +68,10 @@ fun KanomApp(
                 if (!onNowPlaying && currentRoute != KanomDestination.LIBRARY.route) {
                     MiniPlayer(
                         onExpand = {
+                            // Preserve the current Reader entry. Popping to Library here
+                            // discards the Reader route and forces a Library detour on return.
                             navController.navigate(KanomDestination.NOW_PLAYING.route) {
-                                popUpTo(KanomDestination.LIBRARY.route) { saveState = true }
                                 launchSingleTop = true
-                                restoreState = true
                             }
                         },
                     )
@@ -135,7 +135,13 @@ fun KanomApp(
                     contentPadding = padding,
                 )
             }
-            composable(KanomDestination.NOW_PLAYING.route) { NowPlayingScreen(Modifier, padding) }
+            composable(KanomDestination.NOW_PLAYING.route) {
+                NowPlayingScreen(
+                    modifier = Modifier,
+                    contentPadding = padding,
+                    onBack = { navController.popBackStack() },
+                )
+            }
             composable(KanomDestination.SETTINGS.route) {
                 SettingsScreen(
                     modifier = Modifier,
