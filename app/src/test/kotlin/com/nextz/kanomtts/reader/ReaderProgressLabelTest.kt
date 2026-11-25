@@ -46,15 +46,26 @@ class ReaderProgressLabelTest {
         assertNull(progressSlotValue("CHARGING", content))
     }
 
-    @Test fun centersProgressAndSuppressesDuplicateValues() {
+    @Test fun eachProgressPositionKeepsItsOwnSelectionEvenWhenValuesRepeat() {
         val content = buildProgressContent(7, 18, "บทที่ 2", "หนังสือทดสอบ", 0.6527, "12:30", 76, false)
         val slots = progressSlotValues(
             ProgressLayout("BOOK_PERCENT", "BOOK_PERCENT", "TIME"),
             content,
         )
         assertEquals("65.27%", slots.left)
-        assertNull(slots.center)
+        assertEquals("65.27%", slots.center)
         assertEquals("12:30", slots.right)
+    }
+
+    @Test fun chapterPageCanBeShownInBothLeftAndRightSlots() {
+        val content = buildProgressContent(7, 18, "บทที่ 2", "หนังสือทดสอบ", 0.6527, "12:30", 76, false)
+        val slots = progressSlotValues(
+            ProgressLayout("CHAPTER_PAGE", "CHAPTER_TITLE", "CHAPTER_PAGE"),
+            content,
+        )
+        assertEquals("7/18", slots.left)
+        assertEquals("7/18 บทที่ 2", slots.center)
+        assertEquals("7/18", slots.right)
     }
 
     @Test fun formatsPageAndChapterTitle() {
