@@ -43,6 +43,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
@@ -531,7 +532,8 @@ private fun InfoToggleRow(
 ) {
     var infoOpen by remember(label) { mutableStateOf(false) }
     val screenWidthDp = LocalConfiguration.current.screenWidthDp
-    val popupWidth = (screenWidthDp - 24).coerceAtMost(300).coerceAtLeast(220).dp
+    val popupWidth = (screenWidthDp - 32).coerceAtMost(300).coerceAtLeast(200).dp
+    val popupMarginPx = with(LocalDensity.current) { 12.dp.roundToPx() }
 
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -549,7 +551,7 @@ private fun InfoToggleRow(
                 )
                 if (infoOpen) {
                     Popup(
-                        popupPositionProvider = remember {
+                        popupPositionProvider = remember(popupMarginPx) {
                             object : PopupPositionProvider {
                                 override fun calculatePosition(
                                     anchorBounds: IntRect,
@@ -557,7 +559,7 @@ private fun InfoToggleRow(
                                     layoutDirection: LayoutDirection,
                                     popupContentSize: IntSize,
                                 ): IntOffset {
-                                    val margin = 12
+                                    val margin = popupMarginPx
                                     val maxX = (windowSize.width - popupContentSize.width - margin)
                                         .coerceAtLeast(margin)
                                     val x = (anchorBounds.left + anchorBounds.width / 2 -
