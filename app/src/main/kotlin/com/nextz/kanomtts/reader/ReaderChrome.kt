@@ -136,7 +136,7 @@ fun ReaderChrome(
                 content = liveProgress,
                 fontSizeSp = progressFontSizeSp,
                 maxLines = 1,
-                rightWidthSamples = listOf("100.00%"),
+                rightWidthSamples = listOf("100.00%", "9999/9999", "ชื่อบทที่ยาวที่สุด", "ชื่อหนังสือที่ยาวที่สุด"),
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .fillMaxWidth()
