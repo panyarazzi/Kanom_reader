@@ -2,6 +2,8 @@ package com.nextz.kanomtts.ui.navigation
 
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -9,6 +11,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.fragment.app.FragmentActivity
@@ -54,26 +59,19 @@ fun KanomApp(
         return
     }
     val navController = rememberNavController()
+    var showTtsSessionPopup by remember { mutableStateOf(false) }
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
     val showBottomBar = currentRoute?.startsWith("reader/") != true && currentRoute?.startsWith("book_annotations") != true && currentRoute !in setOf("reading_statistics", "advanced_settings", "backup_restore")
-    val onNowPlaying = currentRoute == KanomDestination.NOW_PLAYING.route
 
     Scaffold(
         bottomBar = {
             Column {
                 // Mini-player gates its own visibility (renders nothing when idle). It appears
                 // above the nav bar on tabbed screens and alone at the bottom on the reader.
-                // Hidden on Now-Playing, where it would redundantly mirror the full player.
-                if (!onNowPlaying && currentRoute != KanomDestination.LIBRARY.route) {
+                if (currentRoute != KanomDestination.LIBRARY.route) {
                     MiniPlayer(
-                        onExpand = {
-                            // Preserve the current Reader entry. Popping to Library here
-                            // discards the Reader route and forces a Library detour on return.
-                            navController.navigate(KanomDestination.NOW_PLAYING.route) {
-                                launchSingleTop = true
-                            }
-                        },
+                        onExpand = { showTtsSessionPopup = true },
                     )
                 }
                 if (showBottomBar) {
@@ -97,6 +95,7 @@ fun KanomApp(
             }
         },
     ) { padding ->
+        Box(Modifier.fillMaxSize()) {
         NavHost(
             navController = navController,
             startDestination = KanomDestination.LIBRARY.route,
@@ -112,7 +111,7 @@ fun KanomApp(
                     importViewModel = importVm,
                     onOpenStatistics = { navController.navigate("reading_statistics") },
                     onOpenAnnotations = { id -> navController.navigate("book_annotations/$id") },
-                    onOpenNowPlaying = { navController.navigate(KanomDestination.NOW_PLAYING.route) { launchSingleTop = true } },
+                    onOpenNowPlaying = { showTtsSessionPopup = true },
                 )
             }
             composable("reading_statistics") {
@@ -185,6 +184,10 @@ fun KanomApp(
                     contentPadding = padding,
                 )
             }
+        }
+        if (showTtsSessionPopup) {
+            NowPlayingScreen(onBack = { showTtsSessionPopup = false })
+        }
         }
     }
 }
