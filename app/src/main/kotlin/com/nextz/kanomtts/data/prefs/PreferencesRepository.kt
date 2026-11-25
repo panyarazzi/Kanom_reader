@@ -53,7 +53,7 @@ class PreferencesRepository @Inject constructor(
 
     companion object {
         private val DEFAULTS = KanomPreferences()
-        private val VALID_RIGHT_PROGRESS_SLOTS = setOf("TIME_BATTERY", "TIME", "BATTERY", "CHARGING", "BOOK_PERCENT", "NONE")
+        private val VALID_PROGRESS_SLOTS = setOf("CHAPTER_PAGE", "CHAPTER_TITLE", "BOOK_TITLE", "BOOK_PERCENT", "TIME_BATTERY", "TIME", "BATTERY", "CHARGING", "NONE")
     }
 
     override val preferences: Flow<KanomPreferences> = store.data.map { p ->
@@ -64,12 +64,12 @@ class PreferencesRepository @Inject constructor(
             progressFontSizeSp = p[Keys.progressFontSize] ?: DEFAULTS.progressFontSizeSp,
             topProgressEnabled = p[Keys.topProgressEnabled] ?: DEFAULTS.topProgressEnabled,
             footerProgressEnabled = p[Keys.footerProgressEnabled] ?: DEFAULTS.footerProgressEnabled,
-            topProgressLeft = p[Keys.topProgressLeft] ?: DEFAULTS.topProgressLeft,
-            topProgressCenter = p[Keys.topProgressCenter] ?: DEFAULTS.topProgressCenter,
-            topProgressRight = p[Keys.topProgressRight]?.takeIf { it in VALID_RIGHT_PROGRESS_SLOTS } ?: DEFAULTS.topProgressRight,
-            footerProgressLeft = p[Keys.footerProgressLeft] ?: DEFAULTS.footerProgressLeft,
-            footerProgressCenter = p[Keys.footerProgressCenter] ?: DEFAULTS.footerProgressCenter,
-            footerProgressRight = p[Keys.footerProgressRight] ?: DEFAULTS.footerProgressRight,
+            topProgressLeft = p[Keys.topProgressLeft]?.takeIf { it in VALID_PROGRESS_SLOTS } ?: DEFAULTS.topProgressLeft,
+            topProgressCenter = p[Keys.topProgressCenter]?.takeIf { it in VALID_PROGRESS_SLOTS } ?: DEFAULTS.topProgressCenter,
+            topProgressRight = p[Keys.topProgressRight]?.takeIf { it in VALID_PROGRESS_SLOTS } ?: DEFAULTS.topProgressRight,
+            footerProgressLeft = p[Keys.footerProgressLeft]?.takeIf { it in VALID_PROGRESS_SLOTS } ?: DEFAULTS.footerProgressLeft,
+            footerProgressCenter = p[Keys.footerProgressCenter]?.takeIf { it in VALID_PROGRESS_SLOTS } ?: DEFAULTS.footerProgressCenter,
+            footerProgressRight = p[Keys.footerProgressRight]?.takeIf { it in VALID_PROGRESS_SLOTS } ?: DEFAULTS.footerProgressRight,
             lineHeight = p[Keys.lineHeight] ?: DEFAULTS.lineHeight,
             paragraphIndentEm = p[Keys.paragraphIndentEm] ?: DEFAULTS.paragraphIndentEm,
             paragraphSpacingEm = p[Keys.paragraphSpacingEm] ?: DEFAULTS.paragraphSpacingEm,
