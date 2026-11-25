@@ -332,8 +332,8 @@ internal fun ReaderSettingsSheetContent(
             NumericSettingField("ขนาด Progress (8–80 sp)", prefs.progressFontSizeSp.toString(), decimal = false) {
                 it.toIntOrNull()?.let { value -> onProgressFontSize(value.coerceIn(8, 80)) }
             }
-            ToggleRow("ตัวแสดงสถานะด้านบน", prefs.topProgressEnabled, onTopProgressEnabled)
-            ToggleRow("ตัวแสดงสถานะด้านล่าง", prefs.footerProgressEnabled, onFooterProgressEnabled)
+            InfoToggleRow(label = "ตัวแสดงสถานะด้านบน", checked = prefs.topProgressEnabled, onCheckedChange = onTopProgressEnabled, explanation = "เปิด: แสดงข้อมูลความคืบหน้าการอ่านไว้ที่ขอบด้านบนของหน้าหนังสือ ตามรูปแบบซ้าย กลาง และขวาที่เลือกไว้\nปิด: ซ่อนแถบความคืบหน้าด้านบน โดยไม่กระทบแถบด้านล่าง")
+            InfoToggleRow(label = "ตัวแสดงสถานะด้านล่าง", checked = prefs.footerProgressEnabled, onCheckedChange = onFooterProgressEnabled, explanation = "เปิด: แสดงข้อมูลความคืบหน้าการอ่านไว้ที่ขอบด้านล่างของหน้าหนังสือ ตามรูปแบบซ้าย กลาง และขวาที่เลือกไว้\nปิด: ซ่อนแถบความคืบหน้าด้านล่าง โดยไม่กระทบแถบด้านบน")
 
             Spacer(Modifier.height(12.dp))
             ProgressLayoutSection(
